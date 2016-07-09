@@ -140,7 +140,7 @@ delete_atom!(a::AbstractAtoms, n::Integer) = deleteat!(a, n)
 construct a suitable neighbourlist for this atoms object. `rcut` should
 be allowed to be either a scalar or a vector.
 """
-@protofun neighbourlist(a::AbstractAtoms, rcut)
+@protofun neighbourlist(a::AbstractAtoms, rcut::Float64)
 
 
 #######################################################################
@@ -164,18 +164,22 @@ abstract AbstractNeighbourList
 
 Returns an iterator over atomic sites.
 ```{julia}
-for (idx, neigs, r, R) in sites(nlist)
+for (idx, neigs, r, R, S) in sites(nlist)
     # do something at this site
 end
 ```
 Here `idx` is the current center-atom, `neigs` a collection
 indexing the neighbouring atoms, `r` a vector if distances and
-`R` a vector of distance vectors. TODO: revisit this?!?
+`R` a vector of distance vectors. `S` stores information
+about which copy of the cell the neighbours belong to
 
-Yet another way to loop over sites is
+A quicker way, if `nlist` won't be reused is
 ```{julia}
 for n, ... in sites(at, rcut)
 ```
+
+It should be assumed that `neigs, r, R, S` are views and therefore
+should not be modified!
 """
 @protofun sites(nlist::AbstractNeighbourList)
 
@@ -183,17 +187,27 @@ sites(at::AbstractAtoms, rcut) = sites(neighbourlist(at, rcut))
 
 
 """
-Returns `(neigs, r, R)` where `neigs` is an integer vector with indices
-of neighbour atoms of `n`, `r` a Float vector with their distances and
-`R` a vector of distance *vectors*.
+`bonds` : iterator over (pair-) bonds
+
+TODO: write documentation
 """
-@protofun neighbours(n::Integer, neigs::AbstractNeighbourList,
-                         atm::AbstractAtoms; rcut=-1)
+@protofun bonds(nlist::AbstractNeighbourList)
+
+bonds(at::AbstractAtoms, cutoff) = bonds(neighbourlist(at, rcut))
 
 
-get_neighbours(n::Integer, neigs::AbstractNeighbourList,
-           atm::AbstractAtoms; rcut=-1) =
-               neighbours(n, neigs, atm; rcut=rcut)
+# """
+# Returns `(neigs, r, R)` where `neigs` is an integer vector with indices
+# of neighbour atoms of `n`, `r` a Float vector with their distances and
+# `R` a vector of distance *vectors*.
+# """
+# @protofun neighbours(n::Integer, neigs::AbstractNeighbourList,
+#                          atm::AbstractAtoms; rcut=-1)
+#
+#
+# get_neighbours(n::Integer, neigs::AbstractNeighbourList,
+#            atm::AbstractAtoms; rcut=-1) =
+#                neighbours(n, neigs, atm; rcut=rcut)
 
 
 
