@@ -1,13 +1,14 @@
 using JuLIP
 using Base.Test
 
-# write your own tests here
-# @test 1 == 1
+julip_tests = [
+   "testaux.jl";
+   "testase.jl"
+]
 
-X = rand(3, 3)
-Y = pts(X) |> mat
+println("Starting JuLIP Tests")
+println("=====================")
 
-@show X == Y
-@show X === Y
-Y[1] = -1.0
-@show X[1]
+for test in julip_tests
+   include(test)
+end
