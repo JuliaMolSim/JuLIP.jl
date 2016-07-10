@@ -1,7 +1,8 @@
 
-import Base.convert
 
 using FixedSizeArrays
+
+import Base.convert
 
 export mat, pts, vecs
 export JVec, JVecs, JPt, JPts
@@ -51,20 +52,20 @@ convert{T}(::Type{JPts{T}}, X::Matrix{T}) = pt(X)
 convert{T}(::Type{JVecs{T}}, V::Matrix{T}) = vec(V)
 
 
-# finally create a macro to avoid having to wrap calls
-# into pt2mat vec2mat etc.
-"""
-`@mat`: macro to conveniently convert a list of fixed-size points or vec
-to a matrix. At the moment this only works with `T=Float64` for other
-floating point types, use `convert`, `pt2mat` or `vec2mat`.
-
-### Usage:
-```
-at = Atoms()  # generate an atoms object
-positions(at) # return a Vector of JPt (immutable)
-@mat positions(at)   # return same as a 3 x N  Matrix.
-```
-"""
-macro mat(fsig)
-   return Expr(:call, :convert, Matrix{Float64}, fsig)
-end
+# # finally create a macro to avoid having to wrap calls
+# # into pt2mat vec2mat etc.
+# """
+# `@mat`: macro to conveniently convert a list of fixed-size points or vec
+# to a matrix. At the moment this only works with `T=Float64` for other
+# floating point types, use `convert`, `pt2mat` or `vec2mat`.
+#
+# ### Usage:
+# ```
+# at = Atoms()  # generate an atoms object
+# positions(at) # return a Vector of JPt (immutable)
+# @mat positions(at)   # return same as a 3 x N  Matrix.
+# ```
+# """
+# macro mat(fsig)
+#    return Expr(:call, :convert, Matrix{Float64}, fsig)
+# end

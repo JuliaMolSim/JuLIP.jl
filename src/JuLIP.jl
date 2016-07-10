@@ -15,17 +15,17 @@ include("arrayconversions.jl")
 include("abstractions.jl")
 
 # implementation of some key functionality via ASE
-# include("ASE.jl")
+include("ASE.jl")
 
 
-# # define aliases!
-# """
-# `type Atoms`
-#
-# Technically not a type but a type-alias, to allow different "backends".
-# At the moment, `Atoms = ASE.ASEAtoms`.
-# """
-# Atoms = ASE.ASEAtoms
+# define the atoms object
+"""
+`type Atoms`
+
+Technically not a type but a type-alias, to allow different "backends".
+At the moment, `Atoms = ASE.ASEAtoms`.
+"""
+typealias Atoms ASE.ASEAtoms
 
 
 

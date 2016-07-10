@@ -21,7 +21,7 @@ using PyCall
 
 @pyimport matscipy.neighbours as matscipy_neighbours
 
-import JuLIP: AbstractNeighbourList, cutoff, sites, bonds
+import JuLIP: AbstractNeighbourList, cutoff, sites, bonds, JPts
 
 # to implement the iterators
 import Base: start, done, next
@@ -118,5 +118,6 @@ function next(s::Sites, state::SiteItState)
    return (state.s, view(s.nlist.j, m0:m1), view(s.nlist.r, m0:m1),
                view(s.nlist.R, m0:m1), view(s.nlist.S, m0:m1)), state
 end
+
 
 end
