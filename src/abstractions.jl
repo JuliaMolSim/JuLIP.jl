@@ -44,34 +44,30 @@ macro protofun(fsig::Expr)
         end
     end
     body = quote
-        error(string("AtomsInterface: ", $fname,
+        error(string("JuLIP: ", $fname,
                      ($([:(typeof($(esc(arg)))) for arg in argnames]...),),
                      " ) has no implementation.") )
     end
     Expr(:function, esc(fsig), body)
 end
 
-
+# function defined primarily on AbstractAtoms
 export AbstractAtoms,
       positions, get_positions, set_positions!,
-      cell, get_cell, set_cell!, is_cubic,
-      pbc, get_pbc, set_pbc!,
+      cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       set_data!, get_data,
       neighbourlist
 
+# length is used for several things
 import Base.length
 
 export AbstractCalculator,
-      potential_energy, potential_energy_d, forces
-
+      energy, potential_energy, forces, grad
 
 export AbstractNeighbourList,
       sites, bonds, angles, dihedrals
 
-
-# Also provided:
-#   length
-
+# TODO: angles, dihedrals
 # TODO: decide on maxforce
 
 
@@ -98,7 +94,9 @@ abstract AbstractAtoms
 get_positions(a::AbstractAtoms) = positions(a)
 
 "Set positions of all atoms as a `3 x N` array."
-@protofun set_positions!(::AbstractAtoms, ::Any)
+@protofun set_positions!(::AbstractAtoms, ::JPts)
+
+set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, pts(p))
 
 "get computational cell"
 @protofun cell(::AbstractAtoms)
@@ -107,25 +105,25 @@ get_positions(a::AbstractAtoms) = positions(a)
 get_cell(a::AbstractAtoms) = cell(a)
 
 "set computational cell"
-@protofun set_cell!(a::AbstractAtoms, A::Matrix)
+@protofun set_cell!(::AbstractAtoms, ::Matrix)
 
 "set periodic boundary conditions"
-@protofun set_pbc!(a::AbstractAtoms, val)
+@protofun set_pbc!(::AbstractAtoms, ::NTuple{3,Bool})
 
 "get array (or tuple) determining which directions are periodic"
-@protofun pbc(a::AbstractAtoms)
+@protofun pbc(::AbstractAtoms)
 
 "alias for `pbc`"
-get_pbc(a::AbstractAtoms) = pbc(AbstractAtoms)
+get_pbc(a::AbstractAtoms) = pbc(a)
 
 "determines whether a cubic cell is used (i.e. cell is a diagonal matrix)"
 is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 
 "associate some data with `a`; to be stored in a Dict within `a`"
-@protofun set_data!(a::AbstractAtoms, name, value)
+@protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
 
 "obtain some data stored with `set_data!`"
-@protofun get_data(a::AbstractAtoms, name)
+@protofun get_data(a::AbstractAtoms, name::Any)
 
 "delete an atom"
 @protofun deleteat!(a::AbstractAtoms, n::Integer)
@@ -163,7 +161,7 @@ abstract AbstractNeighbourList
 `sites(::AbstractNeighbourList)` or `sites(::AbstractAtoms, rcut)`
 
 Returns an iterator over atomic sites.
-```{julia}
+```julia
 for (idx, neigs, r, R, S) in sites(nlist)
     # do something at this site
 end
@@ -174,26 +172,39 @@ indexing the neighbouring atoms, `r` a vector if distances and
 about which copy of the cell the neighbours belong to
 
 A quicker way, if `nlist` won't be reused is
-```{julia}
+```julia
 for n, ... in sites(at, rcut)
 ```
 
 It should be assumed that `neigs, r, R, S` are views and therefore
 should not be modified!
 """
-@protofun sites(nlist::AbstractNeighbourList)
+@protofun sites(::AbstractNeighbourList)
 
-sites(at::AbstractAtoms, rcut) = sites(neighbourlist(at, rcut))
+sites(at::AbstractAtoms, rcut::Float64) = sites(neighbourlist(at, rcut))
 
 
 """
 `bonds` : iterator over (pair-) bonds
 
-TODO: write documentation
+E.g., the a pair potential can be implemented as follows:
+```julia
+ϕ(r) = r^(-12) - 2.0 * r^(-6)
+dϕ(r) = -12 * (r^(-13) - r^(-7))
+function lj(at::AbstractAtoms)
+   E = 0.0; dE = zeros(3, length(at)) |> vecs
+   for (i, j, r, R, S) in bonds(at, 4.1)
+      E += ϕ(r)
+      dE[j] += (dϕ(r)/r) * R
+      dE[i] -= (dϕ(r)/r) * R
+   end
+   return E, dE
+end
+```
 """
-@protofun bonds(nlist::AbstractNeighbourList)
+@protofun bonds(::AbstractNeighbourList)
 
-bonds(at::AbstractAtoms, cutoff) = bonds(neighbourlist(at, rcut))
+bonds(at::AbstractAtoms, cutoff::Float64) = bonds(neighbourlist(at, cutoff))
 
 
 # """
@@ -225,85 +236,36 @@ forces, and so forth.
 """
 abstract AbstractCalculator
 
-# # The following two functions are, in my view, superfluous for the
-# # general interface since - typically - a calculator need not be attached
-# # to a specific atoms object. However, it does turn out to be convenient to
-# # have the calculator attached to the atoms object; see multiple convenience
-# # wrapper functions below.
-# "Return calculator attached to the atoms object (if one exists)"
-# @protofun calculator(::AbstractAtoms)
-#
-# "Attach a calculator to the atoms object"
-# @protofun set_calculator!(::AbstractAtoms)
-
 "Returns the cut-off radius of the potential."
 @protofun cutoff(::AbstractCalculator)
 
+"""
+Return the total energy of a configuration of atoms `a`, using the calculator
+`c`.
+"""
+@protofun energy(c::AbstractCalculator, a::AbstractAtoms)
 
-## ==============================
-## get_E and has_E   : total energy
+"`potential_energy` : alias for `energy`"
+potential_energy(c::AbstractCalculator, a::AbstractAtoms) = energy(c, a)
 
-"""Return the total energy of a configuration of atoms `a`, using the calculator
-`c`.  Alternatively can call `get_E(a) = get_E(a, get_calculator(a))` """
-@protofun potential_energy(a::AbstractAtoms, c::AbstractCalculator)
-potential_energy(a::AbstractAtoms) = potential_energy(a, get_calculator(a))
-
-# "Returns `true` if the calculator `c` can compute total energies."
-# @protofun has_E(c::AbstractCalculator)
-# has_E(a::AbstractAtoms) = has_E(get_calculator(a))
-
-## ==============================
-## get_Es and has_Es   : site energy
-
-# """`site_energies(idx, a::AbstractAtoms, c::AbstractCalculator)`:
-# Returns an `Vector{Float64}` of site energies of a configuration of
-# atoms `a`, using the calculator `c`. If idx==[] (default), then *all*
-# site energies are returned, otherwise those corresponding to the list
-# of indices idx.
-# """
-# @protofun site_energies(idx, a::AbstractAtoms, c::AbstractCalculator)
-# get_Es(idx, a::AbstractAtoms) = get_Es(idx, a, get_calculator(a))
-
-# "Returns `true` if the calculator `c` can compute site energies."
-# @protofun has_Es(c::AbstractCalculator)
-# has_Es(a::AbstractAtoms) = has_Es(get_calculator(a))
+"""
+energy difference between two configurations; default is to just compute the
+two energies, but this allows implementation of numerically robust
+differences,w hich can be important for very large problems.
+"""
+energy_difference(c::AbstractCalculator, a::AbstractAtoms, aref::AbstractAtoms) =
+   energy(c, a) - energy(c, aref)
 
 
-# """same calling convention as get_Es.
+"""
+Returns the negative gradient of the total energy in the format `3 x length`.
+"""
+@protofun forces(c::AbstractCalculator, a::AbstractAtoms)
 
-# Returns a tuple `(dEs, Ineigs)`, where `dEs` is d x nneigs and
-# `Ineigs` is the list of neighbours for which the forces have been computed
-# """
-# @protofun get_dEs(idx, a::AbstractAtoms, c::AbstractCalculator)
-# get_dEs(idx, a::AbstractAtoms) = get_dEs(idx, a, get_calculator(calc))
-
-
-# ==========================================================
-# get_dE
-# (every calculator needs this, so there is no has_dE())
-
-"""Returns the negative gradient of the total energy in the format `3 x length`.
-Alternatively, one can call the simplified form
-    forces(a::AbstractAtoms) = forces(a, calculator(a))
-provided that a has an attached calculator is avilable."""
-@protofun forces(a::AbstractAtoms, c::AbstractCalculator)
-forces(a::AbstractAtoms) = forces(a, calculator(a))
-
-potential_energy_d(a,c) = - forces(a, c)
+"`grad(c,a) = - forces(c, a)`"
+grad(c::AbstractCalculator, a::AbstractAtoms) = - forces(c, a)
 
 
-# """Returns the  gradient of the total energy in the format `3 x length`.
-# Alternatively, one can call the simplified form
-#     get_dE(a::AbstractAtoms) = get_dE(a, get_calculator(a))
-# provided that a.calc is avilable."""
-# @protofun get_dE(a::AbstractAtoms, c::AbstractCalculator)
-# get_dE(a::AbstractAtoms) = get_dE(a, get_calculator(a))
-
-# "Return gradient of total energy taken w.r.t. dofs, i.e., as a long vector. "
-# get_dE_dofs(a::AbstractAtoms, calc::AbstractCalculator, con::AbstractConstraints) =
-#     forces_to_dofs(get_dE(a, calc), con)
-# get_dE_dofs(a::AbstractAtoms) = get_dE(a, get_calculator(a),
-#                                        get_constraints(a) )
 
 
 
@@ -348,25 +310,10 @@ potential_energy_d(a,c) = - forces(a, c)
 # more abstract types that eventually need to be
 # arranged in a better way
 
-abstract Preconditioner
+# abstract Preconditioner
 
-"store an array; assumes that obj.arrays exists"
-function set_array!(obj::Any, key, val)
-    obj.arrays[key] = val
-end
-
-"""retrieve an array; instead of raising an exception if `key` does not exist,
- this function returns `nothing`"""
-function get_array(obj::Any, key)
-    if haskey(obj.arrays, key)
-        return obj.arrays[key]
-    else
-        return nothing
-    end
-end
-
-"""`max_force(f::AbstractArray{2})`:
-
-For a 3 x N array `f`, return the maximum of `|f[:,n]|₂`.
-"""
-maxforce(f) = sqrt(maximum(sumabs2(f, 1)))
+# """`max_force(f::AbstractArray{2})`:
+#
+# For a 3 x N array `f`, return the maximum of `|f[:,n]|₂`.
+# """
+# maxforce(f) = sqrt(maximum(sumabs2(f, 1)))
