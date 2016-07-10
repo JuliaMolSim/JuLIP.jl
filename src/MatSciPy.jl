@@ -18,10 +18,11 @@ will use `ASE.NeighbourList`. (TODO)
 module MatSciPy
 
 using PyCall
-
 @pyimport matscipy.neighbours as matscipy_neighbours
 
-import JuLIP: AbstractNeighbourList, cutoff, sites, bonds, JPts
+import JuLIP:  AbstractNeighbourList, cutoff, sites, bonds,
+               JPts, JVecs, vecs, pts
+import JuLIP.ASE: ASEAtoms, pyobject
 
 # to implement the iterators
 import Base: start, done, next
@@ -46,21 +47,27 @@ distance vectors `D` from the ASE N x 3 to the Atoms.jl 3 x N convention!
 """
 function neighbour_list(atoms::ASEAtoms,
                         cutoff::Float64,
-                        quantities="ijdDS",
-                        convert=false)
+                        quantities="ijdDS";
+                        convertarrays=false)
    results = matscipy_neighbours.neighbour_list(quantities,
                                                 pyobject(atoms),
                                                 cutoff)
-   length(quantities) == 1 && results = (results,)
+   if length(quantities) == 1; results = (results,); end
    results = collect(results)
    for (idx, quantity) in enumerate(quantities)
-      (quantity == 'i' || quantity == 'j') &&  results[idx][:] += 1
-      (quantity == 'R' && convert) && results[idx] = vecs(results[idx]')
-      (quantity == 'S' && convert) && results[idx] = vecs(results[idx]')
+      # convert indices to 1-based (Julia convention)
+      if (quantity == 'i' || quantity == 'j'); results[idx][:] += 1; end
+      # convert R ans S matrices to arrays of vectors
+      if convertarrays
+         if quantity == 'D'; results[idx] = vecs(results[idx]'); end
+         if quantity == 'S'; results[idx] = vecs(results[idx]'); end
+      end
    end
-   return results
+   return tuple(results...)
 end
 
+# neighbour_list(atoms::ASEAtoms, cutoff::Float64; kwargs...) =
+#                   neighbour_list(atoms, cutoff, "ijdDS"; kwargs...)
 
 """
 A basic wrapper around the `neighbour_list` builder.
@@ -82,7 +89,7 @@ end
 
 # default constructor from an ASEAtoms object
 NeighbourList(at::ASEAtoms, cutoff::Float64) =
-   NeighbourList(cutoff, neighbour_list(at, cutoff, convert=true)...)
+   NeighbourList(cutoff, neighbour_list(at, cutoff, convertarrays=true)... )
 
 import Base.length
 length(nlist::NeighbourList) = length(nlist.i)
@@ -92,7 +99,7 @@ length(nlist::NeighbourList) = length(nlist.i)
 
 bonds(nlist::NeighbourList) = zip(nlist.i, nlist.j, nlist.r, nlist.R, nlist.S)
 
-# iterator of sites
+# iterator over sites
 type Sites
    nlist::NeighbourList
 end
@@ -115,8 +122,8 @@ function next(s::Sites, state::SiteItState)
       state.b += 1
    end
    m1 = state.b
-   return (state.s, view(s.nlist.j, m0:m1), view(s.nlist.r, m0:m1),
-               view(s.nlist.R, m0:m1), view(s.nlist.S, m0:m1)), state
+   return (state.s, sub(s.nlist.j, m0:m1), sub(s.nlist.r, m0:m1),
+               sub(s.nlist.R, m0:m1), sub(s.nlist.S, m0:m1)), state
 end
 
 

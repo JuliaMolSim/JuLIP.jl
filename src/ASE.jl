@@ -36,12 +36,12 @@ import JuLIP: AbstractAtoms,
       pbc, set_pbc!,               # ✓
       set_data!, get_data,         # ✓
       deleteat!,                   # ✓
-      neighbourlist
+      neighbourlist                # ✓
 
 import Base.length      # ✓
 
 # from arrayconversions:
-import JuLIP: mat, pts, vecs
+import JuLIP: mat, pts, vecs, JPts, JVecs
 
 # extra ASE functionality:
 import Base.repeat         # ✓
@@ -49,23 +49,13 @@ export bulk, ASEAtoms      # ✓
 
 # this one is a little hack based on the ASE functionality, hence it is not
 # in JuLIP proper.
-export rnn
-
-
-
-# ASEAtoms, pyobject
-# export convert, get_array, set_array!
-# export get_cell, set_cell!
-# export set_calculator, get_forces, get_potential_energy, get_stress
-# export repeat, bulk, length
-# export ASENeighborList, get_neighbors, neighbors
-# export get_cell, cell, set_pbc!, iscubic, assert_cubic, delete_atom!
+export rnn                 # TODO: double-check and test
 
 
 using PyCall
 @pyimport ase
 @pyimport ase.lattice as lattice
-@pyimport ase.calculators.neighborlist as ase_neiglist
+# @pyimport ase.calculators.neighborlist as ase_neiglist
 
 
 
@@ -89,19 +79,22 @@ at = ASEAtoms("Al"; repeat=(2,3,4), cubic=true, pbc = (true, false, true))
 For internal usage there is also a constructor `ASEAtoms(po::PyObject)`
 """
 type ASEAtoms <: AbstractAtoms
-    po::PyObject      # ase.Atoms instance
-    X::JPts
+    po::PyObject       # ase.Atoms instance
+    X::JPts{Float64}   # an alias for positions, for faster access
 end
 
-
-function ASEAtoms(s::AbstractString; repeat=nothing, cubic=false,
-                  pbc=(true,true,true))
-   at = bulk(s, cubic=cubic)
-   repeat != nothing && at = repeat(at, repeat)
-   set_pbc!(at, pbc)
-end
 
 ASEAtoms(po::PyObject) = ASEAtoms(po, positions(po))
+
+
+function ASEAtoms( s::AbstractString;
+                   repeatcell=nothing, cubic=false, pbc=(true,true,true) )
+   at = bulk(s, cubic=cubic)
+   if repeatcell != nothing; at = repeat(at, repeatcell); end
+   set_pbc!(at, pbc)
+   return at
+end
+
 
 "Return the PyObject associated with `a`"
 pyobject(a::ASEAtoms) = a.po
@@ -110,11 +103,11 @@ get_array(a::ASEAtoms, name) = a.po[:get_array(name)]
 
 set_array!(a::ASEAtoms, name, value) = a.po[:set_array(name, value)]
 
-positions(po::PyObject) = po[:get_positions]()'
+positions(po::PyObject) = pts(po[:get_positions]()')
 
-positions(a::ASEAtoms) = pts(a.X)
+positions(a::ASEAtoms) = a.X
 
-function set_positions!(a::ASEAtoms, p::JPts)
+function set_positions!(a::ASEAtoms, p::JPts{Float64})
    a.X = p
    a.po[:set_positions](mat(p)')
    return nothing
@@ -154,7 +147,8 @@ repeat(a::ASEAtoms, n::NTuple{3, Int64}) = ASEAtoms(a.po[:repeat](n))
 
 Generates a unit cell of the element described by `name`
 """
-bulk(name::AbstractString; kwargs...) = ASEAtoms(lattice.bulk(name; kwargs...))
+bulk(name::AbstractString; kwargs...) =
+            ASEAtoms(lattice.bulk(name; kwargs...))
 
 
 ############################################################
@@ -163,9 +157,7 @@ bulk(name::AbstractString; kwargs...) = ASEAtoms(lattice.bulk(name; kwargs...))
 
 include("matscipy.jl")
 
-neighbourlist(at::ASEAtoms, cutoff::Float64) =
-                     MatSciPy.NeighbourList(at, cutoff)
-
+neighbourlist(at::ASEAtoms, cutoff::Float64) = MatSciPy.NeighbourList(at, cutoff)
 
 
 ######################################################
