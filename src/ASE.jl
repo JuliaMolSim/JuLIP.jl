@@ -115,7 +115,7 @@ end
 
 length(a::ASEAtoms) = length(a.X)
 
-set_pbc!(a::ASEAtoms, val) = (a.po[:pbc] = val)
+set_pbc!(a::ASEAtoms, val::NTuple{3,Bool}) = (a.po[:pbc] = val)
 
 pbc(a::ASEAtoms) = a.po[:pbc]
 
