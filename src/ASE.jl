@@ -160,20 +160,16 @@ include("matscipy.jl")
 neighbourlist(at::ASEAtoms, cutoff::Float64) = MatSciPy.NeighbourList(at, cutoff)
 
 
+
 ######################################################
 ##### TODO
-############################################################
+######################################################
 
 # TODO: tie in properly with ASE calculators
 set_calculator!(a::ASEAtoms, calculator::PyObject) = a.po[:set_calculator](calculator)
 get_forces(a::ASEAtoms) = a.po[:get_forces]()
 get_potential_energy(a::ASEAtoms) = a.po[:get_potential_energy]()
 get_stress(a::ASEAtoms) = a.po[:get_stress]()
-
-
-
-
-
 
 
 

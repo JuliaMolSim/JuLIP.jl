@@ -270,8 +270,9 @@ grad(c::AbstractCalculator, a::AbstractAtoms) = - forces(c, a)
 
 
 #######################################################################
-#  TODO: CONSTRAINTS
+#  TODO: CONSTRAINTS, PRECONDITIONER
 #######################################################################
+
 
 # # constraints implement boundary conditions, or other types
 # # of constraints; the details of this interface are still a bit fuzzy for me
