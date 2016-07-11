@@ -6,6 +6,7 @@ import Base.convert
 
 export mat, pts, vecs
 export JVec, JVecs, JPt, JPts
+export zerovecs, zeropts
 # export @mat
 
 "`JVec{T}` : 3-dimensional immutable vector"
@@ -54,3 +55,8 @@ convert{T}(::Type{JVecs{T}}, V::Matrix{T}) = vec(V)
 # initialise a vector of vecs or points
 # zeros{S}(::Type{S <: JVecs{Float64}}, n::Integer) = zeros(3, n) |> vecs
 # zeros{S, T}(::Type{S <: JPts{T}}, n::Integer) = zeros(T, 3, n) |> pts
+
+zerovecs(n::Integer) = zerovecs(Float64, n)
+zeropts(n::Integer) = zeropts(Float64, n)
+zerovecs(T::Type, n::Integer) = zeros(T, 3, n) |> vecs
+zeropts(T::Type, n::Integer) = zeros(T, 3, n) |> pts

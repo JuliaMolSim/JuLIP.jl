@@ -1,6 +1,5 @@
-# JuLIP.jl master file.
-#
 
+# JuLIP.jl master file.
 
 
 module JuLIP
@@ -17,8 +16,7 @@ include("abstractions.jl")
 # implementation of some key functionality via ASE
 include("ASE.jl")
 
-
-# define the atoms object
+# define the default atoms object
 """
 `type Atoms`
 
@@ -27,6 +25,11 @@ At the moment, `Atoms = ASE.ASEAtoms`.
 """
 typealias Atoms ASE.ASEAtoms
 
+# interatomic potentials prototypes and some example implementations
+include("Potentials.jl")
 
+
+
+include("Testing.jl")
 
 end # module

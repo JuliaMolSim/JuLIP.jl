@@ -24,6 +24,9 @@ Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. Otherwise, open an issue.
 
+# Examples
+
+
 
 # TODO
 
