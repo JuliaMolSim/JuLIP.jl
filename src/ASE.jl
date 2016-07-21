@@ -36,12 +36,16 @@ import JuLIP: AbstractAtoms,
       pbc, set_pbc!,               # ✓
       set_data!, get_data,         # ✓
       deleteat!,                   # ✓
+      calculator, set_calculator!, # ✓
+      constraint, set_constraint!, # ✓
       neighbourlist                # ✓
 
-import Base.length      # ✓
+import Base.length         # ✓
 
 # from arrayconversions:
-import JuLIP: mat, pts, vecs, JPts, JVecs
+import JuLIP: mat, pts, vecs, JPts, JVecs,
+      AbstractConstraint, NullConstraint,
+      AbstractCalculator, NullCalculator
 
 # extra ASE functionality:
 import Base.repeat         # ✓
@@ -79,12 +83,20 @@ at = ASEAtoms("Al"; repeat=(2,3,4), cubic=true, pbc = (true, false, true))
 For internal usage there is also a constructor `ASEAtoms(po::PyObject)`
 """
 type ASEAtoms <: AbstractAtoms
-    po::PyObject       # ase.Atoms instance
-    X::JPts{Float64}   # an alias for positions, for faster access
+   po::PyObject       # ase.Atoms instance
+   X::JPts{Float64}   # an alias for positions, for faster access (TODO: is this needed?)
+   calc::AbstractCalculator
+   cons::AbstractConstraint
 end
 
 
-ASEAtoms(po::PyObject) = ASEAtoms(po, positions(po))
+ASEAtoms(po::PyObject) = ASEAtoms(po, positions(po),
+                                    NullCalculator(), NullConstraint())
+
+function set_calculator!(at::ASEAtoms, calc::AbstractCalculator) at.calc = calc end
+calculator(at::ASEAtoms) = at.calc
+function set_constraint!(at::ASEAtoms, cons::AbstractConstraint) at.cons = cons end
+constraint(at::ASEAtoms) = at.cons
 
 
 function ASEAtoms( s::AbstractString;
@@ -110,7 +122,7 @@ positions(a::ASEAtoms) = a.X
 function set_positions!(a::ASEAtoms, p::JPts{Float64})
    a.X = p
    a.po[:set_positions](mat(p)')
-   return nothing
+   return a
 end
 
 length(a::ASEAtoms) = length(a.X)
@@ -180,7 +192,7 @@ get_stress(a::ASEAtoms) = a.po[:get_stress]()
 `rnn(species)` : returns the nearest-neighbour distance for a given species
 """
 function rnn(species::AbstractString)
-   at = ASEAtoms(species, repeat=(2,2,2))
+   at = ASEAtoms(species, repeatcell=(2,2,2))
    X = positions(at)
    r = Float64[]
    for n = 1:length(at), m = n+1:length(at)

@@ -7,7 +7,7 @@ import Base.convert
 export mat, pts, vecs
 export JVec, JVecs, JPt, JPts
 export zerovecs, zeropts
-# export @mat
+export ee
 
 "`JVec{T}` : 3-dimensional immutable vector"
 typealias JVec{T} Vec{3,T}
@@ -21,17 +21,27 @@ typealias JVecs{T} Vector{JVec{T}}
 "`JPts{T}` : List of 3-dimensional immutable points"
 typealias JPts{T} Vector{JPt{T}}
 
+const e1 = JPt{Float64}((1.0,0.0,0.0))
+const e2 = JPt{Float64}((0.0,1.0,0.0))
+const e3 = JPt{Float64}((0.0,0.0,1.0))
+const EE = [e1;e2;e3]
+
+"returns the i-th canonical basis vector as JPt{Float64} (i = 1,2,3)"
+ee(i::Integer) = EE[i]
+
 """
-`mat2pt(X::Matrix)` : convert (as reference) a 3 x N matrix representing
+`pts(X::Matrix)` : convert (as reference) a 3 x N matrix representing
 N Points in R³ to a list (vector) of fixed-size-array points.
 """
 pts{T}(X::Matrix{T}) = reinterpret(JPt{T}, X, (size(X,2),))
+pts{T}(X::Vector{T}) = reinterpret(JPt{T}, X, (length(X) ÷ 3,))
 
 """
-`mat2vec(V::Matrix)` : convert (as reference) a 3 x N matrix representing
+`vecs(V::Matrix)` : convert (as reference) a 3 x N matrix representing
 N vectors (e.g. forces) in R³ to a list (vector) of fixed-size-array vectors.
 """
 vecs{T}(V::Matrix{T}) = reinterpret(JVec{T}, V, (size(V,2),))
+vecs{T}(V::Vector{T}) = reinterpret(JVec{T}, V, (length(V) ÷ 3,))
 
 """
 `mat(X::JPts)` and `mat(X::JVecs)`: convert (as reference) a list (Vector) of

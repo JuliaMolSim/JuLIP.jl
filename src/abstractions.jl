@@ -3,6 +3,45 @@
 
 import Base.length
 
+
+"""
+`AbstractAtoms`
+
+the abstract supertype for storing atomistic
+configurations. A basic implementation might simply store a list of positions.
+"""
+abstract AbstractAtoms
+
+
+"""
+Abstract supertype of neighbourlists.
+
+The standard contructor should be of the form
+```
+   NeighbourList(at::AbstractAtoms, rcut)
+```
+where `rcut` should be either a scalar or a vector of cut-offs.
+"""
+abstract AbstractNeighbourList
+
+abstract AbstractConstraint
+
+"""
+`Dofs`: dof vector
+"""
+typealias Dofs Vector{Float64}
+
+
+"""
+`AbstractCalculator`: the abstract supertype of calculators. These
+store model information, and are linked to the implementation of energy,
+forces, and so forth.
+"""
+abstract AbstractCalculator
+
+
+
+
 """
 `macro protofun(fsig::Expr)`
 
@@ -56,6 +95,7 @@ export AbstractAtoms,
       positions, get_positions, set_positions!,
       cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       set_data!, get_data,
+      calculator, get_calculator!, constraint, get_constraint!,
       neighbourlist
 
 # length is used for several things
@@ -65,24 +105,17 @@ export AbstractCalculator,
       energy, potential_energy, forces, grad
 
 export AbstractNeighbourList,
-      sites, bonds, angles, dihedrals
+      sites, bonds
 
-# TODO: angles, dihedrals
+export AbstractConstraint, NullConstraint, dofs
+
+# TODO: iterator for angles, dihedrals
 # TODO: decide on maxforce
 
 
-"""
-`AbstractAtoms`
-
-the abstract supertype for storing atomistic
-configurations. A basic implementation might simply store a list of positions.
-"""
-abstract AbstractAtoms
 
 # the following are dummy method definitions that just throw an error if a
 # method hasn't been implemented
-
-
 
 "Return number of atoms"
 @protofun length(::AbstractAtoms)
@@ -91,7 +124,7 @@ abstract AbstractAtoms
 @protofun positions(::AbstractAtoms)
 
 "alias for `positions`"
-get_positions(a::AbstractAtoms) = positions(a)
+get_positions = positions
 
 "Set positions of all atoms as a `3 x N` array."
 @protofun set_positions!(::AbstractAtoms, ::JPts)
@@ -102,7 +135,7 @@ set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, pts(p))
 @protofun cell(::AbstractAtoms)
 
 "alias for `cell`"
-get_cell(a::AbstractAtoms) = cell(a)
+get_cell = cell
 
 "set computational cell"
 @protofun set_cell!(::AbstractAtoms, ::Matrix)
@@ -114,23 +147,48 @@ get_cell(a::AbstractAtoms) = cell(a)
 @protofun pbc(::AbstractAtoms)
 
 "alias for `pbc`"
-get_pbc(a::AbstractAtoms) = pbc(a)
+get_pbc = pbc
 
 "determines whether a cubic cell is used (i.e. cell is a diagonal matrix)"
 is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 
-"associate some data with `a`; to be stored in a Dict within `a`"
+"""
+`set_data!(at, name, value)`:
+associate some data with `at`; to be stored in a Dict within `at`;
+if `name` is of type `Symbol` or `String` then can also use
+ `setindex!`
+"""
 @protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
+Base.setindex!(at::AbstractAtoms, value,
+               name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
-"obtain some data stored with `set_data!`"
+"""
+`get_data(a, name)`:
+obtain some data stored with `set_data!`,
+if `name` is of type `Symbol` or `String` then can also use
+ `getindex`
+"""
 @protofun get_data(a::AbstractAtoms, name::Any)
+Base.getindex(at::AbstractAtoms,
+               name::Union{Symbol, AbstractString}) = get_data(at, name)
 
 "delete an atom"
 @protofun deleteat!(a::AbstractAtoms, n::Integer)
 
 "alias for `deleteat!`"
-delete_atom!(a::AbstractAtoms, n::Integer) = deleteat!(a, n)
+delete_atom! = deleteat!
 
+"return an attached calculator"
+@protofun calculator(at::AbstractAtoms)
+
+"attach a calculator"
+@protofun set_calculator!(at::AbstractAtoms, calc::AbstractCalculator)
+
+"return attached constraint"
+@protofun constraint(at::AbstractAtoms)
+
+"attach a constraint"
+@protofun set_constraint!(at::AbstractAtoms, cons::AbstractConstraint)
 
 """
 `neighbourlist(a::AbstractAtoms, rcut)`
@@ -141,20 +199,11 @@ be allowed to be either a scalar or a vector.
 @protofun neighbourlist(a::AbstractAtoms, rcut::Float64)
 
 
+
 #######################################################################
 #  NEIGHBOURLIST
 #######################################################################
 
-"""
-Abstract supertype of neighbourlists.
-
-The standard contructor should be of the form
-```
-   NeighbourList(at::AbstractAtoms, rcut)
-```
-where `rcut` should be either a scalar or a vector of cut-offs.
-"""
-abstract AbstractNeighbourList
 
 
 """
@@ -207,18 +256,6 @@ end
 bonds(at::AbstractAtoms, cutoff::Float64) = bonds(neighbourlist(at, cutoff))
 
 
-# """
-# Returns `(neigs, r, R)` where `neigs` is an integer vector with indices
-# of neighbour atoms of `n`, `r` a Float vector with their distances and
-# `R` a vector of distance *vectors*.
-# """
-# @protofun neighbours(n::Integer, neigs::AbstractNeighbourList,
-#                          atm::AbstractAtoms; rcut=-1)
-#
-#
-# get_neighbours(n::Integer, neigs::AbstractNeighbourList,
-#            atm::AbstractAtoms; rcut=-1) =
-#                neighbours(n, neigs, atm; rcut=rcut)
 
 
 
@@ -228,25 +265,29 @@ bonds(at::AbstractAtoms, cutoff::Float64) = bonds(neighbourlist(at, cutoff))
 #     CALCULATOR
 #######################################################################
 
-
-"""
-`AbstractCalculator`: the abstract supertype of calculators. These
-store model information, and are linked to the implementation of energy,
-forces, and so forth.
-"""
-abstract AbstractCalculator
+type  NullCalculator <: AbstractCalculator end
 
 "Returns the cut-off radius of the potential."
 @protofun cutoff(::AbstractCalculator)
 
 """
-Return the total energy of a configuration of atoms `a`, using the calculator
+`energy`: can be called in various ways
+*  `energy(calc, at)`: base definition
+* `energy(at) = energy(calculator(at), at)`: if a calculator is attached to `at`
+* `energy(calc, at, const, dof) = energy(calc, dof2at!(at,const,dof))`
+* `energy(calc, at, dof) = energy(calc, at, constraint(dof), dof)`
+* `energy(at, dof) = energy`
+
+
+Return the total potential energy of a configuration of atoms `a`, using the calculator
 `c`.
 """
 @protofun energy(c::AbstractCalculator, a::AbstractAtoms)
+energy(at::AbstractAtoms) = energy(calculator(at), at)
+# energy() TODO: CONTINUE HERE
 
 "`potential_energy` : alias for `energy`"
-potential_energy(c::AbstractCalculator, a::AbstractAtoms) = energy(c, a)
+potential_energy = energy
 
 """
 energy difference between two configurations; default is to just compute the
@@ -268,44 +309,50 @@ grad(c::AbstractCalculator, a::AbstractAtoms) = - forces(c, a)
 
 
 
+#######################################################################
+#  Constraints
+#######################################################################
+
+type NullConstraint <: AbstractConstraint end
+
+"""
+* `dofs(cons::AbstractConstraint, vecs::JVecs)`
+* `dofs(cons::AbstractConstraint, vecs::JVecs)`
+
+Take a direction in position space (e.g. a collection of forces)
+and project it to a dof-vector
+"""
+@protofun dofs(at::AbstractAtoms, cons::AbstractConstraint, v_or_p)
+dofs(at::AbstractAtoms, cons::AbstractConstraint) = dofs(at, cons, positions(at))
+dofs(at::AbstractAtoms) = dofs(at, constraint(at))
+
+
+"""
+`vecs(cons::AbstractConstraint, vecs::JVecs)`:
+
+Take a dof-vector and reconstruct a direction in position space
+"""
+@protofun vecs(cons::AbstractConstraint, at::AbstractAtoms, dofs::Dofs)
+
+@protofun positions(cons::AbstractConstraint, at::AbstractAtoms, dofs::Dofs)
+
+set_positions!(cons::AbstractConstraint, at::AbstractAtoms, dofs::Dofs) =
+      set_positions!(at, positions(cons, at, dofs))
+
+
+"""
+`project(cons::AbstractConstraint, at::AbstractAtoms)`
+
+take an atomistic configuration (collection of positions) and project
+onto the manifold defined by the constraint.
+"""
+@protofun project!(at::AbstractAtoms, cons::AbstractConstraint)
+
+
 
 #######################################################################
-#  TODO: CONSTRAINTS, PRECONDITIONER
+#  TODO: PRECONDITIONER
 #######################################################################
-
-
-# # constraints implement boundary conditions, or other types
-# # of constraints; the details of this interface are still a bit fuzzy for me
-
-# """Abstract supertype for constraints; these are objects that implement boundary
-# conditions."""
-# abstract AbstractConstraints
-
-# "Return constraints attached to the atoms object (if one exists)"
-# @protofun get_constraints(::AbstractAtoms)
-
-# "Attach a constraints object to the atoms object"
-# @protofun set_constraints!(::AbstractAtoms, ::AbstractConstraints)
-
-
-# """Returns a bare `Vector{T <: FloatingPoint}` object containing the degrees of
-# freedom describing the state of the simulation. This function should be
-# overloaded for concrete implementions of `AbstractAtoms` and
-# `AbstractConstraints`.
-
-# Alternative wrapper function
-#     get_dofs(atm::AbstractAtoms) = get_dofs(atm, get_constraints(atm))
-# """
-# @protofun get_dofs(a::AbstractAtoms, c::AbstractConstraints)
-# get_dofs(atm::AbstractAtoms) = get_dofs(atm, get_constraints(atm))
-
-
-# """Takes a \"dual\" array (3 x lenght) and applies the dual constraints
-# to obtain effective forces acting on dofs. Returns a vector of the same
-# length as dofs."""
-# @protofun forces_to_dofs{T <: AbstractFloat}(f::Matrix{T}, con::AbstractConstraints)
-
-
 
 # ==================================================
 # more abstract types that eventually need to be
@@ -318,3 +365,20 @@ grad(c::AbstractCalculator, a::AbstractAtoms) = - forces(c, a)
 # For a 3 x N array `f`, return the maximum of `|f[:,n]|₂`.
 # """
 # maxforce(f) = sqrt(maximum(sumabs2(f, 1)))
+
+
+# ==================================================
+# do we want this at all?
+
+# """
+# Returns `(neigs, r, R)` where `neigs` is an integer vector with indices
+# of neighbour atoms of `n`, `r` a Float vector with their distances and
+# `R` a vector of distance *vectors*.
+# """
+# @protofun neighbours(n::Integer, neigs::AbstractNeighbourList,
+#                          atm::AbstractAtoms; rcut=-1)
+#
+#
+# get_neighbours(n::Integer, neigs::AbstractNeighbourList,
+#            atm::AbstractAtoms; rcut=-1) =
+#                neighbours(n, neigs, atm; rcut=rcut)

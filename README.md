@@ -24,12 +24,17 @@ Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. Otherwise, open an issue.
 
+
+
 # Examples
+
+
+# Structure
+
 
 
 
 # TODO
 
-- [ ] Implement some basic interatomic potentials: Lennard-Jones, Morse, Gupta
 - [ ] Implement generic EAM, using data-files
 - [ ] Implement an interface for ASE calculators

@@ -10,7 +10,7 @@ form or within abstract frameworks.
 
 ### Types
 
-
+### `evaluate`, `evaluate_d`, `evaluate_dd`, `grad`
 
 ### The `@D` and `@DD` macros
 
@@ -21,18 +21,17 @@ module Potentials
 
 import JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
    bonds, sites,
-   energy, forces, cutoff
+   energy, forces, cutoff,
+   JVec, JVecs, JPt, JPts, mat, pts, vec
 
 # we also import grad from JuLIP, but to define derivatives
 import JuLIP: grad
 
-# implement:
-#    evaluate
-#    evaluate_d
-#    evaluate_dd
-#    grad
 
-export LennardJonesCalculator, MorseCalculator, GuptaCalculator
+export LennardJonesPotential, MorsePotential, SimpleExponential, ZeroPairPotential,
+   SWCutoff, ShiftCutoff, SplineCutoff,
+   LennardJonesCalculator, MorseCalculator, GuptaCalculator,
+   @D, @DD, @GRAD
 
 """
 `Potential`: generic abstract supertype for all potential-like things
@@ -55,6 +54,11 @@ Cutoff(pp::PairPotential, args...)
 """
 abstract AbstractCutoff <: PairPotential
 
+"""
+`abstract SitePotential <: Potential`
+
+TODO: write documentation
+"""
 abstract SitePotential <: Potential
 
 
@@ -140,6 +144,8 @@ include("pairpotentials.jl")
 # * MorsePotential
 # * SimpleExponential
 
+
+end
 
 
 # ===========================================================================
