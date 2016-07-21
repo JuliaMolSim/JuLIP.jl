@@ -1,7 +1,7 @@
 # included from Potentials.jl
 # part of the module JuLIP.Potentials
 
-# import JuLIP: r_sum
+import JuLIP: zerovecs
 
 # a simplified way to calculate gradients of pair potentials
 grad(p::PairPotential, r::Float64, R::JVec) =
@@ -9,32 +9,29 @@ grad(p::PairPotential, r::Float64, R::JVec) =
 
 
 "`PairCalculator` : basic calculator for pair potentials."
-type PairCalculator <: AbstractCalculator
-    pp::PairPotential
+type PairCalculator{T <: PairPotential} <: AbstractCalculator
+    pp::T
 end
 
 cutoff(calc::PairCalculator) = cutoff(calc.pp)
 
-function energy(calc::PairCalculator, at::ASEAtoms)
+function energy(calc::PairCalculator, at::AbstractAtoms)
    E = 0.0
-   for (_,_,r,_,_) in bonds(at)
+   for (_,_,r,_,_) in bonds(at, cutoff(calc))
       E += calc.pp(r)
    end
    return E
 end
 
-function forces(calc::PairCalculator, at::ASEAtoms)
+function forces(calc::PairCalculator, at::AbstractAtoms)
    dE = zerovecs(length(at))
-   for (i,j,r,R,_) in bonds(at)
-      gradV = @GRAD calc.pp(r, R)   # ∇ϕ(|R|) = (ϕ'(r)/r) R
-      dE[j] += gradV
-      dE[i] -= gradV
+   for (i,j,r,R,_) in bonds(at, cutoff(calc))
+      dE[j] -= 2 * @GRAD calc.pp(r, R)   # ∇ϕ(|R|) = (ϕ'(r)/r) R
    end
    return dE
 end
 
 # ------------------------------------------------------------------
-
 
 "`ZeroPairPotential`: pair potential V(r) = 0.0"
 type ZeroPairPotential <: PairPotential end
@@ -56,6 +53,10 @@ end
 LennardJonesPotential(; r0=1.0, e0=1.0) = LennardJonesPotential(r0, e0)
 evaluate(p::LennardJonesPotential, r) = p.e0 * ((p.r0./r).^12 - 2.0 * (p.r0./r).^6)
 evaluate_d(p::LennardJonesPotential, r) = -12.0 * p.e0 * ((p.r0./r).^12 - (p.r0./r).^6) ./ r
+
+typealias LennardJonesCalculator PairCalculator{LennardJonesPotential}
+LennardJonesCalculator(; r0=1.0, e0=1.0, rcut= [1.9*r0; 2.7*r0]) =
+   PairCalculator(SplineCutoff(LennardJonesPotential(r0, e0), rcut[1], rcut[2]))
 
 
 # ------------------------------------------------------------------
@@ -90,6 +91,7 @@ type SimpleExponential <: PairPotential
   B::Float64
   r0::Float64
 end
+SimpleExponential(;A=1.0, B=3.0,r0=1.0) = SimpleExponential(A,B,r0)
 evaluate(p::SimpleExponential, r) = p.A * exp( p.B * (r/p.r0 - 1.0) )
 evaluate_d(p::SimpleExponential, r) = p.A*p.B/p.r0 * exp( p.B * (r/p.r0 - 1.0) )
 

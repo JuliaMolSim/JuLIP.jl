@@ -7,6 +7,8 @@
 
 ######################## Stillinger-Weber type cutoff
 
+const _sw_eps_ = 1e-3
+
 """
 `cutsw(r, Rc, Lc)`
 
@@ -16,11 +18,11 @@ Implementation of the C^∞ Stillinger-Weber type cut-off potential
 `d_cutinf` implements the first derivative
 """
 @inline cutsw(r, Rc, Lc) =
-    1.0 ./ ( 1.0 + exp( Lc ./ ( max(Rc-r, 0.0) + _eps_ ) ) )
+    1.0 ./ ( 1.0 + exp( Lc ./ ( max(Rc-r, 0.0) + _sw_eps_ ) ) )
 
 "derivative of `cutsw`"
 @inline function cutsw_d(r, Rc, Lc)
-    t = 1 ./ ( max(Rc-r, 0.0) + _eps_ )    # a numerically stable (Rc-r)^{-1}
+    t = 1 ./ ( max(Rc-r, 0.0) + _sw_eps_ )    # a numerically stable (Rc-r)^{-1}
     e = 1.0 ./ (1.0 + exp(Lc * t))         # compute exponential only once
     return - Lc * (1.0 - e) .* e .* t.^2
 end
@@ -33,14 +35,14 @@ end
 This is not very optimised: one could speed up `evaluate_d` significantly
 by avoiding multiple evaluations.
 """
-type SWCutoff <: AbstractCutoff
-    pp::PairPotential
+type SWCutoff{T <: PairPotential} <: AbstractCutoff
+    pp::T
     Rc::Float64
     Lc::Float64
 end
-@inline evaluate(p::SWCutoff, r) = p.pp(r) .* cutsw(r, p.Rc, p.Lc)
-@inline evaluate_d(p::SWCutoff, r) = p.pp(r) .* cutsw_d(r, p.Rc, p.Lc) +
-                                       (@D p.pp(r)) .* cutsw(r, p.Rc, p.Lc)
+evaluate(p::SWCutoff, r) = p.pp(r) .* cutsw(r, p.Rc, p.Lc)
+evaluate_d(p::SWCutoff, r) = p.pp(r) .* cutsw_d(r, p.Rc, p.Lc) +
+                                 (@D p.pp(r)) .* cutsw(r, p.Rc, p.Lc)
 cutoff(p::SWCutoff) = p.Rc
 
 
@@ -55,8 +57,8 @@ Default constructor is
     ShiftCutoff(Rc, pp)
 ```
 """
-type ShiftCutoff <: AbstractCutoff
-    pp::PairPotential
+type ShiftCutoff{T <: PairPotential} <: AbstractCutoff
+    pp::T
     Rc::Float64
     Jc::Float64
 end
@@ -92,12 +94,11 @@ Parameters:
 * r0 : inner cut-off radius
 * r1 : outer cut-off radius.
 """
-type SplineCutoff
-   pp::PairPotential
+type SplineCutoff{T <: PairPotential} <: AbstractCutoff
+   pp::T
    r0::Float64
    r1::Float64
 end
-@inline evaluate(p::SplineCutoff, r) = p.pp(r) .* fcut(r, p.r0, p.r1)
-@inline evaluate_d(p::SplineCutoff, r) = p.pp(r) .* fcut_d(r, p.r0, p.r1) +
-                                       (@D p.pp(r)) .* fcut(r, p.r0, p.r1)
+evaluate(p::SplineCutoff, r) = p.pp(r) .* fcut(r, p.r0, p.r1)
+evaluate_d(p::SplineCutoff, r) = p.pp(r) .* fcut_d(r, p.r0, p.r1) + (@D p.pp(r)) .* fcut(r, p.r0, p.r1)
 cutoff(p::SplineCutoff) = p.r1
