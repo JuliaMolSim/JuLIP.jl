@@ -5,7 +5,7 @@ using FixedSizeArrays
 import Base.convert
 
 export mat, pts, vecs
-export JVec, JVecs, JPt, JPts
+export JVec, JVecs, JPt, JPts, JVecsPts
 export zerovecs, zeropts
 export ee
 
@@ -20,6 +20,8 @@ typealias JVecs{T} Vector{JVec{T}}
 
 "`JPts{T}` : List of 3-dimensional immutable points"
 typealias JPts{T} Vector{JPt{T}}
+
+typealias JVecsPts{T} Union{JVecs{T},JPts{T}}
 
 const e1 = JPt{Float64}((1.0,0.0,0.0))
 const e2 = JPt{Float64}((0.0,1.0,0.0))

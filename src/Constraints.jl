@@ -6,8 +6,9 @@ TODO: write documentation
 """
 module Constraints
 
-import JuLIP: Dofs, AbstractConstraint, dofs, project!, set_positions!,
-         mat, vecs, JVecs, JPts,
+import JuLIP: Dofs, AbstractConstraint,
+         dofs, project!, set_positions!, positions,
+         mat, vecs, pts, JVecs, JPts, JVecsPts,
          AbstractAtoms
 
 export FixedCell
@@ -23,7 +24,6 @@ function insert_free!{T}(p::Array{T}, x::Vector{T}, free::Vector{Int})
    p[free] = x
    return p
 end
-
 
 
 """
@@ -47,7 +47,7 @@ end
 function FixedCell(at::AbstractAtoms; free=false, clamp=false, mask=false)
 
    if any( (free, clamp, mask) )
-      error("FixedCell: only one of free, clamp, mask may be provided")
+      error("FixedCell: only one of `free`, `clamp`, `mask` may be provided")
    elseif all( (!free, !clamp, !mask) )
       free = collect(1:3*length(at))
    else
@@ -65,16 +65,16 @@ function FixedCell(at::AbstractAtoms; free=false, clamp=false, mask=false)
    error("FixedCell: `mask` is not yet implemented")
 end
 
-dofs(at::AbstractAtoms, cons::FixedCell, vorp::Union{JVecs,JPts}) = mat(vorp)[cons.ifree]
+dofs{T}( at::AbstractAtoms, cons::FixedCell, v::JVecs{T}) = mat(v)[cons.ifree]
+dofs{T}( at::AbstractAtoms, cons::FixedCell, p::JPts{T}) = mat(p)[cons.ifree]
 
-vecs(at::AbstractAtoms, cons::FixedCell, dofs::Dofs) =
+vecs(cons::FixedCell, at::AbstractAtoms, dofs::Dofs) =
       zeros_free(length(at), dofs, cons.ifree) |> vecs
 
-positions(at::AbstractAtoms, cons::FixedCell, dofs::Dofs) =
+positions(cons::FixedCell, at::AbstractAtoms, dofs::Dofs) =
       insert_free!(positions(at) |> mat, dofs, cons.ifree) |> pts
 
-project!(at::AbstractAtoms, cons::FixedCell) = at
-
+project!(cons::FixedCell, at::AbstractAtoms) = at
 
 
 

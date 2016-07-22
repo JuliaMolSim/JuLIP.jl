@@ -90,6 +90,7 @@ macro protofun(fsig::Expr)
     Expr(:function, esc(fsig), body)
 end
 
+
 # function defined primarily on AbstractAtoms
 export AbstractAtoms,
       positions, get_positions, set_positions!,
@@ -322,7 +323,8 @@ type NullConstraint <: AbstractConstraint end
 Take a direction in position space (e.g. a collection of forces)
 and project it to a dof-vector
 """
-@protofun dofs(at::AbstractAtoms, cons::AbstractConstraint, v_or_p)
+function dofs end
+# @protofun dofs(at::AbstractAtoms, cons::AbstractConstraint, v_or_p)
 dofs(at::AbstractAtoms, cons::AbstractConstraint) = dofs(at, cons, positions(at))
 dofs(at::AbstractAtoms) = dofs(at, constraint(at))
 

@@ -24,7 +24,7 @@ using JuLIP.Testing
 
 calculators = [
    (  LennardJonesCalculator(r0=JuLIP.ASE.rnn("Al")),
-      Atoms("Al", cubic=true, repeatcell=(5,5,2), pbc=(true,false,false))  )
+      Atoms("Al", cubic=true, repeatcell=(3,3,2), pbc=(true,false,false))  )
 ]
 
 println("============================================")
@@ -34,7 +34,7 @@ r = linspace(0.8, 4.0, 100)
 for (calc, at) in calculators
    println("--------------------------------")
    println(typeof(calc))
+   @show length(at)
    println("--------------------------------")
-
    fdtest(calc, at, verbose=true)
 end
