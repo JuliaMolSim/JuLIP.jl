@@ -27,7 +27,7 @@ generic finite-difference test for scalar F
 
 TODO: complete documentation
 """
-function fdtest(F::Function, dF::Function, x)
+function fdtest(F::Function, dF::Function, x; verbose=true)
     errors = Float64[]
     E = F(x)
     dE = dF(x)
@@ -99,24 +99,20 @@ fdtest(V::PairPotential, r::AbstractVector; kwargs...) =
                fdtest_R2R(s -> V(s), s -> (@D V(s)), collect(r); kwargs...)
 
 
-# fdtest()
-#
-# fdtest(V::SitePotential, r, R)
 
 function fdtest(calc::AbstractCalculator, at::AbstractAtoms; verbose=true)
-   fdtest( x-> energy(calc, set_positions!(at, pts(x))),
-           x-> mat(grad(calc, set_positions!(at, pts(x))))[:],
-           mat(positions(rattle!(at, 0.02)))[:]
+   # perturb atom positions a bit to get out of equilibrium states
+   at = rattle!(at, 0.02)
+   # if no constraint is attached, then attach the NullConstraint
+   cons = constraint(at)
+   if typeof(constraint(at)) == NullConstraint
+      cons = FixedCell(at)
+   end
+   # call the actual FD test
+   fdtest( x-> energy(calc, set_positions!(cons, at, x)),
+           x-> mat(grad(calc, set_positions!(cons, at, x)))[:],
+           dofs(at, cons)
            )
-   # cons = constraint(at)
-   # if typeof(constraint(at)) == NullConstraint
-   #    cons = FixedCell(at)
-   # end
-   # fdtest(x->energy(set_positions!(at, cons, x), calc),
-   #        x->grad(set_positions!(at, cons, x), calc),
-   #        dofs(at, cons), verbose=verbose)
 end
-
-
 
 end

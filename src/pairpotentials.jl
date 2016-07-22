@@ -1,7 +1,8 @@
 # included from Potentials.jl
 # part of the module JuLIP.Potentials
 
-import JuLIP: zerovecs
+import JuLIP: zerovecs, energy, forces
+import JuLIP.ASE.MatSciPy: NeighbourList
 
 # a simplified way to calculate gradients of pair potentials
 grad(p::PairPotential, r::Float64, R::JVec) =
@@ -26,7 +27,9 @@ end
 function forces(calc::PairCalculator, at::AbstractAtoms)
    dE = zerovecs(length(at))
    for (i,j,r,R,_) in bonds(at, cutoff(calc))
-      dE[j] -= 2 * @GRAD calc.pp(r, R)   # ∇ϕ(|R|) = (ϕ'(r)/r) R
+      # this should be equivalent, but for some reason using @GRAD is much slower!
+      # dE[j] -= 2 * @GRAD calc.pp(r, R)   # ∇ϕ(|R|) = (ϕ'(r)/r) R
+      dE[j] -= 2 * ((@D calc.pp(r))/r) * R
    end
    return dE
 end
