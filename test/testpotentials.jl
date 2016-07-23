@@ -21,16 +21,24 @@ using JuLIP.Testing
 #    fdtest(pp, r, verbose=verbose)
 # end
 
+# ===========================
 
-calculators = [
-   (  LennardJonesCalculator(r0=JuLIP.ASE.rnn("Al")),
-      Atoms("Al", cubic=true, repeatcell=(3,3,2), pbc=(true,false,false))  );
-]
+calculators = Any[]
+
+# [1] basic lennard-jones calculator test
+push!(calculators, (  LennardJonesCalculator(r0=JuLIP.ASE.rnn("Al")),
+         Atoms("Al", cubic=true, repeatcell=(3,3,2), pbc=(true,false,false)) ) )
+
+# [2] ASE's EMT calculator
+emt = JuLIP.ASE.EMTCalculator()
+at = Atoms("Cu", cubic=true, repeatcell=(2,2,2); pbc=(true,false,false))
+set_calculator!(at, emt)
+push!(calculators, (emt, at))
+
 
 println("============================================")
 println("  Testing calculator implementations ")
 println("============================================")
-r = linspace(0.8, 4.0, 100)
 for (calc, at) in calculators
    println("--------------------------------")
    println(typeof(calc))

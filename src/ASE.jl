@@ -1,14 +1,3 @@
-###
-#
-# TODO
-#   * add links to key arrays so they can be modified in-place
-#     or accessed cheaply
-#
-#   * in all my julia codes I use self_interaction=false and bothways=true
-#      - is it a bad idea if I make these default?
-#
-#   * rcut in ASE denotes spheres of overlap?!?!? i.e. it is in effect
-#     half of the cut-off of the potential?
 
 
 """
