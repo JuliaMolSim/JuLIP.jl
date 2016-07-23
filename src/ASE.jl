@@ -93,9 +93,15 @@ end
 ASEAtoms(po::PyObject) = ASEAtoms(po, positions(po),
                                     NullCalculator(), NullConstraint())
 
-function set_calculator!(at::ASEAtoms, calc::AbstractCalculator) at.calc = calc end
+function set_calculator!(at::ASEAtoms, calc::AbstractCalculator)
+   at.calc = calc
+   return at
+end
 calculator(at::ASEAtoms) = at.calc
-function set_constraint!(at::ASEAtoms, cons::AbstractConstraint) at.cons = cons end
+function set_constraint!(at::ASEAtoms, cons::AbstractConstraint)
+   at.cons = cons
+   return at
+end
 constraint(at::ASEAtoms) = at.cons
 
 

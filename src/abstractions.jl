@@ -1,7 +1,6 @@
 
 # here we define and document the prototypes that are implemented, e.g.,
 
-import Base.length
 
 
 """
@@ -32,6 +31,7 @@ abstract AbstractConstraint
 typealias Dofs Vector{Float64}
 
 
+
 """
 `AbstractCalculator`: the abstract supertype of calculators. These
 store model information, and are linked to the implementation of energy,
@@ -39,6 +39,16 @@ forces, and so forth.
 """
 abstract AbstractCalculator
 
+
+"""
+`Preconditioner`: abstract base type for preconditioners
+
+Preconditioners need to implement the following three functions:
+* `update!(P, at::AbstractAtoms)`
+* `A_mul_B!(out::Dof, P, x::Dof)`
+* `A_ldiv_B!(out::Dof, P, f::Dof)`
+"""
+abstract Preconditioner <: AbstractMatrix{Float64}
 
 
 
@@ -54,7 +64,7 @@ interface.
 
 ## Usage
 
-```jl
+```julia
 "Returns number of atoms"
 @protofun length(::AbstractAtoms)
 ```
@@ -85,9 +95,9 @@ macro protofun(fsig::Expr)
     body = quote
         error(string("JuLIP: ", $fname,
                      ($([:(typeof($(esc(arg)))) for arg in argnames]...),),
-                     " ) has no implementation.") )
+                     " ) has no implementation."))
     end
-    Expr(:function, esc(fsig), body)
+    return Expr(:function, esc(fsig), body)
 end
 
 
@@ -96,11 +106,12 @@ export AbstractAtoms,
       positions, get_positions, set_positions!,
       cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       set_data!, get_data,
-      calculator, get_calculator!, constraint, get_constraint!,
+      set_calculator!, calculator, get_calculator!,
+      set_constraint!, constraint, get_constraint,
       neighbourlist
 
 # length is used for several things
-import Base.length
+import Base: length, A_ldiv_B!, A_mul_B!
 
 export AbstractCalculator,
       energy, potential_energy, forces, grad
@@ -110,9 +121,8 @@ export AbstractNeighbourList,
 
 export AbstractConstraint, NullConstraint, dofs
 
-# TODO: iterator for angles, dihedrals
+# TODO: iterators for angles, dihedrals
 # TODO: decide on maxforce
-
 
 
 # the following are dummy method definitions that just throw an error if a
@@ -285,28 +295,27 @@ Return the total potential energy of a configuration of atoms `a`, using the cal
 """
 @protofun energy(c::AbstractCalculator, a::AbstractAtoms)
 energy(at::AbstractAtoms) = energy(calculator(at), at)
-# energy() TODO: CONTINUE HERE
 
 "`potential_energy` : alias for `energy`"
 potential_energy = energy
 
-"""
-energy difference between two configurations; default is to just compute the
-two energies, but this allows implementation of numerically robust
-differences,w hich can be important for very large problems.
-"""
-energy_difference(c::AbstractCalculator, a::AbstractAtoms, aref::AbstractAtoms) =
-   energy(c, a) - energy(c, aref)
-
+# """
+# energy difference between two configurations; default is to just compute the
+# two energies, but this allows implementation of numerically robust
+# differences,w hich can be important for very large problems.
+# """
+# energy_difference(c::AbstractCalculator, a::AbstractAtoms, aref::AbstractAtoms) =
+#    energy(c, a) - energy(c, aref)
 
 """
 Returns the negative gradient of the total energy in the format `3 x length`.
 """
 @protofun forces(c::AbstractCalculator, a::AbstractAtoms)
+forces(at::AbstractAtoms) = forces(calculator(at), at)
 
 "`grad(c,a) = - forces(c, a)`"
 grad(c::AbstractCalculator, a::AbstractAtoms) = - forces(c, a)
-
+grad(at::AbstractAtoms) = grad(calculator(at), at)
 
 
 
@@ -323,8 +332,8 @@ type NullConstraint <: AbstractConstraint end
 Take a direction in position space (e.g. a collection of forces)
 and project it to a dof-vector
 """
-function dofs end
-# @protofun dofs(at::AbstractAtoms, cons::AbstractConstraint, v_or_p)
+# function dofs end
+@protofun dofs(at::AbstractAtoms, cons::AbstractConstraint, v_or_p)
 dofs(at::AbstractAtoms, cons::AbstractConstraint) = dofs(at, cons, positions(at))
 dofs(at::AbstractAtoms) = dofs(at, constraint(at))
 
@@ -341,7 +350,6 @@ Take a dof-vector and reconstruct a direction in position space
 set_positions!(cons::AbstractConstraint, at::AbstractAtoms, dofs::Dofs) =
       set_positions!(at, positions(cons, at, dofs))
 
-
 """
 `project(cons::AbstractConstraint, at::AbstractAtoms)`
 
@@ -350,11 +358,40 @@ onto the manifold defined by the constraint.
 """
 @protofun project!(at::AbstractAtoms, cons::AbstractConstraint)
 
+# a bunch of short-cuts
+energy(at::AbstractAtoms, x::Dofs) = energy(set_positions!(at, x))
+forces(at::AbstractAtoms, x::Dofs) = dofs(at, constraint(at), forces(set_positions!(at, x)))
+grad(at::AbstractAtoms, x::Dofs) = dofs(at, constraint(at), grad(set_positions!(at, x)))
+set_positions!(at::AbstractAtoms, dofs::Dofs) = set_positions!(constraint(at), at, dofs)
+positions(at::AbstractAtoms, dofs::Dofs) = positions(constraint(at), at, dofs)
 
 
 #######################################################################
-#  TODO: PRECONDITIONER
+#                     PRECONDITIONER
 #######################################################################
+
+
+"""
+`update!(precond::Preconditioner, at::AbstractAtoms)`
+
+Update the preconditioner with the new geometry information.
+"""
+@protofun update!(precond::Preconditioner, at::AbstractAtoms)
+update!(precond::Preconditioner, at::AbstractAtoms, x::Dofs) =
+            update!(precond, set_positions!(at, x))
+
+
+"""
+Identity preconditioner, i.e., no preconditioner.
+"""
+type Identity <: Preconditioner
+end
+
+A_ldiv_B!(out::Dofs, P::Identity, x::Dofs) = copy!(out, x)
+A_mul_B!(out::Dofs, P::Identity, f::Dofs) = copy!(out, f)
+update!(P::Identity, at::AbstractAtoms) = P
+
+
 
 # ==================================================
 # more abstract types that eventually need to be

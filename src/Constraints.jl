@@ -45,23 +45,24 @@ type FixedCell <: AbstractConstraint
 end
 
 function FixedCell(at::AbstractAtoms; free=false, clamp=false, mask=false)
-
    if any( (free, clamp, mask) )
       error("FixedCell: only one of `free`, `clamp`, `mask` may be provided")
    elseif all( (!free, !clamp, !mask) )
-      free = collect(1:3*length(at))
-   else
-      error("TODO: fix the `FixedCell` constructor")
+      # in this case (default) all atoms are free
+      return FixedCell(collect(1:3*length(at)))
    end
 
-   if free != nothing
-      # TODO: convert free-at >>> free-dof
-      return FixedCell(free)   # this is wrong!!!!
-   elseif clamp != nothing
+   # determine free dof indices
+   Nat = length(at)
+   if clamp != false
+      # reverse to setting free
       free = setdiff(1:length(at), clamp)
-      return FixedCell(setdiff(1:length(at), clamp))
    end
-   # mask case
+   if free != false
+      # convert free-at indices to free dof indices
+      return FixedCell([free; Nat+free; 2*Nat+free][:])
+   end
+   @assert mask != false
    error("FixedCell: `mask` is not yet implemented")
 end
 

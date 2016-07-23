@@ -105,14 +105,15 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms; verbose=true)
    at = rattle!(at, 0.02)
    # if no constraint is attached, then attach the NullConstraint
    cons = constraint(at)
-   if typeof(constraint(at)) == NullConstraint
+   if typeof(cons) == NullConstraint
       cons = FixedCell(at)
    end
    # call the actual FD test
    fdtest( x-> energy(calc, set_positions!(cons, at, x)),
            x-> mat(grad(calc, set_positions!(cons, at, x)))[:],
            dofs(at, cons)
-           )
+         )
 end
+
 
 end

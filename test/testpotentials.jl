@@ -24,7 +24,7 @@ using JuLIP.Testing
 
 calculators = [
    (  LennardJonesCalculator(r0=JuLIP.ASE.rnn("Al")),
-      Atoms("Al", cubic=true, repeatcell=(3,3,2), pbc=(true,false,false))  )
+      Atoms("Al", cubic=true, repeatcell=(3,3,2), pbc=(true,false,false))  );
 ]
 
 println("============================================")
