@@ -33,7 +33,10 @@ include("Constraints.jl")
 # interatomic potentials prototypes and some example implementations
 include("Potentials.jl")
 
+# some solvers
+include("Solve.jl")
 
+# codes to facilitate testing
 include("Testing.jl")
 
 

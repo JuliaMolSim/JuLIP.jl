@@ -42,8 +42,9 @@ the distance vectors in `D` and the scalar distances in `d`.
 
 By convention, the string *must* start with `"ij"`.
 
-**Warning:** to minimise overhead, this does *not* convert the relative
+**Warning:** to minimise overhead, this does *not* automatically convert the relative
 distance vectors `D` from the ASE N x 3 to the Atoms.jl 3 x N convention!
+Use the kwarg `convertarrays=true` to do so.
 """
 function neighbour_list(atoms::ASEAtoms,
                         cutoff::Float64,
