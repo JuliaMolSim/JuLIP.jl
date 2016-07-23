@@ -7,8 +7,9 @@ verbose=true
 
 julip_tests = [
    # "testaux.jl";
-   # "testase.jl"
-   "testpotentials.jl"
+   # "testase.jl";
+   # "testpotentials.jl";
+   "testsolve.jl";
 ]
 
 println("Starting JuLIP Tests")
