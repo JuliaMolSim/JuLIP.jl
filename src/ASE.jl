@@ -45,16 +45,15 @@ import Base.length         # ✓
 # from arrayconversions:
 import JuLIP: mat, pts, vecs, JPts, JVecs,
       AbstractConstraint, NullConstraint,
-      AbstractCalculator, NullCalculator
+      AbstractCalculator, NullCalculator,
+      energy, forces
 
 # extra ASE functionality:
 import Base.repeat         # ✓
 export bulk, ASEAtoms      # ✓
 
-# this one is a little hack based on the ASE functionality, hence it is not
-# in JuLIP proper.
-export rnn                 # TODO: double-check and test
-
+# `rnn` is a little hack based on the ASE functionality, hence it is not in JuLIP proper.
+export rnn, ASECalculator
 
 using PyCall
 @pyimport ase
@@ -180,15 +179,30 @@ neighbourlist(at::ASEAtoms, cutoff::Float64) = MatSciPy.NeighbourList(at, cutoff
 
 
 ######################################################
-##### TODO
+#    Attaching an ASE-style calculator
+#    ASE-style aliases
 ######################################################
 
-# TODO: tie in properly with ASE calculators
-set_calculator!(a::ASEAtoms, calculator::PyObject) = a.po[:set_calculator](calculator)
-get_forces(a::ASEAtoms) = a.po[:get_forces]()
-get_potential_energy(a::ASEAtoms) = a.po[:get_potential_energy]()
-get_stress(a::ASEAtoms) = a.po[:get_stress]()
+type ASECalculator <: AbstractCalculator
+   po::PyObject
+end
 
+function set_calculator!(at::ASEAtoms, calc::ASECalculator)
+   at.po[:set_calculator](calc.po)
+   at.calc = calc
+   return at
+end
+
+set_calculator!(at::ASEAtoms, po::PyObject) =
+      set_calculator!(at, ASECalculator(po))
+
+forces(calc::ASECalculator, at::ASEAtoms) = at.po[:get_forces]()' |> vecs
+energy(calc::ASECalculator, at::ASEAtoms) = at.po[:get_potential_energy]()
+
+function EMTCalculator()
+   @pyimport ase.calculators.emt as emt
+   return ASECalculator(emt.EMT())
+end
 
 
 ################### some additional hacks ###################

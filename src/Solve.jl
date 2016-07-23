@@ -10,10 +10,14 @@ module Solve
 
 import Optim: DifferentiableFunction, optimize, ConjugateGradient
 
-import JuLIP: AbstractAtoms, Preconditioner, update!, Identity, update!
+import JuLIP: AbstractAtoms, Preconditioner, update!, Identity, update!,
+            dofs, energy, grad
+
 
 export minimise!
+
 export Exp
+
 
 
 
@@ -48,6 +52,8 @@ function minimise!( at::AbstractAtoms;
       println(results)
    end
 end
+
+
 
 
 
