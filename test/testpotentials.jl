@@ -21,7 +21,7 @@ using JuLIP.Testing
 #    fdtest(pp, r, verbose=verbose)
 # end
 
-# ===========================
+# =============================================================
 
 calculators = Any[]
 
