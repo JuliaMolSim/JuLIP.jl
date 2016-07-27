@@ -196,6 +196,8 @@ end
 
 ################### some additional hacks ###################
 
+"return vector of chemical symbols as strings"
+chemical_symbols(at::ASEAtoms) = pyobject(at)[:get_chemical_symbols]()
 
 """
 `rnn(species)` : returns the nearest-neighbour distance for a given species

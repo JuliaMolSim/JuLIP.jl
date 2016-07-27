@@ -145,77 +145,10 @@ include("pairpotentials.jl")
 # * SimpleExponential
 
 
+################### the EMT Calculator ###################
+
+# include("emt.jl")
+
+
+
 end
-
-
-# ===========================================================================
-#    Site potentials
-#    TODO: everything below needs to be tested still!
-# ===========================================================================
-
-# "`ZeroSitePotential`: Site potential V(R) = 0.0"
-# type ZeroSitePotential <: SitePotential end
-# evaluate(p::ZeroSitePotential, R) = 0.0
-# evaluate_d(p::ZeroSitePotential, R) = zeros(size(R))
-# evaluate(p::ZeroSitePotential, r, R) = 0.0
-# evaluate_d(p::ZeroSitePotential, r, R) = zeros(size(R,1),1,1,size(R,2))
-# grad(p::ZeroSitePotential, R) = zeros(3,1,1,size(R,1))
-# grad(p::ZeroSitePotential, r, R) = zeros(3,1,1,size(R,2))
-# cutoff(p::ZeroSitePotential) = 0.0
-#
-# """
-# `EAMPotential`: implementation of the EAM potential. It takes three
-# parameters:
-# * `V` (pair potential),
-# * `rho`: electronic density function
-# * `embed` : embedding function
-# """
-# type EAMPotential{T1 <: PairPotential,
-#                   T2 <: PairPotential,
-#                   T3 <: Potential} <: SitePotential
-#     V::T1
-#     rho::T2
-#     embed::T3
-# end
-#
-# "embedding function for the Gupta potential"
-# type GuptaEmbed <: Potential
-#     xi
-# end
-# @inline evaluate(p::GuptaEmbed, r) = p.xi * sqrt(r)
-# @inline evaluate_d(p::GuptaEmbed, r) = 0.5 * p.xi ./ sqrt(r)
-#
-# """
-# `GuptaPotential`:
-#     E_i = A ∑_{j ≠ i} v(r_ij) - ξ ∑_i √ ρ_i
-#         v(r_ij) = exp[ -p (r_ij/r0 - 1) ]
-#         ρ_i = ∑_{j ≠ i} exp[ -2q (r_ij / r0 - 1) ]
-# """
-# GuptaPotential(A, xi, p, q, r0, TC::Type, TCargs...)  =
-#     EAMPotential( TC( SimpleExponential(A, p, r0), TCargs... ),      # V
-#                   TC( SimpleExponential(1.0, 2*q, r0), TCargs...),   # rho
-#                   GuptaEmbed( xi ) )                                 # embed
-#
-# "`EAMCalculator` : basic calculator using the `EAMPotential` type"
-# type EAMCalculator <: AbstractCalculator
-#     p::EAMPotential
-# end
-#
-# cutoff(calc::EAMCalculator) = max(cutoff(calc.p.V), cutoff(calc.p.rho))
-#
-# function potential_energy(at::ASEAtoms, calc::EAMCalculator)
-#     i, r = neighbour_list(at, "id", cutoff(calc))
-#     return ( sum(calc.p.V(r))
-#              + sum( calc.p.embed( simple_binsum( i, calc.p.rho(r) ) ) ) )
-# end
-#
-# function potential_energy_d(at::ASEAtoms, calc::EAMCalculator)
-#     i, j, r, R = neighbour_list(at, "ijdD", cutoff(calc))
-#     # pair potential component
-#     G = - 2.0 * simple_binsum(i, @GRAD calc.p.V(r, R'))
-#     # EAM component
-#     dF = @D calc.p.embed( simple_binsum(i, calc.p.rho(r)) )
-#     dF_drho = dF[i]' .* (@GRAD calc.p.rho(r, R'))
-#     G += simple_binsum(j, dF_drho) - simple_binsum(i, dF_drho)
-#     return G
-# end
