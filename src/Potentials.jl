@@ -12,7 +12,7 @@ form or within abstract frameworks.
 
 ### `evaluate`, `evaluate_d`, `evaluate_dd`, `grad`
 
-### The `@D` and `@DD` macros
+### The `@D`, `@DD`, `@GRAD` macros
 
 TODO: write documentation
 
@@ -60,6 +60,12 @@ abstract AbstractCutoff <: PairPotential
 TODO: write documentation
 """
 abstract SitePotential <: Potential
+
+
+
+include("potentialarithmetic.jl")
+
+
 
 
 # ===========================================================================
