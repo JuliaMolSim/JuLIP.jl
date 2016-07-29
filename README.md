@@ -37,4 +37,3 @@ to make sure the installation succeeded. Otherwise, open an issue.
 # TODO
 
 - [ ] Implement generic EAM, using data-files
-- [ ] Implement an interface for ASE calculators
