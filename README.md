@@ -29,6 +29,7 @@ to make sure the installation succeeded. Otherwise, open an issue.
 # Examples
 
 
+
 # Structure
 
 
@@ -36,4 +37,7 @@ to make sure the installation succeeded. Otherwise, open an issue.
 
 # TODO
 
-- [ ] Implement generic EAM, using data-files
+- [ ] Implement generic EAM, using data-files (?)
+- [ ] Analyse overhead of ASE+Matscipy neighbourlist, consider
+      implementing a pure Julia neighbourlist
+- [ ]

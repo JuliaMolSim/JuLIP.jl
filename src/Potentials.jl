@@ -62,6 +62,52 @@ TODO: write documentation
 abstract SitePotential <: Potential
 
 
+# ================== Analytical Potentials ==========================
+
+import ReverseDiffSource
+
+"""
+`type AnalyticPotential <: PairPotential`
+
+### Usage:
+```julia
+lj = AnalyticPotential(:(r^(-12) - 2.0*r^(-6)), "LennardJones")
+A = 4.0; r0 = 1.234
+morse = AnalyticPotential("exp(-2.0*\$A*(r/\$r0-1.0)) - 2.0*exp(-\$A*(r/\$r0-1.0))",
+                           "Morse(A=\$A,r0=\$r0)")
+```
+
+use kwarg `cutoff` to set a cut-off, default is `Inf`
+
+TODO: this should not be restricted to pair potentials
+"""
+type AnalyticPotential{T} <: PairPotential
+   v::T
+   id::AbstractString
+   cutoff::Float64
+end
+
+# display the potential
+Base.print(io::Base.IO, p::AnalyticPotential) = print(io, p.id)
+Base.show(io::Base.IO, p::AnalyticPotential) = print(io, p.id)
+cutoff(p::AnalyticPotential) = p.cutoff
+
+# construct from string or expression
+AnalyticPotential(s::AbstractString; id = s, cutoff=Inf) = AnalyticPotential(parse(s), id=id, cutoff=Inf)
+
+function AnalyticPotential(ex::Expr; id = string(ex), cutoff=Inf)
+   @assert typeof(id) <: AbstractString
+   # differentiate the expression
+   dex = ReverseDiffSource.rdiff(ex, r=1.0, allorders=false)
+   # overload the two evaluation functions
+   eval( quote
+      evaluate(ap::AnalyticPotential{Val{Symbol($id)}}, r::Float64) = $ex
+      evaluate_d(ap::AnalyticPotential{Val{Symbol($id)}}, r::Float64) = $dex
+   end )
+   return AnalyticPotential(Val{Symbol(id)}(), id, cutoff)
+end
+
+
 
 include("potentialarithmetic.jl")
 
