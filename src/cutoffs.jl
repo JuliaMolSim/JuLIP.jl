@@ -7,7 +7,7 @@
 
 ######################## Stillinger-Weber type cutoff
 
-const _sw_eps_ = 1e-3
+const _sw_eps_ = 1e-2
 
 """
 `cutsw(r, Rc, Lc)`
@@ -34,15 +34,18 @@ end
 
 This is not very optimised: one could speed up `evaluate_d` significantly
 by avoiding multiple evaluations.
+
+### Parameters
+
+* `Rc` : cut-off radius
+* `Lc` : scale
 """
-type SWCutoff{T <: PairPotential} <: AbstractCutoff
-    pp::T
+type SWCutoff <: PairPotential
     Rc::Float64
     Lc::Float64
 end
-evaluate(p::SWCutoff, r) = p.pp(r) .* cutsw(r, p.Rc, p.Lc)
-evaluate_d(p::SWCutoff, r) = p.pp(r) .* cutsw_d(r, p.Rc, p.Lc) +
-                                 (@D p.pp(r)) .* cutsw(r, p.Rc, p.Lc)
+evaluate(p::SWCutoff, r) = cutsw(r, p.Rc, p.Lc)
+evaluate_d(p::SWCutoff, r) = cutsw_d(r, p.Rc, p.Lc)
 cutoff(p::SWCutoff) = p.Rc
 
 
@@ -52,12 +55,15 @@ cutoff(p::SWCutoff) = p.Rc
 `ShiftCutoff` : takes the pair-potential and shifts and truncates it
     f_cut(r) = (f(r) - f(rcut)) .* (r <= rcut)
 
-Default constructor is
-```
+Note this is not constructed by multiplying the cutoff potential with the
+actual potential, but it is constructed by
+```julia
     ShiftCutoff(Rc, pp)
 ```
+
+
 """
-type ShiftCutoff{T <: PairPotential} <: AbstractCutoff
+type ShiftCutoff{T <: PairPotential} <: PairPotential
     pp::T
     Rc::Float64
     Jc::Float64
@@ -77,7 +83,7 @@ function fcut(r, r0, r1)
 end
 
 """
-Derivative of `cut`; see documentation of `cut`.
+Derivative of `fcut`; see documentation of `cut`.
 """
 function fcut_d(r, r0, r1)
     s = 1-(r-r0) / (r1-r0)
@@ -85,20 +91,22 @@ function fcut_d(r, r0, r1)
              .* (0 .< s .< 1) )
 end
 
+
 """
 `SplineCutoff` : Piecewise quintic C^{2,1} regular polynomial.
 
 Parameters:
 
-* pp : wrapped pair potential
 * r0 : inner cut-off radius
 * r1 : outer cut-off radius.
 """
-type SplineCutoff{T <: PairPotential} <: AbstractCutoff
-   pp::T
+type SplineCutoff <: PairPotential
    r0::Float64
    r1::Float64
 end
-evaluate(p::SplineCutoff, r) = p.pp(r) .* fcut(r, p.r0, p.r1)
-evaluate_d(p::SplineCutoff, r) = p.pp(r) .* fcut_d(r, p.r0, p.r1) + (@D p.pp(r)) .* fcut(r, p.r0, p.r1)
+evaluate(p::SplineCutoff, r) = fcut(r, p.r0, p.r1)
+evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)
 cutoff(p::SplineCutoff) = p.r1
+Base.string(p::SplineCutoff) = "SplineCutoff(r0=$(p.r0), r1=$(p.r1))"
+Base.show(io::Base.IO, p::SplineCutoff) = print(io, string(p))
+Base.print(io::Base.IO, p::SplineCutoff) = print(io, string(p))
