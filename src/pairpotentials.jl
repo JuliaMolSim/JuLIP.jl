@@ -27,75 +27,40 @@ end
 function forces(calc::PairCalculator, at::AbstractAtoms)
    dE = zerovecs(length(at))
    for (i,j,r,R,_) in bonds(at, cutoff(calc))
-      # this should be equivalent, but for some reason using @GRAD is much slower!
+      # TODO: this should be equivalent, but for some reason using @GRAD is much slower!
       # dE[j] -= 2 * @GRAD calc.pp(r, R)   # ∇ϕ(|R|) = (ϕ'(r)/r) R
       dE[j] -= 2 * ((@D calc.pp(r))/r) * R
    end
    return dE
 end
 
-# ------------------------------------------------------------------
 
-"`ZeroPairPotential`: pair potential V(r) = 0.0"
-type ZeroPairPotential <: PairPotential end
-evaluate(p::ZeroPairPotential, r) = zeros(size(r))
-evaluate_d(p::ZeroPairPotential, r) = zeros(size(r))
-cutoff(p::ZeroPairPotential) = 0.0
-
-# ------------------------------------------------------------------
 
 """
 `LennardJonesPotential:` e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
 
 Constructor: `LennardJonesPotential(;r0=1.0, e0=1.0)`
 """
-type LennardJonesPotential <: PairPotential
-    r0::Float64
-    e0::Float64
-end
-LennardJonesPotential(; r0=1.0, e0=1.0) = LennardJonesPotential(r0, e0)
-evaluate(p::LennardJonesPotential, r) = p.e0 * ((p.r0./r).^12 - 2.0 * (p.r0./r).^6)
-evaluate_d(p::LennardJonesPotential, r) = -12.0 * p.e0 * ((p.r0./r).^12 - (p.r0./r).^6) ./ r
+LennardJonesPotential(; r0=1.0, e0=1.0) =
+   AnalyticPotential(:($e0 * ((r/$r0)^(-12) - 2.0 * (r/$r0)^(-6))),
+                     id = "LennardJones (r0=$r0, e0=$e0)")
 
-typealias LennardJonesCalculator PairCalculator{LennardJonesPotential}
-LennardJonesCalculator(; r0=1.0, e0=1.0, rcut= [1.9*r0; 2.7*r0]) =
-   PairCalculator(SplineCutoff(LennardJonesPotential(r0, e0), rcut[1], rcut[2]))
+LennardJonesCalculator(;r0=1.0, e0=1.0, rcut= (1.9*r0, 2.7*r0)) =
+   PairCalculator( SplineCutoff(rcut[1], rcut[2]) *
+                           LennardJonesPotential(r0=r0, e0=e0) )
 
-
-# ------------------------------------------------------------------
 
 
 """
-`MorsePotential`: e0 ( exp( -2 A (r/r0 - 1) ) - 2 exp( - A (r/r0 - 1) ) )
-
-Constructor: `MorePotential(;A=4.0, e0=1.0, r0=1.0)`
+`MorsePotential(;A=4.0, e0=1.0, r0=1.0)`: constructs an
+`AnalyticPotential` for
+   e0 ( exp( -2 A (r/r0 - 1) ) - 2 exp( - A (r/r0 - 1) ) )
 """
-type MorsePotential <: PairPotential
-    e0::Float64
-    A::Float64
-    r0::Float64
-end
-MorsePotential(;A=4.0, e0=1.0, r0=1.0) = MorsePotential(e0, A, r0)
-@inline morse_exp(p::MorsePotential, r) = exp(-p.A * (r/p.r0 - 1.0))
-@inline function evaluate(p::MorsePotential, r)
-    e = morse_exp(p, r); return p.e0 * e .* (e - 2.0) end
-@inline function  evaluate_d(p::MorsePotential, r)
-    e = morse_exp(p, r);  return (-2.0 * p.e0 * p.A / p.r0) * e .* (e - 1.0) end
+MorsePotential(;A=4.0, e0=1.0, r0=1.0) =
+   AnalyticPotential(:( $e0 * ( exp(-$(2.0*A) * (r/$r0 - 1.0))
+                               - 2.0 * exp(-$A * (r/$r0 - 1.0)) ) ),
+                     id="MorsePotential(A=$A, e0=$e0, r0=$r0)")
 
-# ------------------------------------------------------------------
-
-"""
-`SimpleExponential`: A exp( B (r/r0 - 1) )
-
-Auxiliary for other potentials, e.g., Gupta.
-"""
-type SimpleExponential <: PairPotential
-  A::Float64
-  B::Float64
-  r0::Float64
-end
-SimpleExponential(;A=1.0, B=3.0,r0=1.0) = SimpleExponential(A,B,r0)
-evaluate(p::SimpleExponential, r) = p.A * exp( p.B * (r/p.r0 - 1.0) )
-evaluate_d(p::SimpleExponential, r) = p.A*p.B/p.r0 * exp( p.B * (r/p.r0 - 1.0) )
-
-# ------------------------------------------------------------------
+MorseCalculator(;A=4.0, e0=1.0, r0=1.0, rcut= (1.9*r0, 2.7*r0)) =
+   PairCalculator( SplineCutoff(rcut[1], rcut[2]) *
+                           MorsePotential(A=A, r0=r0, e0=e0) )

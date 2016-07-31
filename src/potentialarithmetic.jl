@@ -26,28 +26,32 @@
 # evaluate(p::sum_Pot, r) = p.p1(r) + p.p2(r)
 # evaluate_d(p::sum_Pot, r) = (@D p.p1(r)) + (@D p.p2(r))
 #
+
+
+"product of two pair potentials"
+type prod_Pot{P1, P2} <: PairPotential
+   p1::P1
+   p2::P2
+end
+import Base.*
+*(p1::PairPotential, p2::PairPotential) = prod_Pot(p1, p2)
+evaluate(p::prod_Pot, r) = p.p1(r) * p.p2(r)
+evaluate_d(p::prod_Pot, r) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
+cutoff(p::prod_Pot) = min(cutoff(p.p1), cutoff(p.p2))
+Base.string(p::prod_Pot) = string(string(p.p1), " * ", string(p.p2))
+Base.show(io::Base.IO, p::prod_Pot) = print(io, string(p))
+Base.print(io::Base.IO, p::prod_Pot) = print(io, string(p))
+
+
 # "product of two pair potentials"
-# type prod_Pot{P1, P2}
+# type exp_Pot{P1}
 #    p1::P1
-#    p2::P2
 # end
 #
-# (Base.*)(p1::PairPotential, p2::PPorNum) = prod(p1, p2)
-# (Base.*)(p1::PPorNum, p2::PairPotential) = prod(p1, p2)
+# Base.exp(p1::PairPotential) = exp_Pot(p1)
 #
-# evaluate(p::prod_Pot, r) = p.p1(r) * p.p2(r)
-# evaluate_d(p::prod_Pot, r) = p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r)
-#
-#
-# # "product of two pair potentials"
-# # type exp_Pot{P1}
-# #    p1::P1
-# # end
-# #
-# # Base.exp(p1::PairPotential) = exp_Pot(p1)
-# #
-# # evaluate(p::exp_Pot, r) = exp(p.p1(r)))
-# # evaluate_d(p::exp_Pot, r) = exp(p.p1(r)) * (@D p.p1(r))
+# evaluate(p::exp_Pot, r) = exp(p.p1(r)))
+# evaluate_d(p::exp_Pot, r) = exp(p.p1(r)) * (@D p.p1(r))
 #
 #
 # const r = r_Pot()
