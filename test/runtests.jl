@@ -8,8 +8,8 @@ verbose=true
 julip_tests = [
    # "testaux.jl";
    # "testase.jl";
-   # "testanalyticpotential.jl"
-   "testpotentials.jl";
+   "testanalyticpotential.jl"
+   # "testpotentials.jl";
    # "testsolve.jl";
 ]
 

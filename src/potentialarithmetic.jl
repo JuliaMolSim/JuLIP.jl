@@ -41,17 +41,3 @@ cutoff(p::prod_Pot) = min(cutoff(p.p1), cutoff(p.p2))
 Base.string(p::prod_Pot) = string(string(p.p1), " * ", string(p.p2))
 Base.show(io::Base.IO, p::prod_Pot) = print(io, string(p))
 Base.print(io::Base.IO, p::prod_Pot) = print(io, string(p))
-
-
-# "product of two pair potentials"
-# type exp_Pot{P1}
-#    p1::P1
-# end
-#
-# Base.exp(p1::PairPotential) = exp_Pot(p1)
-#
-# evaluate(p::exp_Pot, r) = exp(p.p1(r)))
-# evaluate_d(p::exp_Pot, r) = exp(p.p1(r)) * (@D p.p1(r))
-#
-#
-# const r = r_Pot()
