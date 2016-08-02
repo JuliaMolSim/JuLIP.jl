@@ -117,6 +117,11 @@ end
 # ================== Analytical Potentials ==========================
 
 import ReverseDiffSource
+import FunctionWrappers
+import FunctionWrappers: FunctionWrapper
+
+typealias F64fun FunctionWrapper{Float64, Tuple{Float64}}
+
 
 """
 `type AnalyticPotential <: PairPotential`
@@ -133,8 +138,9 @@ use kwarg `cutoff` to set a cut-off, default is `Inf`
 
 TODO: this should not be restricted to pair potentials
 """
-type AnalyticPotential{T} <: PairPotential
-   v::T
+type AnalyticPotential <: PairPotential
+   f::F64fun
+   df::F64fun
    id::AbstractString
    cutoff::Float64
 end
@@ -146,7 +152,8 @@ Base.show(io::Base.IO, p::AnalyticPotential) = print(io, string(p))
 cutoff(p::AnalyticPotential) = p.cutoff
 
 # construct from string or expression
-AnalyticPotential(s::AbstractString; id = s, cutoff=Inf) = AnalyticPotential(parse(s), id=id, cutoff=Inf)
+AnalyticPotential(s::AbstractString; id = s, cutoff=Inf) =
+                        AnalyticPotential(parse(s), id=id, cutoff=cutoff)
 
 function AnalyticPotential(ex::Expr; id = string(ex), cutoff=Inf)
    @assert typeof(id) <: AbstractString
