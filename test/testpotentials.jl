@@ -16,7 +16,7 @@ println("============================================")
 r = linspace(0.8, 4.0, 100)
 for pp in pairpotentials
    println("--------------------------------")
-   println(typeof(pp))
+   println(pp)
    println("--------------------------------")
    fdtest(pp, r, verbose=verbose)
 end

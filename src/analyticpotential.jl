@@ -3,9 +3,8 @@
 # import ReverseDiffSource
 # import ReverseDiffSource:rdiff
 
-import SymPy
-import SymPy: symbols
-
+import Calculus
+import Calculus: differentiate
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper
 
@@ -17,19 +16,16 @@ typealias F64fun FunctionWrapper{Float64, Tuple{Float64}}
 #     and returns anonymous functions for the derivatives
 # ===========================================================================
 
+
 """
 `diff2(ex::Expr)` :
 
 takes an expression, differentiates it twice,
      and returns anonymous functions for the derivatives
 """
-function diff2(ex::Expr)
-   r = symbols("r")
-   fsym = eval(ex)
-   fsym_d = diff(fsym_d, r)
-   fsym_dd = diff(fsym_dd, r)
-   ex_d = parse(string(fsym_d))
-   ex_dd = parse(string(fsym_dd))
+function diff2(ex::Expr, sym=:r)
+   ex_d = differentiate(ex, sym)
+   ex_dd  =differentiate(ex_d, sym)
    return eval( :( (r->$ex, r->$ex_d, r->$ex_dd)) )
 end
 
@@ -67,7 +63,7 @@ end
 evaluate(p::AnalyticPotential, r) = p.f(r)
 evaluate_d(p::AnalyticPotential, r) = p.f_d(r)
 evaluate_dd(p::AnalyticPotential, r) = p.f_dd(r)
-Base.string(p::AnalyticPotential) = p.id
+Base.print(io::Base.IO, p::AnalyticPotential) = print(io, p.id)
 cutoff(p::AnalyticPotential) = p.cutoff
 
 # construct from string or expression
