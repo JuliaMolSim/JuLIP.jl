@@ -123,8 +123,8 @@ function next(s::Sites, state::SiteItState)
       state.b += 1
    end
    m1 = state.b
-   return (state.s, sub(s.nlist.j, m0:m1), sub(s.nlist.r, m0:m1),
-               sub(s.nlist.R, m0:m1), sub(s.nlist.S, m0:m1)), state
+   return (state.s, view(s.nlist.j, m0:m1), view(s.nlist.r, m0:m1),
+               view(s.nlist.R, m0:m1), view(s.nlist.S, m0:m1)), state
 end
 
 

@@ -43,7 +43,7 @@ Constructor: `LennardJonesPotential(;r0=1.0, e0=1.0)`
 """
 LennardJonesPotential(; r0=1.0, e0=1.0) =
    AnalyticPotential(:($e0 * ((r/$r0)^(-12) - 2.0 * (r/$r0)^(-6))),
-                     id = "LennardJones (r0=$r0, e0=$e0)")
+                     id = "LennardJones(r0=$r0, e0=$e0)")
 
 LennardJonesCalculator(;r0=1.0, e0=1.0, rcut= (1.9*r0, 2.7*r0)) =
    PairCalculator( SplineCutoff(rcut[1], rcut[2]) *
