@@ -6,11 +6,11 @@ using JuLIP.Testing
 verbose=true
 
 julip_tests = [
-   # "testaux.jl";
-   # "testase.jl";
-   "testanalyticpotential.jl"
-   # "testpotentials.jl";
-   # "testsolve.jl";
+   "testaux.jl";
+   "testase.jl";
+   # "testanalyticpotential.jl"
+   "testpotentials.jl";
+   "testsolve.jl";
 ]
 
 println("Starting JuLIP Tests")

@@ -38,9 +38,6 @@ export LennardJonesPotential, MorsePotential, AnalyticPotential,
 """
 abstract Potential
 
-# default method to print potentials:
-Base.show(io::Base.IO, p::Potential) = print(io, string(p))
-Base.print(io::Base.IO, p::Potential) = print(io, string(p))
 
 
 

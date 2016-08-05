@@ -22,13 +22,13 @@ for `evaluate, evaluate_d, evaluate_dd, grad`.
 
 ## Usage:
 
-With the declaration
+The declaration
 ```julia
 @pot type LennardJonesPotential <: PairPotential
    r0::Float64
 end
 ```
-`@pot` creates the following aliases:
+creates the following aliases:
 ```julia
 lj = LennardJonesPotential(1.0)
 lj(args...) = evaluate(lj, args...)
@@ -40,14 +40,20 @@ lj(args...) = evaluate(lj, args...)
 macro pot(fsig)
    @assert fsig.head == :type
    tname, tparams = t_info(fsig.args[2])
+   tname = esc(tname)
+   for n = 1:length(tparams)
+      tparams[n] = esc(tparams[n])
+   end
+   sym = esc(:x)
    return quote
       $(esc(fsig))
-      (x::$tname){$(tparams...)}(args...) = evaluate(x, args...)
-      (x::$tname){$(tparams...)}(::Type{Val{:D}}, args...) = evaluate_d(x, args...)
-      (x::$tname){$(tparams...)}(::Type{Val{:DD}}, args...) = evaluate_dd(x, args...)
-      (x::$tname){$(tparams...)}(::Type{Val{:GRAD}}, args...) = grad(x, args...)
+      ($sym::$tname){$(tparams...)}(args...) = evaluate($sym, args...)
+      ($sym::$tname){$(tparams...)}(::Type{Val{:D}}, args...) = evaluate_d($sym, args...)
+      ($sym::$tname){$(tparams...)}(::Type{Val{:DD}}, args...) = evaluate_dd($sym, args...)
+      ($sym::$tname){$(tparams...)}(::Type{Val{:GRAD}}, args...) = grad($sym, args...)
    end
 end
+
 
 # t_info extracts type name as symbol and type parameters as an array
 t_info(ex::Symbol) = (ex, tuple())
@@ -113,8 +119,8 @@ end
 # evaluate_d(p::r_Pot, r) = 1
 
 
-"sum of two pair potentials"
-type SumPot{P1, P2}
+# "sum of two pair potentials"
+@pot type SumPot{P1, P2}
    p1::P1
    p2::P2
 end
@@ -123,10 +129,14 @@ import Base.+
 evaluate(p::SumPot, r) = p.p1(r) + p.p2(r)
 evaluate_d(p::SumPot, r) = (@D p.p1(r)) + (@D p.p2(r))
 cutoff(p::SumPot) = max(cutoff(p.p1), cutoff(p.p2))
-Base.string(p::SumPot) = string(string(p.p1), " + ", string(p.p2))
+function Base.print(io::Base.IO, p::SumPot)
+   print(io, p.p1)
+   print(io, " + ")
+   print(io, p.p2)
+end
 
-"product of two pair potentials"
-type ProdPot{P1, P2} <: PairPotential
+# "product of two pair potentials"
+@pot type ProdPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
@@ -135,4 +145,8 @@ import Base.*
 evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
 evaluate_d(p::ProdPot, r) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
 cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
-Base.string(p::ProdPot) = string(string(p.p1), " * ", string(p.p2))
+function Base.print(io::Base.IO, p::ProdPot)
+   print(io, p.p1)
+   print(io, " * ")
+   print(io, p.p2)
+end
