@@ -121,12 +121,14 @@ export AbstractNeighbourList,
 
 export AbstractConstraint, NullConstraint, dofs
 
+export Preconditioner, preconditioner
+
+
+
 # TODO: iterators for angles, dihedrals
-# TODO: decide on maxforce
+# TODO: decide on maxforce (what was this?)
 
 
-# the following are dummy method definitions that just throw an error if a
-# method hasn't been implemented
 
 "Return number of atoms"
 @protofun length(::AbstractAtoms)
@@ -379,7 +381,9 @@ Update the preconditioner with the new geometry information.
 @protofun update!(precond::Preconditioner, at::AbstractAtoms)
 update!(precond::Preconditioner, at::AbstractAtoms, x::Dofs) =
             update!(precond, set_positions!(at, x))
-
+# TODO: this is a bit of a problem with the nice abstract framework we
+#       are constructing here; it can easily happen now that we
+#       update positions multiple times
 
 """
 Identity preconditioner, i.e., no preconditioner.
@@ -390,6 +394,12 @@ end
 A_ldiv_B!(out::Dofs, P::Identity, x::Dofs) = copy!(out, x)
 A_mul_B!(out::Dofs, P::Identity, f::Dofs) = copy!(out, f)
 update!(P::Identity, at::AbstractAtoms) = P
+
+
+"construct a preconditioner suitable for this atoms object"
+preconditioner(at::AbstractAtoms) = preconditioner(at, calculator(at), constraint(at))
+preconditioner(at::AbstractAtoms, calc::AbstractCalculator, con::AbstractConstraint) =
+         Identity()
 
 
 

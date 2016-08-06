@@ -77,6 +77,9 @@ positions(cons::FixedCell, at::AbstractAtoms, dofs::Dofs) =
 
 project!(cons::FixedCell, at::AbstractAtoms) = at
 
+# TODO: this is a temporaruy hack, and I think we need to
+#       figure out how to do this for more general constraints
+project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 
 end
