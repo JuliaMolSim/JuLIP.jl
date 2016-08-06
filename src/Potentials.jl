@@ -48,9 +48,7 @@ abstract PairPotential <: Potential
 
 
 include("potentials_base.jl")
-# *
-#
-#
+# * @pot, @D, @DD, @GRAD and related things
 
 
 include("analyticpotential.jl")

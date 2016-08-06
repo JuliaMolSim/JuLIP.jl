@@ -7,6 +7,7 @@ import Base.convert
 export mat, pts, vecs
 export JVec, JVecs, JPt, JPts, JVecsPts
 export zerovecs, zeropts
+export maxdist
 export ee
 
 "`JVec{T}` : 3-dimensional immutable vector"
@@ -72,3 +73,14 @@ zerovecs(n::Integer) = zerovecs(Float64, n)
 zeropts(n::Integer) = zeropts(Float64, n)
 zerovecs(T::Type, n::Integer) = zeros(T, 3, n) |> vecs
 zeropts(T::Type, n::Integer) = zeros(T, 3, n) |> pts
+
+
+"maximum of distances between positions"
+function maxdist(x::JPts, y::JPts)
+   @assert length(x) == length(y)
+   ret = 0.0
+   for (a,b) in zip(x,y)
+      ret = max(ret, norm(a-b))
+   end
+   return ret
+end

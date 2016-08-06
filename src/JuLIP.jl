@@ -33,12 +33,14 @@ include("Constraints.jl")
 # interatomic potentials prototypes and some example implementations
 include("Potentials.jl")
 
+# basic preconditioning capabilities
+# include("preconditioners.jl")
+
 # some solvers
 include("Solve.jl")
 
 # codes to facilitate testing
 include("Testing.jl")
-
 
 
 end # module

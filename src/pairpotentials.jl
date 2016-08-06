@@ -64,3 +64,8 @@ MorsePotential(;A=4.0, e0=1.0, r0=1.0) =
 MorseCalculator(;A=4.0, e0=1.0, r0=1.0, rcut= (1.9*r0, 2.7*r0)) =
    PairCalculator( SplineCutoff(rcut[1], rcut[2]) *
                            MorsePotential(A=A, r0=r0, e0=e0) )
+
+
+# ======================================================================
+#      Preconditioner for Pair Potentials
+# ======================================================================
