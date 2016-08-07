@@ -1,7 +1,9 @@
 
 module Preconditioners
 
-import JuLIP: Preconditioner, JPts, Dofs, update!, maxdist
+import JuLIP
+import JuLIP: AbstractAtoms, Preconditioner, JPts, Dofs, update!, maxdist,
+               constraint, bonds, cutoff, positions
 import PyAMG: RugeStubenSolver
 import Base: A_ldiv_B!, A_mul_B!
 import JuLIP.Potentials: PairPotential, AnalyticPotential
@@ -31,10 +33,11 @@ AMGPrecon(p::Any, at::AbstractAtoms; updatedist=0.3, tol=1e-7)
 from the nearest-neighbour distance in `at`
 * should also have automatic updates every 10 or so iterations
 """
-type AMGPrecon{T}
+type AMGPrecon{T} <: Preconditioner
    p::T
    amg::RugeStubenSolver
-   oldX::JPts
+   # A::SparseMatrixCSC
+   oldX::JPts{Float64}
    updatedist::Float64
    tol::Float64
    updatefreq::Int
@@ -42,35 +45,38 @@ type AMGPrecon{T}
 end
 
 
-function AMGPrecon(p, at; updatedist=0.3, tol=1e-7, updatefreq=10)
+function AMGPrecon(p, at::AbstractAtoms; updatedist=0.3, tol=1e-7, updatefreq=10)
    # make sure we don't use this in a context it is not intended for!
    @assert isa(constraint(at), FixedCell)
-   return force_update!(AMGPrecon(p, RugeStubenSolver(sparse(eye(2))), JPts(0),
-                                 updatedist=updatedist, tol=tol, updatefreq, 0),
-                        at)
+   # P = AMGPrecon(p, speye(2), copy(positions(at)), updatedist, tol, updatefreq, 0)
+   P = AMGPrecon(p, RugeStubenSolver(speye(2)), copy(positions(at)),
+                     updatedist, tol, updatefreq, 0)
+   return force_update!(P, at)
 end
 
 
 A_ldiv_B!(out::Dofs, P::AMGPrecon, x::Dofs) = A_ldiv_B!(out, P.amg, x)
 A_mul_B!(out::Dofs, P::AMGPrecon, f::Dofs) = A_mul_B!(out, P.amg, f)
+# A_ldiv_B!(out::Dofs, P::AMGPrecon, x::Dofs) = copy!(out, P.A \ x)
+# A_mul_B!(out::Dofs, P::AMGPrecon, f::Dofs) = copy!(out, P.A * f)
 
 need_update(P::AMGPrecon, at::AbstractAtoms) =
    (P.skippedupdates > P.updatefreq) ||
-   (maxdist(ositions(at), P.oldX) >= P.updatedist)
+   (JuLIP.maxdist(positions(at), P.oldX) >= P.updatedist)
 
 update!(P::AMGPrecon, at::AbstractAtoms) =
    need_update(P, at) ? force_update!(P, at) : (P.skippedupdates += 1; P)
-
 
 function force_update!(P::AMGPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
-   A = project!( at.constraint(), matrix(P.p, at) )
+   A = project!( constraint(at), matrix(P.p, at) )
    # and the AMG solver
    P.amg = RugeStubenSolver(A, tol=P.tol)
+   # P.A = A
    # remember the atom positions
-   copy!(P.oldX, positions(at)))
+   copy!(P.oldX, positions(at))
    # and remember that we just did a full update
    P.skippedupdates = 0
    return P
@@ -78,7 +84,7 @@ end
 
 # ============== some tools to construct preconditioners ======================
 
-function estimate_rnn(at:AbstractAtoms)
+function estimate_rnn(at::AbstractAtoms)
    sym = unique(chemical_symbols(at))
    return minimum([rnn(s) for s in sym])
 end
@@ -105,9 +111,15 @@ function matrix(p::PairPotential, at::AbstractAtoms)
       # the next 2 lines add an identity block for each atom
       # TODO: should experiment with other matrices, e.g., R ⊗ R
       ii = atind2lininds(i); jj = atind2lininds(j)
-      append!(I, ii); append!(J, jj); append!(Z, ones(3) * p(r))
+      z = p(r)
+      for (a, b) in zip(ii, jj)
+         append!(I, [a; a; b; b])
+         append!(J, [a; b; a; b])
+         append!(Z, [z; -z; -z; z])
+      end
    end
-   return sparse(I, J, Z)
+   N = 3*length(at)
+   return sparse(I, J, Z, N, N) + 0.001 * speye(N)
 end
 
 
@@ -117,24 +129,29 @@ A variant of the `Exp` preconditioner; see
 ### Constructor: `Exp(at::AbstractAtoms)`
 
 Keyword arguments:
+
 * `A=3.0`: stiffness of potential
-* `rnn=nothing`: `rnn` is then estimated
+* `r0=nothing`: if `nothing`, then it is an estimate nn distance
 * `cutoff_mult`: cut-off multiplier
 * `tol, updatefrew`: AMG parameters
 
 ### Reference
 
-D. Packwood, J. Kermode, L. Mones, N. Bernstein, J. Woolley, N. I. M. Gould, C. Ortner, and G. Csanyi. A universal preconditioner for simulating condensed phase materials. J. Chem. Phys., 144, 2016.
+      D. Packwood, J. Kermode, L. Mones, N. Bernstein, J. Woolley, N. I. M. Gould,
+      C. Ortner, and G. Csanyi. A universal preconditioner for simulating condensed
+      phase materials. J. Chem. Phys., 144, 2016.
 """
 function Exp(at::AbstractAtoms;
-            A=3.0, rnn=nothing, cutoff_mult=2.2, tol=1e-7, updatefreq=10)
-   if rnn == nothing
-      rnn = estimate_rnn(at)
+             A=3.0, r0=nothing, cutoff_mult=2.2, tol=1e-7, updatefreq=10)
+   if r0 == nothing
+      r0 = estimate_rnn(at)
    end
-   cutoff = rnn * cutoff_mult
-   exp_shit = exp( - A*(cutoff/rnn - 1.0) )
-   pot = AnalyticPotential( :(exp( - $A * (r/$rnn - 1.0)) - $exp_shit),
-                            cutoff = cutoff )
-   return AMGPrecon(pot, at, updatedist=0.3 * rnn,
-                  tol=tol, updatefreq=updatefreq)
+   rcut = r0 * cutoff_mult
+   exp_shit = exp( - A*(rcut/r0 - 1.0) )
+   pot = AnalyticPotential( :(exp( - $A * (r/$r0 - 1.0)) - $exp_shit),
+                            cutoff = rcut )
+   return AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
 end
+
+
+end # end module Preconditioners
