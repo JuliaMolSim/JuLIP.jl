@@ -76,7 +76,7 @@ zeropts(T::Type, n::Integer) = zeros(T, 3, n) |> pts
 
 
 "maximum of distances between positions"
-function maxdist(x::JPts, y::JPts)
+function maxdist{T}(x::JPts{T}, y::JPts{T})
    @assert length(x) == length(y)
    ret = 0.0
    for (a,b) in zip(x,y)
@@ -84,3 +84,6 @@ function maxdist(x::JPts, y::JPts)
    end
    return ret
 end
+
+"maximum vector-length; e.g. for forces"
+maxnorm{T}(x::JVecs{T}) = maximum( norm.(x) )

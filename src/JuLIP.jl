@@ -34,7 +34,7 @@ include("Constraints.jl")
 include("Potentials.jl")
 
 # basic preconditioning capabilities
-# include("preconditioners.jl")
+include("preconditioners.jl")
 
 # some solvers
 include("Solve.jl")

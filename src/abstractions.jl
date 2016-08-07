@@ -1,7 +1,5 @@
 
-# here we define and document the prototypes that are implemented, e.g.,
-
-
+# here we define and document the prototypes that are implemented
 
 """
 `AbstractAtoms`
@@ -104,14 +102,14 @@ end
 # function defined primarily on AbstractAtoms
 export AbstractAtoms,
       positions, get_positions, set_positions!,
-      cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
+      get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       set_data!, get_data,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
       neighbourlist
 
 # length is used for several things
-import Base: length, A_ldiv_B!, A_mul_B!
+import Base: length, A_ldiv_B!, A_mul_B!, cell
 
 export AbstractCalculator,
       energy, potential_energy, forces, grad
@@ -123,11 +121,9 @@ export AbstractConstraint, NullConstraint, dofs
 
 export Preconditioner, preconditioner
 
-
-
+# TODO: probably rename Preconditioner to AbstractPreconditioner and
+#       AMGPrecon to Preconditioner
 # TODO: iterators for angles, dihedrals
-# TODO: decide on maxforce (what was this?)
-
 
 
 "Return number of atoms"
