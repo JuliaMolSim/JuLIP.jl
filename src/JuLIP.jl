@@ -18,14 +18,17 @@ include("utils.jl")
 # implementation of some key functionality via ASE
 include("ASE.jl")
 
+
 # define the default atoms object
 """
 `type Atoms`
 
-Technically not a type but a type-alias, to allow different "backends".
-At the moment, `Atoms = ASE.ASEAtoms`.
+Technically not a type but a type-alias, to possibly allow different "backends".
+At the moment, `Atoms = ASE.ASEAtoms`; see its help for more details.
+This will likely remain for the foreseeable future.
 """
 typealias Atoms ASE.ASEAtoms
+
 
 # submodule JuLIP.Constraints
 include("Constraints.jl")

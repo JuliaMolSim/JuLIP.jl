@@ -29,12 +29,27 @@ calculators = Any[]
 push!(calculators, (  LennardJonesCalculator(r0=JuLIP.ASE.rnn("Al")),
          Atoms("Al", cubic=true, repeatcell=(3,3,2), pbc=(true,false,false)) ) )
 
-# # [2] ASE's EMT calculator
-# emt = JuLIP.ASE.EMTCalculator()
-# at = Atoms("Cu", cubic=true, repeatcell=(2,2,2); pbc=(true,false,false))
-# set_calculator!(at, emt)
-# push!(calculators, (emt, at))
+# [2] ASE's EMT calculator
+emt = JuLIP.ASE.EMTCalculator()
+at = Atoms("Cu", cubic=true, repeatcell=(2,2,2); pbc=(true,false,false))
+rattle!(at, 0.1)
+set_calculator!(at, emt)
+push!(calculators, (emt, at))
 
+# [3] JuLIP's EMT calculator
+at2 = Atoms("Cu", cubic=true, repeatcell=(2,2,2); pbc=(true,false,false))
+set_positions!(at2, positions(at))
+emt2 = JuLIP.Potentials.EMTCalculator(at2)
+set_calculator!(at2, emt2)
+push!(calculators, (emt2, at2))
+
+
+println("--------------------------------------------------")
+println(" EMT Consistency test: ")
+println("--------------------------------------------------")
+println(" E_ase - E_jl = ", energy(at) - energy(at2))
+println(" |Frc_ase - Frc_jl = ", maxnorm(forces(at) - forces(at2)))
+println("--------------------------------------------------")
 
 println("============================================")
 println("  Testing calculator implementations ")
