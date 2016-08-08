@@ -7,7 +7,7 @@ import Base.convert
 export mat, pts, vecs
 export JVec, JVecs, JPt, JPts, JVecsPts
 export zerovecs, zeropts
-export maxdist
+export maxdist, maxnorm 
 export ee
 
 "`JVec{T}` : 3-dimensional immutable vector"
@@ -75,7 +75,10 @@ zerovecs(T::Type, n::Integer) = zeros(T, 3, n) |> vecs
 zeropts(T::Type, n::Integer) = zeros(T, 3, n) |> pts
 
 
-"maximum of distances between positions"
+"""
+maximum of distances between two sets of points, usually positions;
+`maximum(a - b for (a,b) in zip(x,y))`
+"""
 function maxdist{T}(x::JPts{T}, y::JPts{T})
    @assert length(x) == length(y)
    ret = 0.0
@@ -85,5 +88,5 @@ function maxdist{T}(x::JPts{T}, y::JPts{T})
    return ret
 end
 
-"maximum vector-length; e.g. for forces"
+"`maximum(norm(y) for y in x);` typically, x is a vector of forces"
 maxnorm{T}(x::JVecs{T}) = maximum( norm.(x) )

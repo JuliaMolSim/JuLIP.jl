@@ -13,6 +13,10 @@ import JuLIP.ASE: chemical_symbols, rnn
 # ================ AMGPrecon =====================
 # this is wrapping some machinery around PyAMG
 
+# TODO: allow direct solver as an alternative;
+#       in this case we should to a cholesky factorisation
+#       on `force_update!`
+
 """
 `AMGPrecon{T}`: a preconditioner using AMG as the main solver
 
@@ -36,7 +40,8 @@ from the nearest-neighbour distance in `at`
 type AMGPrecon{T} <: Preconditioner
    p::T
    amg::RugeStubenSolver
-   # A::SparseMatrixCSC
+   Solver
+   solver
    oldX::JPts{Float64}
    updatedist::Float64
    tol::Float64
@@ -44,11 +49,9 @@ type AMGPrecon{T} <: Preconditioner
    skippedupdates::Int
 end
 
-
 function AMGPrecon(p, at::AbstractAtoms; updatedist=0.3, tol=1e-7, updatefreq=10)
    # make sure we don't use this in a context it is not intended for!
    @assert isa(constraint(at), FixedCell)
-   # P = AMGPrecon(p, speye(2), copy(positions(at)), updatedist, tol, updatefreq, 0)
    P = AMGPrecon(p, RugeStubenSolver(speye(2)), copy(positions(at)),
                      updatedist, tol, updatefreq, 0)
    return force_update!(P, at)
@@ -57,8 +60,6 @@ end
 
 A_ldiv_B!(out::Dofs, P::AMGPrecon, x::Dofs) = A_ldiv_B!(out, P.amg, x)
 A_mul_B!(out::Dofs, P::AMGPrecon, f::Dofs) = A_mul_B!(out, P.amg, f)
-# A_ldiv_B!(out::Dofs, P::AMGPrecon, x::Dofs) = copy!(out, P.A \ x)
-# A_mul_B!(out::Dofs, P::AMGPrecon, f::Dofs) = copy!(out, P.A * f)
 
 need_update(P::AMGPrecon, at::AbstractAtoms) =
    (P.skippedupdates > P.updatefreq) ||
@@ -74,7 +75,6 @@ function force_update!(P::AMGPrecon, at::AbstractAtoms)
    A = project!( constraint(at), matrix(P.p, at) )
    # and the AMG solver
    P.amg = RugeStubenSolver(A, tol=P.tol)
-   # P.A = A
    # remember the atom positions
    copy!(P.oldX, positions(at))
    # and remember that we just did a full update

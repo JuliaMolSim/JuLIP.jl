@@ -396,34 +396,3 @@ update!(P::Identity, at::AbstractAtoms) = P
 preconditioner(at::AbstractAtoms) = preconditioner(at, calculator(at), constraint(at))
 preconditioner(at::AbstractAtoms, calc::AbstractCalculator, con::AbstractConstraint) =
          Identity()
-
-
-
-# ==================================================
-# more abstract types that eventually need to be
-# arranged in a better way
-
-# abstract Preconditioner
-
-# """`max_force(f::AbstractArray{2})`:
-#
-# For a 3 x N array `f`, return the maximum of `|f[:,n]|₂`.
-# """
-# maxforce(f) = sqrt(maximum(sumabs2(f, 1)))
-
-
-# ==================================================
-# do we want this at all?
-
-# """
-# Returns `(neigs, r, R)` where `neigs` is an integer vector with indices
-# of neighbour atoms of `n`, `r` a Float vector with their distances and
-# `R` a vector of distance *vectors*.
-# """
-# @protofun neighbours(n::Integer, neigs::AbstractNeighbourList,
-#                          atm::AbstractAtoms; rcut=-1)
-#
-#
-# get_neighbours(n::Integer, neigs::AbstractNeighbourList,
-#            atm::AbstractAtoms; rcut=-1) =
-#                neighbours(n, neigs, atm; rcut=rcut)

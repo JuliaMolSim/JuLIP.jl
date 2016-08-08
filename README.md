@@ -40,4 +40,3 @@ to make sure the installation succeeded. Otherwise, open an issue.
 - [ ] Implement generic EAM, using data-files (?)
 - [ ] Analyse overhead of ASE+Matscipy neighbourlist, consider
       implementing a pure Julia neighbourlist
-- [ ]

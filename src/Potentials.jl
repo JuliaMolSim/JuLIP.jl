@@ -68,7 +68,8 @@ include("pairpotentials.jl")
 
 ################### the EMT Calculator ###################
 
-# include("emt.jl")
+include("EMT.jl")
+# * EMTCalculator
 
 
 
