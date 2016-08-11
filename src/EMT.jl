@@ -1,3 +1,11 @@
+#
+# Port of ASE's EMT calculator to pure Julia
+# (only the parameters are imported from ASE)
+#
+#
+# TODO: make it FAST FAST FAST (competitive with ASAP)
+#
+
 
 import JuLIP: AbstractCalculator, neighbourlist
 import JuLIP.Potentials: cutsw, cutsw_d, evaluate, evaluate_d
@@ -7,16 +15,6 @@ using PyCall
 # get access to the atomic numbers
 @pyimport ase.calculators.emt as ase_emt
 @pyimport ase.data as ase_data
-
-
-# # get access to the atomic numbers
-# @pyimport ase.calculators.emt as ase_emt
-# @pyimport ase.data as ase_data
-
-# "set of EMT parameters for a single species"
-# type EMTParams
-#    E0; s0; V0; eta2; kappa; lambda; n0; rc; gamma1; gamma2
-# end
 
 """
 `EMT`: a re-implementation of the `EMT` calculator (a variant of EAM) os ASE

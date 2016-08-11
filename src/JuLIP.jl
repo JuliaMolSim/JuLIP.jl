@@ -5,6 +5,7 @@ module JuLIP
 
 export Atoms
 
+# TODO: correctly use import versus using throughout this package! 
 
 # quickly switch between Matrices and Vectors of Vecs
 include("arrayconversions.jl")
