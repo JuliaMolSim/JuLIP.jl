@@ -161,7 +161,7 @@ bulk(name::AbstractString; kwargs...) =
 # matscipy neighbourlist functionality
 ############################################################
 
-include("matscipy.jl")
+include("MatSciPy.jl")
 
 neighbourlist(at::ASEAtoms, cutoff::Float64) = MatSciPy.NeighbourList(at, cutoff)
 
