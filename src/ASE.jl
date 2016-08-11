@@ -19,7 +19,7 @@ Provides Julia wrappers for some of ASE's functionality. Currently:
 module ASE
 
 # the functions to be implemented
-import JuLIP: AbstractAtoms,
+import JuLIP:
       positions, set_positions!,   # ✓
       cell, set_cell!,             # ✓
       pbc, set_pbc!,               # ✓
@@ -27,27 +27,26 @@ import JuLIP: AbstractAtoms,
       deleteat!,                   # ✓
       calculator, set_calculator!, # ✓
       constraint, set_constraint!, # ✓
-      neighbourlist                # ✓
+      neighbourlist,                # ✓
+      energy, forces
 
 import Base.length         # ✓
 
 # from arrayconversions:
-import JuLIP: mat, pts, vecs, JPts, JVecs,
-      AbstractConstraint, NullConstraint,
-      AbstractCalculator, NullCalculator,
-      energy, forces
+using JuLIP: mat, pts, vecs, JPts, JVecs,
+      AbstractAtoms, AbstractConstraint, NullConstraint,
+      AbstractCalculator, NullCalculator
 
 # extra ASE functionality:
 import Base.repeat         # ✓
-export bulk, ASEAtoms      # ✓
+export bulk, ASEAtoms,      # ✓
+      repeat, rnn, chemical_symbols, ASECalculator
 
-# `rnn` is a little hack based on the ASE functionality, hence it is not in JuLIP proper.
-export rnn, ASECalculator
 
 using PyCall
 @pyimport ase
 @pyimport ase.lattice as lattice
-# @pyimport ase.calculators.neighborlist as ase_neiglist
+@pyimport ase.io as ase_io
 
 
 
@@ -194,10 +193,18 @@ function EMTCalculator()
 end
 
 
-################### some additional hacks ###################
+################### extra ASE functionality  ###################
+# TODO: we probably want more of this
+#       and a more structured way to translate
+#
 
 "return vector of chemical symbols as strings"
 chemical_symbols(at::ASEAtoms) = pyobject(at)[:get_chemical_symbols]()
+
+write(filename::AbstractString, at::ASEAtoms) = ase_io.write(filename, at.po)
+
+# TODO: trajectory; see
+#       https://wiki.fysik.dtu.dk/ase/ase/io/trajectory.html
 
 """
 `rnn(species)` : returns the nearest-neighbour distance for a given species

@@ -16,6 +16,7 @@ pip install matscipy
 ```
 Afterwards, install JuLIP, from the Julia REPL:
 ```julia
+Pkg.clone("https://github.com/yuyichao/FunctionWrappers.jl.git")
 Pkg.clone("https://github.com/libAtoms/JuLIP.jl.git")
 ```
 And run
@@ -23,7 +24,6 @@ And run
 Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. Otherwise, open an issue.
-
 
 
 # Examples

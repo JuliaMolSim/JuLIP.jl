@@ -40,8 +40,6 @@ from the nearest-neighbour distance in `at`
 type AMGPrecon{T} <: Preconditioner
    p::T
    amg::RugeStubenSolver
-   Solver
-   solver
    oldX::JPts{Float64}
    updatedist::Float64
    tol::Float64

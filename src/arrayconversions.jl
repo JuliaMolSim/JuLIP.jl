@@ -7,7 +7,7 @@ import Base.convert
 export mat, pts, vecs
 export JVec, JVecs, JPt, JPts, JVecsPts
 export zerovecs, zeropts
-export maxdist, maxnorm 
+export maxdist, maxnorm
 export ee
 
 "`JVec{T}` : 3-dimensional immutable vector"

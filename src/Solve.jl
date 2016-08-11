@@ -8,6 +8,7 @@ the help for these:
 """
 module Solve
 
+
 import Optim: DifferentiableFunction, optimize, ConjugateGradient
 
 import JuLIP: AbstractAtoms, Preconditioner, update!, Identity, update!,
@@ -17,7 +18,6 @@ import JuLIP: AbstractAtoms, Preconditioner, update!, Identity, update!,
 export minimise!
 
 export Exp
-
 
 
 
@@ -54,6 +54,10 @@ function minimise!( at::AbstractAtoms;
 end
 
 
+
+
+# saddle search
+# include("saddlesearch.jl")
 
 
 
