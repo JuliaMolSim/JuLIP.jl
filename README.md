@@ -27,6 +27,9 @@ to make sure the installation succeeded. Otherwise, open an issue.
 
 ## `imolecule` and dependencies
 
+Update: the configuration can be written directly to a JSON file, which
+circumvents the need for OpenBabel. 
+
 `JuLIP.Visualise` uses the Python module `imolecule` to visualise atomistic
 configurations in an IPython notebook. Its main dependency is
  [OpenBabel](http://openbabel.org/wiki/Main_Page). The following instructions
