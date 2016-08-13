@@ -4,3 +4,6 @@ FixedSizeArrays
 Optim
 Calculus
 PyAMG
+JSON
+
+# also need FunctionWrappers: b7497d0d is known to work
