@@ -5,7 +5,7 @@ module JuLIP
 
 export Atoms
 
-# TODO: correctly use import versus using throughout this package! 
+# TODO: correctly use import versus using throughout this package!
 
 # quickly switch between Matrices and Vectors of Vecs
 include("arrayconversions.jl")
@@ -30,6 +30,8 @@ This will likely remain for the foreseeable future.
 """
 typealias Atoms ASE.ASEAtoms
 
+# some visualisation options 
+include("Visualise.jl")
 
 # submodule JuLIP.Constraints
 include("Constraints.jl")
