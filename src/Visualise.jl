@@ -1,8 +1,9 @@
 
 module Visualise
 
-using PyCall
-using JuLIP.ASE: ASEAtoms, write
+using PyCall, JSON
+using JuLIP: set_pbc!, positions, neighbourlist
+using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
 
 @pyimport IPython.display as ipydisp
 @pyimport imolecule
@@ -23,11 +24,10 @@ using JuLIP.ASE: ASEAtoms, write
 * `show_save`: If True, displays a save icon for rendering molecule as an
     image.
 """
-function Base.view(at::AbstractAtoms; bonds=:babel, box=:auto,
+function show(at::AbstractAtoms; bonds=:babel, box=:auto,
             camera_type="perspective", size=(500,500), display_html=false, varargs...)
 
    # TODO: implement box (ignore for now)
-
    if bonds == :babel
       # in this case we assume that OpenBabel and in particular `pybel` is
       # installed; we write the atoms object as xyz and let `pybel`
@@ -41,7 +41,7 @@ function Base.view(at::AbstractAtoms; bonds=:babel, box=:auto,
       rm(fn)
       return out
    elseif bonds == :auto
-      bonds = autobondlenghts(at)
+      # TODO: bonds = autobondlenghts(at)
    elseif !isa(bonds, Dict)
       error("""view(at ...) : at the momement, `bonds` must be
                `:babel`, `:auto` or a `Dict` containing the bonds-length
@@ -60,16 +60,16 @@ function Base.view(at::AbstractAtoms; bonds=:babel, box=:auto,
 
    # temporarily assume there is a single species!
    # and make the bond length 120% of the NN-length
-   bondlength = 1.2 * JuLIP.ASE.rnn( JuLIP.ASE.chemical_symbols(at)[1] )
-
+   bondlength = 1.2 * rnn( chemical_symbols(at)[1] )
    # we need to turn of PBC otherwise we get weird bonds
    set_pbc!(at, (false, false, false))
    atoms = [Dict("element" => e, "location" => Vector(x))
-            for (e, x) in zip(JuLIP.ASE.chemical_symbols(at), positions(at)) ]
+            for (e, x) in zip(chemical_symbols(at), positions(at)) ]
    nlist = neighbourlist(at, bondlength)
-   b = unique(sort([nlist.i nlist.j], 2), 1) - 1
-   bonds = [Dict(:atoms => b[n,:][:], :order => 1) for n = 1:size(b,1)];
-   molecule_data = Dict(:atoms=>atoms, :bonds=>bonds);
+   # we are assuming that nlist is the Matscipy nlist
+   ij = unique(sort([nlist.i nlist.j], 2), 1) - 1
+   bondlist = [Dict("atoms" => [ij[n,1];ij[n,2]], "order" => 1) for n = 1:Base.size(ij, 1)]
+   molecule_data = Dict("atoms" => atoms, "bonds" => bondlist)
 
    # convert write to a temporary file
    fn = "$(tempname()).json"
@@ -85,3 +85,6 @@ function Base.view(at::AbstractAtoms; bonds=:babel, box=:auto,
    rm(fn)
    return out
 end
+
+
+end # module Visualise
