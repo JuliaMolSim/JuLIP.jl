@@ -7,9 +7,9 @@ Work in progress.
 
 # Installation
 
-JuLIP currently relies on [ASE](https://gitlab.com/ase/ase) and
+JuLIP relies on [ASE](https://gitlab.com/ase/ase) and
  [matscipy](https://github.com/libAtoms/matscipy). These should be straightforward
-to install from the shell:
+to install from the shell:  (note this seems wrong: need to try again on a clean system)
 ```bash
 pip install ase
 pip install matscipy
@@ -25,18 +25,39 @@ Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. Otherwise, open an issue.
 
+## `imolecule` and dependencies
+
+`JuLIP.Visualise` uses the Python module `imolecule` to visualise atomistic
+configurations in an IPython notebook. Its main dependency is
+ [OpenBabel](http://openbabel.org/wiki/Main_Page). The following instructions
+ were only tested on OS X.
+
+To install `imolecule` simply type
+```bash
+pip install imolecule
+```
+in a terminal.
+
+Installing OpenBabel is relatively straightforward; the key issue is to get
+the Python bindings set up correctly, especially since there are normally
+multiple Python versions on an OS X system (Apple, homebrew and anaconda).
+The following instructions worked for 2.3.90, but make sure to change the SWIG version
+number directories as needed:
+```bash
+conda install cmake lxml swig
+git clone https://github.com/openbabel/openbabel.git
+cd openbabel
+cmake ../openbabel-2.3.2 -DPYTHON_BINDINGS=ON -DRUN_SWIG=ON -DCMAKE_INSTALL_PREFIX=~/anaconda -DPYTHON_INCLUDE_DIR=~/anaconda/include/python2.7 -DCMAKE_LIBRARY_PATH=~/anaconda/lib -DSWIG_DIR=~/anaconda/share/swig/3.0.2/ -DSWIG_EXECUTABLE=~/anaconda/bin/swig -DPYTHON_LIBRARY=~/anaconda/lib/libpython2.7.so
+make
+make install
+```
+This should have installed all libraries and python packages in `~/anaconda`
+and the data files in `/usr/local/share/openbabel/2.3.90/`. To tell `babel`
+where to find them, the following lines must be added to `~/.bash_profile`:
+```bash
+export BABEL_DATADIR="/usr/local/share/openbabel/2.3.90/"
+export BABEL_LIBDIR="/Users/ortner/anaconda/lib/openbabel/2.3.90/"
+```
+
 
 # Examples
-
-
-
-# Structure
-
-
-
-
-# TODO
-
-- [ ] Implement generic EAM, using data-files (?)
-- [ ] Analyse overhead of ASE+Matscipy neighbourlist, consider
-      implementing a pure Julia neighbourlist
