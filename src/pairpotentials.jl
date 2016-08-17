@@ -4,6 +4,9 @@
 import JuLIP: zerovecs, energy, forces
 import JuLIP.ASE.MatSciPy: NeighbourList
 
+export ZeroPairPotential
+
+
 # a simplified way to calculate gradients of pair potentials
 grad(p::PairPotential, r::Float64, R::JVec) =
             (evaluate_d(p::PairPotential, r) / r) * R
@@ -64,6 +67,17 @@ MorsePotential(;A=4.0, e0=1.0, r0=1.0) =
 MorseCalculator(;A=4.0, e0=1.0, r0=1.0, rcut= (1.9*r0, 2.7*r0)) =
    PairCalculator( SplineCutoff(rcut[1], rcut[2]) *
                            MorsePotential(A=A, r0=r0, e0=e0) )
+
+
+
+# """
+# `ZeroPairPotential()`: creates a potential that just returns zero
+# """
+@pot  type ZeroPairPotential end
+evaluate(p::ZeroPairPotential, r::Float64) = 0.0
+evaluate_d(p::ZeroPairPotential, r::Float64) = 0.0
+evaluate_dd(p::ZeroPairPotential, r::Float64) = 0.0
+cutoff(p::ZeroPairPotential) = 0.0
 
 
 # ======================================================================

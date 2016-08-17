@@ -9,11 +9,11 @@ Look at `?` for
 """
 module Testing
 
-import JuLIP: AbstractCalculator, AbstractAtoms, energy, grad,
+using JuLIP: AbstractCalculator, AbstractAtoms, energy, grad, forces,
          constraint, calculator, set_positions!, dofs, NullConstraint,
          mat, vecs, pts, positions, rattle!
-import JuLIP.Potentials: PairPotential, evaluate, evaluate_d, @D
-import JuLIP.Constraints: FixedCell
+using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, @D
+using JuLIP.Constraints: FixedCell
 
 
 export fdtest
@@ -28,35 +28,35 @@ generic finite-difference test for scalar F
 TODO: complete documentation
 """
 function fdtest(F::Function, dF::Function, x; verbose=true)
-    errors = Float64[]
-    E = F(x)
-    dE = dF(x)
-    # loop through finite-difference step-lengths
-    @printf("---------|----------- \n")
-    @printf("    h    | error \n")
-    @printf("---------|----------- \n")
-    for p = 2:11
-        h = 0.1^p
-        dEh = zeros(dE)
-        for n = 1:length(dE)
-            x[n] += h
-            dEh[n] = (F(x) - E) / h
-            x[n] -= h
-        end
-        push!(errors, vecnorm(dE - dEh, Inf))
-        @printf(" %1.1e | %4.2e  \n", h, errors[end])
-    end
-    @printf("---------|----------- \n")
-    if minimum(errors) <= 1e-3 * maximum(errors)
-        println("passed")
-        return true
-    else
-        warn("""It seems the finite-difference test has failed, which indicates
-             that there is an inconsistency between the function and gradient
-             evaluation. Please double-check this manually / visually. (It is
-             also possible that the function being tested is poorly scaled.)""")
-        return false
-    end
+   errors = Float64[]
+   E = F(x)
+   dE = dF(x)
+   # loop through finite-difference step-lengths
+   @printf("---------|----------- \n")
+   @printf("    h    | error \n")
+   @printf("---------|----------- \n")
+   for p = 2:11
+      h = 0.1^p
+      dEh = zeros(dE)
+      for n = 1:length(dE)
+         x[n] += h
+         dEh[n] = (F(x) - E) / h
+         x[n] -= h
+      end
+      push!(errors, vecnorm(dE - dEh, Inf))
+      @printf(" %1.1e | %4.2e  \n", h, errors[end])
+   end
+   @printf("---------|----------- \n")
+   if minimum(errors) <= 1e-3 * maximum(errors)
+      println("passed")
+      return true
+   else
+      warn("""It seems the finite-difference test has failed, which indicates
+      that there is an inconsistency between the function and gradient
+      evaluation. Please double-check this manually / visually. (It is
+      also possible that the function being tested is poorly scaled.)""")
+      return false
+   end
 end
 
 "finite-difference test for a function V : ℝ → ℝ"
@@ -101,6 +101,7 @@ fdtest(V::PairPotential, r::AbstractVector; kwargs...) =
 
 
 function fdtest(calc::AbstractCalculator, at::AbstractAtoms; verbose=true)
+   X0 = copy(positions(at))
    # perturb atom positions a bit to get out of equilibrium states
    at = rattle!(at, 0.02)
    # if no constraint is attached, then attach the NullConstraint
@@ -113,6 +114,8 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms; verbose=true)
            x-> mat(grad(calc, set_positions!(cons, at, x)))[:],
            dofs(at, cons)
          )
+   # restore original atom positions
+   set_positions!(at, X0)
 end
 
 

@@ -75,3 +75,7 @@ function AnalyticPotential(ex::Expr; id = string(ex), cutoff=Inf)
    f, f_d, f_dd = diff2(ex)
    return AnalyticPotential(F64fun(f), F64fun(f_d), F64fun(f_dd), id, cutoff)
 end
+
+# this is a hack to make tight-binding work; but it should be reconsidered
+evaluate(p::AnalyticPotential, r, R) = evaluate(p, r)
+evaluate_d(p::AnalyticPotential, r, R) = evaluate_d(p, r) 

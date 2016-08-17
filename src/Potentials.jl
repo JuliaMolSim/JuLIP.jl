@@ -28,7 +28,7 @@ import JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
 import JuLIP: grad
 
 
-export LennardJonesPotential, MorsePotential, AnalyticPotential,
+export Potential, PairPotential, LennardJonesPotential, MorsePotential, AnalyticPotential,
    SWCutoff, ShiftCutoff, SplineCutoff,
    LennardJonesCalculator, MorseCalculator, GuptaCalculator,
    @D, @DD, @GRAD
@@ -70,6 +70,16 @@ include("pairpotentials.jl")
 
 include("EMT.jl")
 # * EMTCalculator
+
+
+
+export ZeroSitePotential
+
+@pot type ZeroSitePotential <: Potential
+end
+
+evaluate(p::ZeroSitePotential, r, R) = 0.0
+evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)
 
 
 

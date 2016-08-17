@@ -312,7 +312,7 @@ Returns the negative gradient of the total energy in the format `3 x length`.
 forces(at::AbstractAtoms) = forces(calculator(at), at)
 
 "`grad(c,a) = - forces(c, a)`"
-grad(c::AbstractCalculator, a::AbstractAtoms) = - forces(c, a)
+grad(c::AbstractCalculator, a::AbstractAtoms) = scale!(forces(c, a), -1.0)
 grad(at::AbstractAtoms) = grad(calculator(at), at)
 
 

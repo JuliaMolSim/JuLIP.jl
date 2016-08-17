@@ -51,6 +51,7 @@ function minimise!( at::AbstractAtoms;
    if verbose > 0
       println(results)
    end
+   return results
 end
 
 

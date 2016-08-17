@@ -48,6 +48,9 @@ evaluate(p::SWCutoff, r) = cutsw(r, p.Rc, p.Lc)
 evaluate_d(p::SWCutoff, r) = cutsw_d(r, p.Rc, p.Lc)
 cutoff(p::SWCutoff) = p.Rc
 
+# TODO: hack to make TB work (reconsider this) 
+evaluate(p::SWCutoff, r, R) = evaluate(p, r)
+evaluate_d(p::SWCutoff, r, R) = evaluate_d(p, r)
 
 ######################## Shift-Cutoff: one should not use this!
 
