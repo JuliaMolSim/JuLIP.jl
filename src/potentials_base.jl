@@ -150,3 +150,7 @@ function Base.print(io::Base.IO, p::ProdPot)
    print(io, " * ")
    print(io, p.p2)
 end
+
+# expand usage of prodpot to be useful for TB
+evaluate{P1,P2}(p::ProdPot{P1,P2}, r, R) = p.p1(r, R) * p.p2(r, R)
+evaluate_d(p::ProdPot, r, R) = (p.p1(r, R) * (@D p.p2(r, R)) + (@D p.p1(r, R)) * p.p2(r, R))
