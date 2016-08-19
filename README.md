@@ -27,8 +27,7 @@ to make sure the installation succeeded. Otherwise, open an issue.
 
 ## `imolecule` and dependencies
 
-Update: the configuration can be written directly to a JSON file, which
-circumvents the need for OpenBabel. 
+This part can be skipped if no visualisation is required.
 
 `JuLIP.Visualise` uses the Python module `imolecule` to visualise atomistic
 configurations in an IPython notebook. Its main dependency is
@@ -61,6 +60,9 @@ where to find them, the following lines must be added to `~/.bash_profile`:
 export BABEL_DATADIR="/usr/local/share/openbabel/2.3.90/"
 export BABEL_LIBDIR="/Users/ortner/anaconda/lib/openbabel/2.3.90/"
 ```
+
+(Update: the configuration can be written directly to a JSON file, which
+ought to circumvent the need for OpenBabel. Need to test this on a clean system.)
 
 
 # Examples

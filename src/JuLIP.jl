@@ -30,8 +30,14 @@ This will likely remain for the foreseeable future.
 """
 typealias Atoms ASE.ASEAtoms
 
-# some visualisation options 
-include("Visualise.jl")
+# only try to import Visualise, it is not needed for the rest to work.
+try
+   # some visualisation options
+   include("Visualise.jl")
+catch
+   warning("""JuLIP.Visualise did not import correctly, probably because
+               `imolecule` is not correctly installed.""")
+end
 
 # submodule JuLIP.Constraints
 include("Constraints.jl")
