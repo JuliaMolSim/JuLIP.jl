@@ -12,17 +12,27 @@ export ee
 
 "`JVec{T}` : 3-dimensional immutable vector"
 typealias JVec{T} Vec{3,T}
+typealias JVecF JVec{Float64}
+typealias JVecI JVec{Int}
 
 "`JPt{T}` : 3-dimensional immutable point"
 typealias JPt{T} Point{3,T}
+typealias JPtF JPt{Float64}
+typealias JPtI JPt{Int}
 
 "`JVecs{T}` : List of 3-dimensional immutable vectors"
 typealias JVecs{T} Vector{JVec{T}}
+typealias JVecsF JVecs{Float64}
+typealias JVecsI JVecs{Int}
 
 "`JPts{T}` : List of 3-dimensional immutable points"
 typealias JPts{T} Vector{JPt{T}}
+typealias JPtsF JPts{Float64}
+typealias JPtsI JPts{Int}
 
 typealias JVecsPts{T} Union{JVecs{T},JPts{T}}
+typealias JVecsPtsF Union{JVecsF,JPtsF}
+typealias JVecsPtsI Union{JVecsI,JPtsI}
 
 const e1 = JPt{Float64}((1.0,0.0,0.0))
 const e2 = JPt{Float64}((0.0,1.0,0.0))
