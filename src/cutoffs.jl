@@ -43,16 +43,26 @@ end
 @pot type SWCutoff <: PairPotential
     Rc::Float64
     Lc::Float64
+    e0::Float64
 end
-evaluate(p::SWCutoff, r) = cutsw(r, p.Rc, p.Lc)
-evaluate_d(p::SWCutoff, r) = cutsw_d(r, p.Rc, p.Lc)
+evaluate(p::SWCutoff, r) = p.e0 * cutsw(r, p.Rc, p.Lc)
+evaluate_d(p::SWCutoff, r) = p.e0 * cutsw_d(r, p.Rc, p.Lc)
 cutoff(p::SWCutoff) = p.Rc
 
-# TODO: hack to make TB work (reconsider this) 
+# TODO: hack to make TB work (reconsider this)
 evaluate(p::SWCutoff, r, R) = evaluate(p, r)
 evaluate_d(p::SWCutoff, r, R) = evaluate_d(p, r)
 
+# simplified constructor to ensure compatibility
+SWCutoff(Rc, Lc) = SWCutoff(Rc, Lc, 1.0)
+
+# kw-constructor (original SW parameters, pair term)
+SWCutoff(; Rc=1.8, Lc=1.0, e0=1.0) = SWCutoff(Rc, Lc, e0)
+
+
+
 ######################## Shift-Cutoff: one should not use this!
+# TODO: why is this commented out? probably uncomment and check.
 
 # """
 # `ShiftCutoff` : takes the pair-potential and shifts and truncates it

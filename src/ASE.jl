@@ -24,13 +24,12 @@ import JuLIP:
       cell, set_cell!,             # ✓
       pbc, set_pbc!,               # ✓
       set_data!, get_data,         # ✓
-      deleteat!,                   # ✓
       calculator, set_calculator!, # ✓
       constraint, set_constraint!, # ✓
       neighbourlist,                # ✓
       energy, forces
 
-import Base.length         # ✓
+import Base.length, Base.deleteat!         # ✓
 
 # from arrayconversions:
 using JuLIP: mat, pts, vecs, JPts, JVecs,
@@ -128,9 +127,9 @@ cell(at::ASEAtoms) = at.po[:get_cell]()
 
 set_cell!(a::ASEAtoms, p::Matrix) = a.po[:set_cell](p)
 
-function deleteat!(a::ASEAtoms, n::Integer)
+function deleteat!(at::ASEAtoms, n::Integer)
    at.po[:__delitem__](n-1) # delete in the actual array
-   deleteat!(a.X, n)        # delete in alias a.X
+   deleteat!(at.X, n)        # delete in alias a.X
    return at
 end
 

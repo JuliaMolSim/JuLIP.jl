@@ -19,14 +19,12 @@ TODO: write documentation
 """
 module Potentials
 
-import JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
+using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
    bonds, sites,
-   energy, forces, cutoff,
    JVec, JVecs, JPt, JPts, mat, pts, vec
 
 # we also import grad from JuLIP, but to define derivatives
-import JuLIP: grad
-
+import JuLIP: grad, energy, forces, cutoff
 
 export Potential, PairPotential, LennardJonesPotential, MorsePotential, AnalyticPotential,
    SWCutoff, ShiftCutoff, SplineCutoff,
@@ -66,11 +64,14 @@ include("pairpotentials.jl")
 # * SimpleExponential
 
 
-################### the EMT Calculator ###################
 
 include("EMT.jl")
 # * EMTCalculator
 
+
+
+include("stillingerweber.jl")
+# * type StillingerWeber
 
 
 export ZeroSitePotential
