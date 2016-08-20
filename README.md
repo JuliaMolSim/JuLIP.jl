@@ -9,7 +9,7 @@ Work in progress.
 
 JuLIP relies on [ASE](https://gitlab.com/ase/ase) and
  [matscipy](https://github.com/libAtoms/matscipy). These should be straightforward
-to install from the shell:  (note this seems wrong: need to try again on a clean system)
+to install from the shell:  (TODO: this actually might be false; need to try again on a clean system)
 ```bash
 pip install ase
 pip install matscipy
