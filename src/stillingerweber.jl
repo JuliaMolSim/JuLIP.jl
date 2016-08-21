@@ -14,13 +14,13 @@
 
 export StillingerWeber
 
-bondangle(R1, R2) = 0.5 * ( dot(R1/norm(R1), R2/norm(R2)) - 1.0/3.0 )^2
+bondangle(R1, R2) = 0.5 * ( dot(R1/norm(R1), R2/norm(R2)) + 1.0/3.0 )^2
 
 function bondangle_d(R1, R2)
    d = dot(R1/norm(R1), R2/norm(R2))
    b1 = R2 / (norm(R2)*norm(R1)) - (d/norm(R1)^2) * R1
    b2 = R1 / (norm(R1)*norm(R2)) - (d/norm(R2)^2) * R2
-   return (d-1./3.)*b1, (d-1./3.)*b2
+   return (d+1./3.)*b1, (d+1./3.)*b2
 end
 
 

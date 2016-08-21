@@ -46,7 +46,7 @@ function minimise!( at::AbstractAtoms;
    optimiser = Optimiser(P = precond,
                          precondprep! = (P, x) -> update!(P, at, x))
    results = optimize( objective, dofs(at), method = optimiser,
-                        f_tol = ftol, g_tol = gtol )
+                        f_tol = ftol, g_tol = gtol, show_trace = (verbose > 1) )
    # analyse the results
    if verbose > 0
       println(results)
