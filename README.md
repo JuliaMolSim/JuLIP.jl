@@ -2,8 +2,31 @@
 
 <!-- [![Build Status](https://travis-ci.org/cortner/JuLIP.jl.svg?branch=master)](https://travis-ci.org/cortner/JuLIP.jl) -->
 
-Julia codes for interatomic potentials and molecular simulations.
-Work in progress.
+A package for rapid implementation and testing of new interatomic potentials and
+molecular simulation algorithms. Requires v0.5 of Julia.
+
+The structure of JuLIP is heavily inspired by  [ASE](https://gitlab.com/ase/ase)
+but uses more "Julian" notation.  JuLIP relies on ASE for much of the
+materials modeling background such as generating computational cells for
+different materials. The main idea for JuLIP is that, while ASE is pure Python and
+hence relies on external software to efficiently evaluate interatomic potentials, Julia
+allows the  implementation of fast potentials in pure Julia, often in just
+a few lines of code.
+
+At present, JuLIP is very much a work in progress. It provides
+infrastructure to rapidly implement and test some simple potentials, and to
+explore new molecular simulation algorithms.
+
+In the foreseeable future we plan to implement much  better optimised
+calculators, create links to electronic structure packages, possibly
+potentials for molecules (the focus at the moment is materials).
+
+
+<!-- The long-term vision for JuLIP is that it can be used in two ways: (1) as a
+Julia version of ASE, using ASE in a minimal fashion; or (2) as a selection of
+efficient calculators for ASE. -->
+
+
 
 # Installation
 
@@ -66,3 +89,33 @@ ought to circumvent the need for OpenBabel. Need to test this on a clean system.
 
 
 # Examples
+
+
+## Vacancy in a bulk Si cell
+
+
+```julia
+using JuLIP
+at = Atoms("Si", cubic=true, repeatcell=(4,4,4), pbc=(true,true,true))
+deleteat!(at, 1)
+set_calculator!(at, JuLIP.Potentials.StillingerWeber())
+set_constraint!(at, FixedCell(at))
+JuLIP.Solve.minimise!(at)
+JuLIP.Visualise.show(at)   # (this will only work in a ipynb)
+```
+see the `BulkSilicon.ipynb` notebook under `examples` for an extended
+example.
+
+
+## Construction of a Buckingham potential
+
+```julia
+using JuLIP
+using JuLIP.Potentials
+r0 = JuLIP.ASE.rnn("Al")
+A = 4.0;  # stiffness paramter
+pot = AnalyticPotential( :( 6.0 * exp(- $A * (r/$r0 - 1.)) - $A * ($r0/r)^6 ) )
+pot = pot * SplineCutoff(2.1*r0, 3.5*r0)   
+calc = PairCalculator(pot)    # calculator to evaluate energies, forces, etc
+# do something interesting ...
+```

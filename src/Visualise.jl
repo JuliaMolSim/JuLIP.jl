@@ -9,7 +9,8 @@ using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
 @pyimport imolecule
 
 """
-# Varargs (copied from imolecule)
+
+### KW-args (copied from imolecule)
 
 * `size`: Starting dimensions of visualization, in pixels, e.g., `(500,500)`
 * `drawing_type`: Specifies the molecular representation. Can be 'ball and
@@ -25,9 +26,11 @@ using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
     image.
 """
 function show(at::AbstractAtoms; bonds=:babel, box=:auto,
-            camera_type="perspective", size=(500,500), display_html=false, varargs...)
+            camera_type="perspective", size=(500,500), display_html=false,
+            kwargs...)
 
    # TODO: implement box (ignore for now)
+   # TODO: check whether we are in a notebook or REPL
    if bonds == :babel
       # in this case we assume that OpenBabel and in particular `pybel` is
       # installed; we write the atoms object as xyz and let `pybel`
@@ -35,9 +38,8 @@ function show(at::AbstractAtoms; bonds=:babel, box=:auto,
       fn = "$(tempname()).xyz"
       write(fn, at)
       out = ipydisp.HTML(
-           imolecule.draw(fn, format="xyz", camera_type=camera_type,
-                                size=size, display_html=false, varargs...)
-                       )
+           imolecule.draw( fn, format="xyz", camera_type=camera_type,
+                                size=size, display_html=false, kwargs...) )
       rm(fn)
       return out
    elseif bonds == :auto
@@ -71,7 +73,7 @@ function show(at::AbstractAtoms; bonds=:babel, box=:auto,
    bondlist = [Dict("atoms" => [ij[n,1];ij[n,2]], "order" => 1) for n = 1:Base.size(ij, 1)]
    molecule_data = Dict("atoms" => atoms, "bonds" => bondlist)
 
-   # convert write to a temporary file
+   # write to a temporary file
    fn = "$(tempname()).json"
    fio = open(fn, "w")
    print(fio, JSON.json(molecule_data))
@@ -80,8 +82,7 @@ function show(at::AbstractAtoms; bonds=:babel, box=:auto,
    # plot
    out = ipydisp.HTML(
         imolecule.draw(fn, format="json", camera_type=camera_type,
-                             size=size, display_html=false, varargs...)
-                    )
+                             size=size, display_html=false, kwargs...) )
    rm(fn)
    return out
 end

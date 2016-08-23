@@ -63,15 +63,12 @@ include("pairpotentials.jl")
 # * MorsePotential
 # * SimpleExponential
 
-
-
 include("EMT.jl")
 # * EMTCalculator
 
-
-
 include("stillingerweber.jl")
 # * type StillingerWeber
+
 
 
 export ZeroSitePotential

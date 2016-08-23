@@ -4,7 +4,7 @@
 import JuLIP: zerovecs, energy, forces
 import JuLIP.ASE.MatSciPy: NeighbourList
 
-export ZeroPairPotential
+export ZeroPairPotential, PairCalculator
 
 
 # a simplified way to calculate gradients of pair potentials
