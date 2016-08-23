@@ -3,6 +3,8 @@
 
 module JuLIP
 
+using Reexport
+
 export Atoms
 
 # TODO: correctly use import versus using throughout this package!
@@ -41,6 +43,7 @@ end
 
 # submodule JuLIP.Constraints
 include("Constraints.jl")
+@reexport using JuLIP.Constraints
 
 # interatomic potentials prototypes and some example implementations
 include("Potentials.jl")
@@ -50,6 +53,7 @@ include("preconditioners.jl")
 
 # some solvers
 include("Solve.jl")
+@reexport using Solve
 
 # codes to facilitate testing
 include("Testing.jl")
