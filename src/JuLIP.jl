@@ -53,7 +53,7 @@ include("preconditioners.jl")
 
 # some solvers
 include("Solve.jl")
-@reexport using Solve
+@reexport using JuLIP.Solve
 
 # codes to facilitate testing
 include("Testing.jl")

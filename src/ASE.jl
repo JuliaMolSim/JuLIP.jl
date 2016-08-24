@@ -146,6 +146,11 @@ creates 3 x 3 x 3 unit cells of carbon.
 """
 repeat(a::ASEAtoms, n::NTuple{3, Int64}) = ASEAtoms(a.po[:repeat](n))
 
+import Base.*
+*(at::ASEAtoms, n::NTuple{3, Int64}) = repeat(at, n)
+*(n::NTuple{3, Int64}, at::ASEAtoms) = repeat(at, n)
+
+
 """
 `bulk(name::AbstractString; kwargs...) -> ASEAtoms`
 
