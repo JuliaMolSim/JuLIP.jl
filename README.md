@@ -5,7 +5,7 @@
 A package for rapid implementation and testing of new interatomic potentials and
 molecular simulation algorithms. Requires v0.5 of Julia.
 
-The structure of JuLIP is heavily inspired by  [ASE](https://gitlab.com/ase/ase)
+The structure of JuLIP is heavily inspired by [ASE](https://gitlab.com/ase/ase)
 but uses more "Julian" notation.  JuLIP relies on ASE for much of the
 materials modeling background such as generating computational cells for
 different materials. The main idea for JuLIP is that, while ASE is pure Python and
@@ -17,9 +17,9 @@ At present, JuLIP is very much a work in progress. It provides
 infrastructure to rapidly implement and test some simple potentials, and to
 explore new molecular simulation algorithms.
 
-In the foreseeable future we plan to implement much  better optimised
+In the foreseeable future we plan to implement better optimised
 calculators, create links to electronic structure packages, possibly
-potentials for molecules (the focus at the moment is materials).
+include potentials for molecules (the focus at the moment is materials).
 
 
 <!-- The long-term vision for JuLIP is that it can be used in two ways: (1) as a
