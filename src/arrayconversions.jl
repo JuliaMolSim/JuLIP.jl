@@ -71,7 +71,7 @@ it gets converted to an n2 x ... x nN array with JVec{T} entries.
 """
 vecs{T}(V::Matrix{T}) = reinterpret(JVec{T}, V, (size(V,2),))
 vecs{T}(V::Vector{T}) = reinterpret(JVec{T}, V, (length(V) ÷ 3,))
-vecs{T}(V::Array{T,N}) = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
+vecs{T,N}(V::Array{T,N}) = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
 
 
 """
