@@ -62,9 +62,17 @@ pts{T}(X::Vector{T}) = reinterpret(JPt{T}, X, (length(X) ÷ 3,))
 """
 `vecs(V::Matrix)` : convert (as reference) a 3 x N matrix representing
 N vectors (e.g. forces) in R³ to a list (vector) of fixed-size-array vectors.
+
+`vecs(V::Vector)` : assumes that V is morally a 3 x N matrix, stored in a long
+vector
+
+`vecs(V::Array{T,N})` : If `V` has dimensions 3 x n2 x ... x nN then
+it gets converted to an n2 x ... x nN array with JVec{T} entries.
 """
 vecs{T}(V::Matrix{T}) = reinterpret(JVec{T}, V, (size(V,2),))
 vecs{T}(V::Vector{T}) = reinterpret(JVec{T}, V, (length(V) ÷ 3,))
+vecs{T}(V::Array{T,N}) = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
+
 
 """
 `mat(X::JPts)` and `mat(X::JVecs)`: convert (as reference) a list (Vector) of
@@ -92,7 +100,6 @@ zerovecs(n::Integer) = zerovecs(Float64, n)
 zeropts(n::Integer) = zeropts(Float64, n)
 zerovecs(T::Type, n::Integer) = zeros(T, 3, n) |> vecs
 zeropts(T::Type, n::Integer) = zeros(T, 3, n) |> pts
-
 
 
 """
