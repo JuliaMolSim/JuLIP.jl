@@ -11,6 +11,8 @@ import FunctionWrappers: FunctionWrapper
 typealias F64fun FunctionWrapper{Float64, Tuple{Float64}}
 
 
+export AnalyticPotential
+
 # ===========================================================================
 #     macro that takes an expression, differentiates it
 #     and returns anonymous functions for the derivatives
@@ -78,4 +80,4 @@ end
 
 # this is a hack to make tight-binding work; but it should be reconsidered
 evaluate(p::AnalyticPotential, r, R) = evaluate(p, r)
-evaluate_d(p::AnalyticPotential, r, R) = evaluate_d(p, r) 
+evaluate_d(p::AnalyticPotential, r, R) = evaluate_d(p, r)

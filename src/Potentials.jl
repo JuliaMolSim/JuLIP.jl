@@ -26,17 +26,12 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
 # we also import grad from JuLIP, but to define derivatives
 import JuLIP: grad, energy, forces, cutoff
 
-export Potential, PairPotential, LennardJonesPotential, MorsePotential, AnalyticPotential,
-   SWCutoff, ShiftCutoff, SplineCutoff,
-   LennardJonesCalculator, MorseCalculator, GuptaCalculator,
-   @D, @DD, @GRAD
+export Potential, PairPotential
 
 """
 `Potential`: generic abstract supertype for all potential-like things
 """
-abstract Potential
-
-
+abstract Potential <: AbstractCalculator
 
 
 """

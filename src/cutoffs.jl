@@ -1,5 +1,9 @@
 
 
+export SWCutoff, ShiftCutoff, SplineCutoff
+
+
+
 # this file is include from Potentials.jl
 # i.e. it is part of JuLIP.Potentials
 # it implements three types of cutoff potentials.
