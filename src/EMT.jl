@@ -21,7 +21,7 @@ using PyCall
 in Julia, largely for fun and comparison with Python; the goal is to make this
 so efficient that it can compete with ASAP.
 """
-type EMTCalculator <: AbstractCalculator
+type EMTCalculator <: Potential 
    pair::Vector{AnalyticPotential}
    Cpair::Vector{Float64}
    rho::Vector{AnalyticPotential}

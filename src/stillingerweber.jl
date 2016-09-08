@@ -25,9 +25,10 @@ end
 
 
 """
-Stillinger-Weber potential. TODO: add documentation
+Stillinger-Weber potential with parameters for Si.
+TODO: add documentation
 """
-type StillingerWeber{P1,P2} <: AbstractCalculator
+type StillingerWeber{P1,P2} <: Potential
    V2::P1
    V3::P2
 end

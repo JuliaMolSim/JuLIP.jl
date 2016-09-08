@@ -1,4 +1,6 @@
 
+export @D, @DD, @GRAD
+
 
 
 # ===========================================================================
@@ -66,7 +68,7 @@ t_info(ex::Expr) = ex.head == :(<:) ? t_info(ex.args[1]) : (ex, ex.args[2:end])
 `@D`: Use to evaluate the derivative of a potential. E.g., to compute the
 Lennard-Jones potential,
 ```julia
-lj = LennardJonesPotential()
+lj = LennardJones()
 r = 1.0 + rand(10)
 ϕ = lj(r)
 ϕ' = @D lj(r)
@@ -120,7 +122,7 @@ end
 
 
 # "sum of two pair potentials"
-@pot type SumPot{P1, P2}
+@pot type SumPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
@@ -151,6 +153,8 @@ function Base.print(io::Base.IO, p::ProdPot)
    print(io, p.p2)
 end
 
-# expand usage of prodpot to be useful for TB
+# expand usage of prodpot to be useful for TightBinding.jl
+# TODO: make sure this is consistent! basically, we want to allow that
+#       a pair potential can depend on direction as well!
 evaluate{P1,P2}(p::ProdPot{P1,P2}, r, R) = p.p1(r, R) * p.p2(r, R)
 evaluate_d(p::ProdPot, r, R) = (p.p1(r, R) * (@D p.p2(r, R)) + (@D p.p1(r, R)) * p.p2(r, R))
