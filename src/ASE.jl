@@ -32,7 +32,7 @@ import JuLIP:
 import Base.length, Base.deleteat!         # ✓
 
 # from arrayconversions:
-using JuLIP: mat, vecs, JVecs, JVecsF, 
+using JuLIP: mat, vecs, JVecs, JVecsF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
       AbstractCalculator, NullCalculator
 
@@ -70,14 +70,12 @@ For internal usage there is also a constructor `ASEAtoms(po::PyObject)`
 """
 type ASEAtoms <: AbstractAtoms
    po::PyObject       # ase.Atoms instance
-   X::JVecsF   # an alias for positions, for faster access (TODO: is this needed?)
    calc::AbstractCalculator
    cons::AbstractConstraint
 end
 
 
-ASEAtoms(po::PyObject) = ASEAtoms(po, positions(po),
-                                    NullCalculator(), NullConstraint())
+ASEAtoms(po::PyObject) = ASEAtoms(po, NullCalculator(), NullConstraint())
 
 function set_calculator!(at::ASEAtoms, calc::AbstractCalculator)
    at.calc = calc
@@ -107,29 +105,35 @@ get_array(a::ASEAtoms, name) = a.po[:get_array(name)]
 
 set_array!(a::ASEAtoms, name, value) = a.po[:set_array(name, value)]
 
-positions(po::PyObject) = vecs(po[:get_positions]()')
-
-positions(a::ASEAtoms) = a.X
+#
+# TODO: write an explanation about storage layout here
+#
+positions(at::ASEAtoms) = copy( pyarrayref(at.po["positions"]) ) |> vecs
+unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
 
 function set_positions!(a::ASEAtoms, p::JVecsF)
-   a.X = p
-   a.po[:set_positions](mat(p)')
+   p_py = PyReverseDims(mat(p))
+   a.po[:set_positions](p_py)
    return a
 end
 
-length(a::ASEAtoms) = length(a.X)
+length(at::ASEAtoms) = length( unsafe_positions(at::ASEAtoms) )
 
-set_pbc!(a::ASEAtoms, val::NTuple{3,Bool}) = (a.po[:pbc] = val)
+set_pbc!(at::ASEAtoms, val::Bool) = set_pbc!(at, (val,val,val))
+
+function set_pbc!(a::ASEAtoms, val::NTuple{3,Bool})
+   a.po[:pbc] = val
+   return a
+end
 
 pbc(a::ASEAtoms) = a.po[:pbc]
 
 cell(at::ASEAtoms) = at.po[:get_cell]()
 
-set_cell!(a::ASEAtoms, p::Matrix) = a.po[:set_cell](p)
+set_cell!(a::ASEAtoms, p::Matrix) = (a.po[:set_cell](p); a)
 
 function deleteat!(at::ASEAtoms, n::Integer)
    at.po[:__delitem__](n-1) # delete in the actual array
-   deleteat!(at.X, n)        # delete in alias a.X
    return at
 end
 
@@ -210,11 +214,14 @@ write(filename::AbstractString, at::ASEAtoms) = ase_io.write(filename, at.po)
 # TODO: trajectory; see
 #       https://wiki.fysik.dtu.dk/ase/ase/io/trajectory.html
 
+
+# TODO: rnn should be generalised to compute a reasonable rnn estimate for
+#       an arbitrary set of positions
 """
 `rnn(species)` : returns the nearest-neighbour distance for a given species
 """
 function rnn(species::AbstractString)
-   at = ASEAtoms(species, repeatcell=(2,2,2))
+   at = ASEAtoms(species) * (2,2,2)
    X = positions(at)
    r = Float64[]
    for n = 1:length(at), m = n+1:length(at)
