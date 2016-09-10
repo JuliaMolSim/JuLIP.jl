@@ -1,12 +1,15 @@
 
 
-using StaticArrays
+using StaticArrays, PyCall 
 
 import Base.convert
 
 export mat, vecs
 export SVec, SMat, JVec, JVecs, JVecF, JVecsF
 export zerovecs, maxdist, maxnorm
+
+export unsafe_pyarrayref, safe_pyarrayref
+
 
 "typealias for a static vector type; currently `StaticArrays.SVector`"
 typealias SVec SVector
@@ -71,3 +74,9 @@ end
 
 "`maximum(norm(y) for y in x);` typically, x is a vector of forces"
 maxnorm{T}(x::JVecs{T}) = maximum( norm.(x) )
+
+
+
+# The next function is conversion of python arrays  _by reference_
+pyarrayref(a::PyObject; own=false) = pyarrayref(PyArray(a); own=own)
+pyarrayref(a::PyArray; own=false) = unsafe_wrap(Array, a.data, reverse(a.dims), own)
