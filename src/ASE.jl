@@ -20,7 +20,7 @@ module ASE
 
 # the functions to be implemented
 import JuLIP:
-      positions, set_positions!,   # ✓
+      positions, set_positions!,  unsafe_positions,  # ✓
       cell, set_cell!,             # ✓
       pbc, set_pbc!,               # ✓
       set_data!, get_data,         # ✓
