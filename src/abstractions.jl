@@ -101,7 +101,7 @@ end
 
 # function defined primarily on AbstractAtoms
 export AbstractAtoms,
-      positions, get_positions, set_positions!,
+      positions, get_positions, set_positions!, unsafe_positions,
       get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       set_data!, get_data,
       set_calculator!, calculator, get_calculator!,
@@ -129,11 +129,14 @@ export Preconditioner, preconditioner
 "Return number of atoms"
 @protofun length(::AbstractAtoms)
 
-"Return reference to positions of all atoms as a `3 x N` array."
+"Return copy of positions of all atoms as a `3 x N` array."
 @protofun positions(::AbstractAtoms)
 
 "alias for `positions`"
 get_positions = positions
+
+"return a reference to positions"
+@protofun unsafe_positions(::AbstractAtoms)
 
 "Set positions of all atoms as a `3 x N` array."
 @protofun set_positions!(::AbstractAtoms, ::JVecs)
