@@ -20,8 +20,8 @@ TODO: write documentation
 module Potentials
 
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
-   bonds, sites,
-   JVec, JVecs, JPt, JPts, mat, pts, vec
+      bonds, sites,
+      JVec, JVecs, mat, vec
 
 # we also import grad from JuLIP, but to define derivatives
 import JuLIP: grad, energy, forces, cutoff

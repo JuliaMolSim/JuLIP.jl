@@ -32,7 +32,7 @@ import JuLIP:
 import Base.length, Base.deleteat!         # ✓
 
 # from arrayconversions:
-using JuLIP: mat, pts, vecs, JPts, JVecs,
+using JuLIP: mat, vecs, JVecs, JVecsF, 
       AbstractAtoms, AbstractConstraint, NullConstraint,
       AbstractCalculator, NullCalculator
 
@@ -70,7 +70,7 @@ For internal usage there is also a constructor `ASEAtoms(po::PyObject)`
 """
 type ASEAtoms <: AbstractAtoms
    po::PyObject       # ase.Atoms instance
-   X::JPts{Float64}   # an alias for positions, for faster access (TODO: is this needed?)
+   X::JVecsF   # an alias for positions, for faster access (TODO: is this needed?)
    calc::AbstractCalculator
    cons::AbstractConstraint
 end
@@ -107,11 +107,11 @@ get_array(a::ASEAtoms, name) = a.po[:get_array(name)]
 
 set_array!(a::ASEAtoms, name, value) = a.po[:set_array(name, value)]
 
-positions(po::PyObject) = pts(po[:get_positions]()')
+positions(po::PyObject) = vecs(po[:get_positions]()')
 
 positions(a::ASEAtoms) = a.X
 
-function set_positions!(a::ASEAtoms, p::JPts{Float64})
+function set_positions!(a::ASEAtoms, p::JVecsF)
    a.X = p
    a.po[:set_positions](mat(p)')
    return a

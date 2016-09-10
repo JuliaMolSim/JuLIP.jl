@@ -21,7 +21,7 @@ using PyCall
 @pyimport matscipy.neighbours as matscipy_neighbours
 
 import JuLIP:  AbstractNeighbourList, cutoff, sites, bonds,
-               JPts, JVecs, vecs, pts
+               JVecs, vecs
 import JuLIP.ASE: ASEAtoms, pyobject
 
 # to implement the iterators
