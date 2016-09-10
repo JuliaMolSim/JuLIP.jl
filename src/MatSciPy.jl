@@ -76,7 +76,6 @@ function __neighbour_list__(atoms::ASEAtoms,
          if quantity == 'S'; jresults[idx] = vecs(jresults[idx]); end
       end
    end
-   @show typeof(tuple(jresults..., results))
    return tuple(jresults..., results)
 end
 
