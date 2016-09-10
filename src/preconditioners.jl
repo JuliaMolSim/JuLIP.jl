@@ -1,14 +1,16 @@
 
 module Preconditioners
 
-import JuLIP
-import JuLIP: AbstractAtoms, Preconditioner, JPts, Dofs, update!, maxdist,
+using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
                constraint, bonds, cutoff, positions
-import PyAMG: RugeStubenSolver
+using JuLIP.Potentials: PairPotential, AnalyticPotential
+using JuLIP.Constraints: project!, FixedCell
+using JuLIP.ASE: chemical_symbols, rnn
+using PyAMG: RugeStubenSolver
+
+import JuLIP: update!
 import Base: A_ldiv_B!, A_mul_B!
-import JuLIP.Potentials: PairPotential, AnalyticPotential
-import JuLIP.Constraints: project!, FixedCell
-import JuLIP.ASE: chemical_symbols, rnn
+
 
 # ================ AMGPrecon =====================
 # this is wrapping some machinery around PyAMG
@@ -40,7 +42,7 @@ from the nearest-neighbour distance in `at`
 type AMGPrecon{T} <: Preconditioner
    p::T
    amg::RugeStubenSolver
-   oldX::JPts{Float64}
+   oldX::JVecsF
    updatedist::Float64
    tol::Float64
    updatefreq::Int
@@ -61,7 +63,7 @@ A_mul_B!(out::Dofs, P::AMGPrecon, f::Dofs) = A_mul_B!(out, P.amg, f)
 
 need_update(P::AMGPrecon, at::AbstractAtoms) =
    (P.skippedupdates > P.updatefreq) ||
-   (JuLIP.maxdist(positions(at), P.oldX) >= P.updatedist)
+   (maxdist(positions(at), P.oldX) >= P.updatedist)
 
 update!(P::AMGPrecon, at::AbstractAtoms) =
    need_update(P, at) ? force_update!(P, at) : (P.skippedupdates += 1; P)

@@ -12,7 +12,7 @@ println("===================================================")
 println("-----------------------------------------------------------------")
 println("Testing `minimise!` with equilibration with LJ calculator to lattice")
 println("-----------------------------------------------------------------")
-calc = LennardJonesCalculator(r0=JuLIP.ASE.rnn("Al"))
+calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
 at = Atoms("Al", cubic=true, repeatcell=(3,3,3), pbc=(true,true,true))
 X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
