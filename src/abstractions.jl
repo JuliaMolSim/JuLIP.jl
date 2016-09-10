@@ -136,9 +136,9 @@ export Preconditioner, preconditioner
 get_positions = positions
 
 "Set positions of all atoms as a `3 x N` array."
-@protofun set_positions!(::AbstractAtoms, ::JPts)
+@protofun set_positions!(::AbstractAtoms, ::JVecs)
 
-set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, pts(p))
+set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
 
 "get computational cell"
 @protofun cell(::AbstractAtoms)

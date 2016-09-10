@@ -11,7 +11,7 @@ module Testing
 
 using JuLIP: AbstractCalculator, AbstractAtoms, energy, grad, forces,
          constraint, calculator, set_positions!, dofs, NullConstraint,
-         mat, vecs, pts, positions, rattle!
+         mat, vecs, positions, rattle!
 using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, @D
 using JuLIP.Constraints: FixedCell
 

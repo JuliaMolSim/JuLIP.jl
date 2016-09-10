@@ -8,7 +8,7 @@ module Constraints
 
 import JuLIP: Dofs, AbstractConstraint,
          dofs, project!, set_positions!, positions,
-         mat, vecs, pts, JVecs, JPts, JVecsPts,
+         mat, vecs, JVecs,
          AbstractAtoms
 
 export FixedCell
@@ -67,13 +67,14 @@ function FixedCell(at::AbstractAtoms; free=false, clamp=false, mask=false)
 end
 
 dofs{T}( at::AbstractAtoms, cons::FixedCell, v::JVecs{T}) = mat(v)[cons.ifree]
-dofs{T}( at::AbstractAtoms, cons::FixedCell, p::JPts{T}) = mat(p)[cons.ifree]
+#    !!!!!!!! this may end up being a problem !!!!!!!
+# dofs{T}( at::AbstractAtoms, cons::FixedCell, p::JPts{T}) = mat(p)[cons.ifree]
 
 vecs(cons::FixedCell, at::AbstractAtoms, dofs::Dofs) =
       zeros_free(length(at), dofs, cons.ifree) |> vecs
 
 positions(cons::FixedCell, at::AbstractAtoms, dofs::Dofs) =
-      insert_free!(positions(at) |> mat, dofs, cons.ifree) |> pts
+      insert_free!(positions(at) |> mat, dofs, cons.ifree) |> vecs
 
 project!(cons::FixedCell, at::AbstractAtoms) = at
 

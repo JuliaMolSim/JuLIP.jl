@@ -1,10 +1,11 @@
 julia 0.4
 PyCall
-FixedSizeArrays
+StaticArrays
 Optim
 Calculus
 PyAMG
 JSON
-Reexport 
+Reexport
+FunctionWrappers
 
 # also need FunctionWrappers: b7497d0d is known to work
