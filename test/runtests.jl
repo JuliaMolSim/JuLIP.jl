@@ -3,6 +3,7 @@ using JuLIP
 using Base.Test
 using JuLIP.Testing
 
+
 verbose=true
 
 julip_tests = [
