@@ -20,10 +20,10 @@ module MatSciPy
 using PyCall
 @pyimport matscipy.neighbours as matscipy_neighbours
 
-import JuLIP:  AbstractNeighbourList, cutoff, sites, bonds,
-               JVecs, vecs
-import JuLIP.ASE: ASEAtoms, pyobject
+using JuLIP:  AbstractNeighbourList, cutoff, JVecs, vecs, pyarrayref
+using JuLIP.ASE: ASEAtoms, pyobject
 
+import JuLIP: sites, bonds
 # to implement the iterators
 import Base: start, done, next
 
@@ -49,15 +49,40 @@ Use the kwarg `convertarrays=true` to do so.
 function neighbour_list(atoms::ASEAtoms,
                         cutoff::Float64,
                         quantities="ijdDS";
-                        convertarrays=false)
+                        convertarrays=true)
    results = matscipy_neighbours.neighbour_list(quantities,
                                                 pyobject(atoms),
                                                 cutoff)
+   results2 = pycall(matscipy_neighbours.neighbour_list,
+                     NTuple{length(quantities), PyArray}, quantities,
+                     pyobject(atoms), cutoff)
    if length(quantities) == 1; results = (results,); end
-   results = collect(results)
+   results = collect(Any, results)
+   results2 = collect(Any, results2)
+
+   for ii = 1:3
+      @assert results[ii] == pyarrayref(results2[ii], own=true)
+   end
+
+   R = results[4]
+   R2 = results2[4]
+   @show typeof(R), size(R)
+   @show typeof(R2), size(R2)
+   @assert R' == pyarrayref(R2, own=true)
+   @assert results[5]' == pyarrayref(results2[5], own=true)
+   println("Assertions passed")
+   quit()
+
    for (idx, quantity) in enumerate(quantities)
+      # convert the PyArray to a Julia Array
+      # results[idx] = pyarrayref(results[idx], own=true)
       # convert indices to 1-based (Julia convention)
-      if (quantity == 'i' || quantity == 'j'); results[idx][:] += 1; end
+      if (quantity == 'i' || quantity == 'j')
+         results[idx][:] += 1
+         # @simd for n = 1:length(results[idx])
+         #    @inbounds results[idx][n] += 1
+         # end
+      end
       # convert R ans S matrices to arrays of vectors
       if convertarrays
          if quantity == 'D'; results[idx] = vecs(results[idx]'); end
@@ -67,8 +92,7 @@ function neighbour_list(atoms::ASEAtoms,
    return tuple(results...)
 end
 
-# neighbour_list(atoms::ASEAtoms, cutoff::Float64; kwargs...) =
-#                   neighbour_list(atoms, cutoff, "ijdDS"; kwargs...)
+
 
 """
 A basic wrapper around the `neighbour_list` builder.
