@@ -5,10 +5,10 @@ using JuLIP.Testing
 using JuLIP.ASE: rnn
 
 pairpotentials = [
-   LennardJones();
-   Morse();
-   SWCutoff(1.0, 3.0) * LennardJones();
-   SplineCutoff(2.0, 3.0) * LennardJones();
+   LennardJones(1.0,1.0);
+   Morse(4.0,1.0,1.0);
+   SWCutoff(1.0, 3.0) * LennardJones(1.0,1.0);
+   SplineCutoff(2.0, 3.0) * LennardJones(1.0,1.0);
 ]
 
 println("============================================")
@@ -27,8 +27,7 @@ end
 calculators = Any[]
 
 # [1] basic lennard-jones calculator test
-r0 = rnn("Al")
-push!(calculators, (  LennardJones(r0=r0) * SplineCutoff(1.9*r0, 2.7*r0),
+push!(calculators, (  lennardjones(r0=rnn("Al")),
          Atoms("Al", cubic=true, repeatcell=(3,3,2), pbc=(true,false,false)) ) )
 
 # [2] ASE's EMT calculator

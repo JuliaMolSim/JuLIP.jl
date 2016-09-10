@@ -1,6 +1,6 @@
 
 
-"embedding function for the Gupts potential"
+"embedding function for the Gupta potential"
 type GuptaEmbed <: SimpleFunction
     xi
 end
