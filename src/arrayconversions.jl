@@ -1,6 +1,6 @@
 
 
-using StaticArrays, PyCall 
+using StaticArrays, PyCall
 
 import Base.convert
 
