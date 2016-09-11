@@ -74,10 +74,11 @@ morse(A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0)) = (
          :  SplineCutoff(rcut[1], rcut[2]) * Morse(A, e0, r0) )
 
 
-# """
-# `ZeroPairPotential()`: creates a potential that just returns zero
-# """
 @pot type ZeroPairPotential end
+"""
+`ZeroPairPotential()`: creates a potential that just returns zero
+"""
+ZeroPairPotential
 evaluate(p::ZeroPairPotential, r::Float64) = 0.0
 evaluate_d(p::ZeroPairPotential, r::Float64) = 0.0
 evaluate_dd(p::ZeroPairPotential, r::Float64) = 0.0
