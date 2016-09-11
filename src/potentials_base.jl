@@ -19,25 +19,30 @@ export @D, @DD, @GRAD
 # create this syntactic sugar. This is what `@pot` is for.
 
 """
-Annotate a type decaration with `@pot` to setup the syntax sugar
+Annotate a type with `@pot` to setup the syntax sugar
 for `evaluate, evaluate_d, evaluate_dd, grad`.
 
 ## Usage:
 
-The declaration
+For example, the declaration
 ```julia
-@pot type LennardJonesPotential <: PairPotential
+@pot type LennardJones <: PairPotential
    r0::Float64
 end
+"documentation for `LennardJones`"
+LennardJones
 ```
 creates the following aliases:
 ```julia
-lj = LennardJonesPotential(1.0)
+lj = LennardJones(1.0)
 lj(args...) = evaluate(lj, args...)
 @D lj(args...) = evaluate_d(lj, args...)
 @DD lj(args...) = evaluate_dd(lj, args...)
 @GRAD lj(args...) = grad(lj, args...)
 ```
+
+Usage of `@pot` is not restricted to pair potentials, but can be applied to
+*any* type.
 """
 macro pot(fsig)
    @assert fsig.head == :type
@@ -106,26 +111,15 @@ end
 
 
 
-# ===============================
-#    Potential Arithmetic
+# ==================================
+#   Basic Potential Arithmetic
 
-# TODO: revisit this idea:
-# # scalars as potentials
-# evaluate(x::Real, r::Float64) = x
-# evaluate_d(x::Real, r::Float64) = 0.0
-#
-#
-# "basic building block to generate potentials"
-# type r_Pot <: PairPotential end
-# evaluate(p::r_Pot, r) = r
-# evaluate_d(p::r_Pot, r) = 1
-
-
-# "sum of two pair potentials"
 @pot type SumPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
+"sum of two pair potentials"
+SumPot
 import Base.+
 +(p1::PairPotential, p2::PairPotential) = SumPot(p1, p2)
 evaluate(p::SumPot, r) = p.p1(r) + p.p2(r)
@@ -137,11 +131,12 @@ function Base.print(io::Base.IO, p::SumPot)
    print(io, p.p2)
 end
 
-# "product of two pair potentials"
 @pot type ProdPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
+"product of two pair potentials"
+ProdPot
 import Base.*
 *(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
 evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
@@ -154,7 +149,9 @@ function Base.print(io::Base.IO, p::ProdPot)
 end
 
 # expand usage of prodpot to be useful for TightBinding.jl
-# TODO: make sure this is consistent! basically, we want to allow that
+# TODO: make sure this is consistent and expand this to other things!
+#       basically, we want to allow that
 #       a pair potential can depend on direction as well!
+#       in this case, @D is already the gradient and @GRAD remaind undefined?
 evaluate{P1,P2}(p::ProdPot{P1,P2}, r, R) = p.p1(r, R) * p.p2(r, R)
-evaluate_d(p::ProdPot, r, R) = (p.p1(r, R) * (@D p.p2(r, R)) + (@D p.p1(r, R)) * p.p2(r, R))
+evaluate_d(p::ProdPot, r, R) = p.p1(r,R) * (@D p.p2(r,R)) + (@D p.p1(r,R)) * p.p2(r,R)

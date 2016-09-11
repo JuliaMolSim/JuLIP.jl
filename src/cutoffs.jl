@@ -32,23 +32,27 @@ Implementation of the C^∞ Stillinger-Weber type cut-off potential
 end
 
 
-# """
-# `type SWCutoff`: SW type cut-off potential with C^∞ regularity
-#      1.0 / ( 1.0 + exp( Lc / (Rc-r) ) )
-#
-# This is not very optimised: one could speed up `evaluate_d` significantly
-# by avoiding multiple evaluations.
-#
-# ### Parameters
-#
-# * `Rc` : cut-off radius
-# * `Lc` : scale
-# """
+# doc below
 @pot type SWCutoff <: PairPotential
     Rc::Float64
     Lc::Float64
     e0::Float64
 end
+
+"""
+`type SWCutoff`: SW type cut-off potential with C^∞ regularity
+     1.0 / ( 1.0 + exp( Lc / (Rc-r) ) )
+
+This is not very optimised: one could speed up `evaluate_d` significantly
+by avoiding multiple evaluations.
+
+### Parameters
+
+* `Rc` : cut-off radius
+* `Lc` : scale
+"""
+SWCutoff
+
 evaluate(p::SWCutoff, r) = p.e0 * cutsw(r, p.Rc, p.Lc)
 evaluate_d(p::SWCutoff, r) = p.e0 * cutsw_d(r, p.Rc, p.Lc)
 cutoff(p::SWCutoff) = p.Rc
@@ -109,18 +113,21 @@ end
 
 
 
-# """
-# `SplineCutoff` : Piecewise quintic C^{2,1} regular polynomial.
-#
-# Parameters:
-#
-# * r0 : inner cut-off radius
-# * r1 : outer cut-off radius.
-# """
 @pot type SplineCutoff <: PairPotential
    r0::Float64
    r1::Float64
 end
+
+"""
+`SplineCutoff` : Piecewise quintic C^{2,1} regular polynomial.
+
+Parameters:
+
+* r0 : inner cut-off radius
+* r1 : outer cut-off radius.
+"""
+SplineCutoff
+
 evaluate(p::SplineCutoff, r) = fcut(r, p.r0, p.r1)
 evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)
 cutoff(p::SplineCutoff) = p.r1
