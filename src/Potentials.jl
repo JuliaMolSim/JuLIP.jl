@@ -71,6 +71,9 @@ export ZeroSitePotential
 @pot type ZeroSitePotential <: Potential
 end
 
+"a site potential that just returns zero"
+ZeroSitePotential
+
 evaluate(p::ZeroSitePotential, r, R) = 0.0
 evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)
 
