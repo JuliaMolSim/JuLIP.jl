@@ -31,30 +31,41 @@ efficient calculators for ASE. -->
 # Installation
 
 JuLIP relies on [ASE](https://gitlab.com/ase/ase) and
- [matscipy](https://github.com/libAtoms/matscipy). These should be straightforward
-to install from the shell:  (TODO: this actually might be false; need to try again on a clean system)
-```bash
-pip install ase
-pip install matscipy
-```
+ [matscipy](https://github.com/libAtoms/matscipy); they should both be straightforward
+to install; please follow instructions on the respective websites.
+
 Afterwards, install JuLIP, from the Julia REPL:
 ```julia
-Pkg.clone("https://github.com/yuyichao/FunctionWrappers.jl.git")
+Pkg.add("FunctionWrappers")
 Pkg.clone("https://github.com/libAtoms/JuLIP.jl.git")
 ```
-And run
+and run
 ```
 Pkg.test("JuLIP")
 ```
-to make sure the installation succeeded. Otherwise, open an issue.
+to make sure the installation succeeded. If a test fails, please open an issue.
 
 ## `imolecule` and dependencies
 
-This part can be skipped if no visualisation is required.
+This part can be skipped if no visualisation is required; `using JuLIP` will then
+simply print a warning.
 
 `JuLIP.Visualise` uses the Python module `imolecule` to visualise atomistic
 configurations in an IPython notebook. Its main dependency is
- [OpenBabel](http://openbabel.org/wiki/Main_Page). The following instructions
+[OpenBabel](http://openbabel.org/wiki/Main_Page). This was somewhat
+painful to get to work with Anaconda; the following are two alternative set
+of instructions that worked at some point.
+
+### Option 1
+
+```bash
+conda install -c omnia openbabel=2015.09
+pip install imolecule
+```
+
+### Option 2
+
+If Option 1 fails, then try the following instructions, which
  were only tested on OS X.
 
 To install `imolecule` simply type
@@ -84,19 +95,23 @@ export BABEL_DATADIR="/usr/local/share/openbabel/2.3.90/"
 export BABEL_LIBDIR="/Users/ortner/anaconda/lib/openbabel/2.3.90/"
 ```
 
+<!--
 (Update: the configuration can be written directly to a JSON file, which
 ought to circumvent the need for OpenBabel. Need to test this on a clean system.)
+-->
 
 
 # Examples
 
+The following are some minimal examples to just get something to run.
+More intersting examples will hopefully follow soon.
+
 
 ## Vacancy in a bulk Si cell
 
-
 ```julia
 using JuLIP
-at = Atoms("Si", cubic=true, repeatcell=(4,4,4), pbc=(true,true,true))
+at = Atoms("Si", cubic=true, pbc=(true,true,true)) * (4,4,4)
 deleteat!(at, 1)
 set_calculator!(at, JuLIP.Potentials.StillingerWeber())
 set_constraint!(at, FixedCell(at))
@@ -116,6 +131,30 @@ r0 = JuLIP.ASE.rnn("Al")
 A = 4.0;  # stiffness paramter
 pot = AnalyticPotential( :( 6.0 * exp(- $A * (r/$r0 - 1.)) - $A * ($r0/r)^6 ) )
 pot = pot * SplineCutoff(2.1*r0, 3.5*r0)   
-calc = PairCalculator(pot)    # calculator to evaluate energies, forces, etc
-# do something interesting ...
+# `pot` can now be used as a calculator to do something interesting ...
+```
+
+## An Example with TightBinding
+
+Similar to vacancy example but with a Tight-Binding Model. First install
+`TightBinding.jl`:
+```julia
+Pkg.clone("https://github.com/ettersi/FermiContour.jl.git")
+Pkg.clone("https://github.com/cortner/TightBinding.jl.git")
+```
+Then run
+```julia
+using JuLIP, TightBinding
+TB = TightBinding
+# sp model for Si (NRL-Tight Binding)
+tbm = TB.NRLTB.NRLTBModel(elem=TB.NRLTB.Si_sp, nkpoints = (0,0,0))
+# bulk crystal
+at = Atoms("Si", cubic=true, pbc=(true,true,true)) * (4,4,4)
+Eref = energy(tbm, at)
+# create vacancy
+deleteat!(at, 1)
+Edef = energy(tbm, at)
+# formation energy:
+println("Vacancy formation energy = ", Edef - Eref * length(at)/(length(at)+1))
+println("(probably this should not be negative! Increase simulation accuracy!)")
 ```

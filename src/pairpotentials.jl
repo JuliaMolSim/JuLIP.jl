@@ -62,6 +62,7 @@ Morse(A, e0, r0) =
    AnalyticPotential(:( $e0 * ( exp(-$(2.0*A) * (r/$r0 - 1.0))
                                - 2.0 * exp(-$A * (r/$r0 - 1.0)) ) ),
                      id="MorsePotential(A=$A, e0=$e0, r0=$r0)")
+Morse(;A=4.0, e0=1.0, r0=1.0) = Morse(A, e0, r0)
 
 """
 `morse(A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0))`
