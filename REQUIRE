@@ -1,4 +1,4 @@
-julia 0.4
+julia 0.5-
 PyCall
 StaticArrays
 Optim
@@ -7,5 +7,3 @@ PyAMG
 JSON
 Reexport
 FunctionWrappers
-
-# also need FunctionWrappers: b7497d0d is known to work
