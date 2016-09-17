@@ -9,16 +9,15 @@ the help for these:
 module Solve
 
 
-import Optim: DifferentiableFunction, optimize, ConjugateGradient
+import Optim
+import Optim: DifferentiableFunction, optimize, ConjugateGradient, LBFGS
 
-import JuLIP: AbstractAtoms, Preconditioner, update!, Identity, update!,
+
+using JuLIP: AbstractAtoms, Preconditioner, update!, Identity, update!,
             dofs, energy, grad
 
 
 export minimise!
-
-export Exp
-
 
 
 """
@@ -43,8 +42,14 @@ function minimise!( at::AbstractAtoms;
                                        (x,g)->copy!(g, grad(at, x)) )
    # call Optim.jl
    # TODO: use verb flag to determine whether detailed output is wanted
-   optimiser = Optimiser(P = precond,
-                         precondprep! = (P, x) -> update!(P, at, x))
+   if isa(precond, Identity)
+      optimiser = Optim.ConjugateGradient(P = precond,
+                               precondprep! = (P, x) -> update!(P, at, x) )
+   else
+      optimiser = Optim.LBFGS( P = precond,
+                        precondprep! = (P, x) -> update!(P, at, x),
+                        linesearch! = Optim.quadbt_linesearch! )
+   end
    results = optimize( objective, dofs(at), method = optimiser,
                         f_tol = ftol, g_tol = gtol, show_trace = (verbose > 1) )
    # analyse the results

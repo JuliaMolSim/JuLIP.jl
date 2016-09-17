@@ -39,14 +39,14 @@ using JuLIP: mat, vecs, JVecs, JVecsF, pyarrayref,
 # extra ASE functionality:
 import Base.repeat         # ✓
 export bulk, ASEAtoms,      # ✓
-      repeat, rnn, chemical_symbols, ASECalculator
+      repeat, rnn, chemical_symbols, ASECalculator, extend!
 
 
 using PyCall
 @pyimport ase
 @pyimport ase.lattice as lattice
 @pyimport ase.io as ase_io
-
+@pyimport ase.atoms as ase_atoms
 
 
 #################################################################
@@ -92,10 +92,12 @@ constraint(at::ASEAtoms) = at.cons
 function ASEAtoms( s::AbstractString;
                    repeatcell=nothing, cubic=false, pbc=(true,true,true) )
    at = bulk(s, cubic=cubic)
-   if repeatcell != nothing; at = repeat(at, repeatcell); end
+   repeatcell != nothing ? at = repeat(at, repeatcell) : nothing
    set_pbc!(at, pbc)
    return at
 end
+
+ASEAtoms(s::AbstractString, X::JVecsF) = ASEAtoms( ase_atoms.Atoms(s, mat(X)') )
 
 
 "Return the PyObject associated with `a`"
@@ -138,6 +140,8 @@ function deleteat!(at::ASEAtoms, n::Integer)
 end
 
 
+
+
 """
 `repeat(a::ASEAtoms, n::(Int64, Int64, Int64)) -> ASEAtoms`
 
@@ -153,6 +157,8 @@ repeat(a::ASEAtoms, n::NTuple{3, Int64}) = ASEAtoms(a.po[:repeat](n))
 import Base.*
 *(at::ASEAtoms, n::NTuple{3, Int64}) = repeat(at, n)
 *(n::NTuple{3, Int64}, at::ASEAtoms) = repeat(at, n)
+*(at::ASEAtoms, n::Integer) = repeat(at, (n,n,n))
+*(n::Integer, at::ASEAtoms) = repeat(at, (n,n,n))
 
 
 """
@@ -205,6 +211,16 @@ end
 # TODO: we probably want more of this
 #       and a more structured way to translate
 #
+
+"""
+`extend!(at::ASEAtoms, atadd::ASEAtoms)`
+
+add `atadd` atoms to `at` and returns `at`; only `at` is modified
+"""
+function extend!(at::ASEAtoms, atadd::ASEAtoms)
+   at.po[:extend](atadd.po)
+   return at
+end
 
 "return vector of chemical symbols as strings"
 chemical_symbols(at::ASEAtoms) = pyobject(at)[:get_chemical_symbols]()
