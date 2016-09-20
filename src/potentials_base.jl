@@ -1,5 +1,5 @@
 
-export @D, @DD, @GRAD
+export @D, @DD, @GRAD, @pot
 
 
 

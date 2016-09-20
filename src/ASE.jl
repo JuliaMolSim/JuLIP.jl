@@ -32,21 +32,20 @@ import JuLIP:
 import Base.length, Base.deleteat!         # ✓
 
 # from arrayconversions:
-using JuLIP: mat, vecs, JVecs, JVecsF, pyarrayref,
+using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
       AbstractCalculator, NullCalculator
 
 # extra ASE functionality:
 import Base.repeat         # ✓
-export bulk, ASEAtoms,      # ✓
+export ASEAtoms,      # ✓
       repeat, rnn, chemical_symbols, ASECalculator, extend!
-
-
 using PyCall
 @pyimport ase
 @pyimport ase.lattice as lattice
 @pyimport ase.io as ase_io
 @pyimport ase.atoms as ase_atoms
+@pyimport ase.structure as ase_structure
 
 
 #################################################################
@@ -161,13 +160,18 @@ import Base.*
 *(n::Integer, at::ASEAtoms) = repeat(at, (n,n,n))
 
 
-"""
-`bulk(name::AbstractString; kwargs...) -> ASEAtoms`
+export bulk, graphene_nanoribbon, nanotube
 
-Generates a unit cell of the element described by `name`
-"""
-bulk(name::AbstractString; kwargs...) =
-            ASEAtoms(lattice.bulk(name; kwargs...))
+@doc lattice.bulk[:__doc__] ->
+bulk(args...; kwargs...) = ASEAtoms(lattice.bulk(args...; kwargs...))
+
+@doc ase_structure.graphene_nanoribbon[:__doc__] ->
+graphene_nanoribbon(args...; kwargs...) =
+   ASEAtoms(ase_structure.graphene_nanoribbon(args...; kwargs...))
+
+"nanotube(n, m, length=1, bond=1.42, symbol=\"C\", verbose=False)"
+nanotube(args...; kwargs...) =
+      ASEAtoms(ase_structure.nanotube(args...; kwargs...))
 
 
 ############################################################
@@ -201,6 +205,11 @@ set_calculator!(at::ASEAtoms, po::PyObject) =
 forces(calc::ASECalculator, at::ASEAtoms) = at.po[:get_forces]()' |> vecs
 energy(calc::ASECalculator, at::ASEAtoms) = at.po[:get_potential_energy]()
 
+"""
+Creates an `ASECalculator` that uses `ase.calculators.emt` to compute
+energy and forces. This is very slow and is only included for
+demonstration purposes.
+"""
 function EMTCalculator()
    @pyimport ase.calculators.emt as emt
    return ASECalculator(emt.EMT())
@@ -216,11 +225,22 @@ end
 `extend!(at::ASEAtoms, atadd::ASEAtoms)`
 
 add `atadd` atoms to `at` and returns `at`; only `at` is modified
+
+A short variant is
+```julia
+extend!(at, (s, x))
+```
+where `s` is a string, `x::JVecF` a position
 """
 function extend!(at::ASEAtoms, atadd::ASEAtoms)
    at.po[:extend](atadd.po)
    return at
 end
+
+extend!{S <: AbstractString}(at::ASEAtoms, atnew::Tuple{S,JVecF}) =
+   extend!(at, ASEAtoms(atnew[1], atnew[2]))
+
+
 
 "return vector of chemical symbols as strings"
 chemical_symbols(at::ASEAtoms) = pyobject(at)[:get_chemical_symbols]()
@@ -237,15 +257,9 @@ write(filename::AbstractString, at::ASEAtoms) = ase_io.write(filename, at.po)
 `rnn(species)` : returns the nearest-neighbour distance for a given species
 """
 function rnn(species::AbstractString)
-   at = ASEAtoms(species) * (2,2,2)
-   X = positions(at)
-   r = Float64[]
-   for n = 1:length(at), m = n+1:length(at)
-      push!(r, norm(X[m]-X[n]))
-   end
-   return minimum(r)
+   X = unsafe_positions(bulk(species) * 2)
+   return minimum( norm(X[n]-X[m]) for n = 1:length(X) for m = n+1:length(X) )
 end
 
 
-
-end
+end # module

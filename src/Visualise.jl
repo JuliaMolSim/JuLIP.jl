@@ -27,6 +27,7 @@ using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
 """
 function show(at::AbstractAtoms; bonds=:babel, box=:auto,
             camera_type="perspective", size=(500,500), display_html=false,
+            cutoff=:auto,
             kwargs...)
 
    # TODO: implement box (ignore for now)
@@ -62,7 +63,12 @@ function show(at::AbstractAtoms; bonds=:babel, box=:auto,
 
    # temporarily assume there is a single species!
    # and make the bond length 120% of the NN-length
-   bondlength = 1.2 * rnn( chemical_symbols(at)[1] )
+   if cutoff == :auto
+      bondlength = 1.2 * rnn( chemical_symbols(at)[1] )
+   else
+      bondlength = cutoff
+   end
+
    # we need to turn of PBC otherwise we get weird bonds
    set_pbc!(at, (false, false, false))
    atoms = [Dict("element" => e, "location" => Vector(x))

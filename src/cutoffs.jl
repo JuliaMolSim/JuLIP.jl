@@ -11,7 +11,6 @@ export SWCutoff, ShiftCutoff, SplineCutoff
 
 ######################## Stillinger-Weber type cutoff
 
-const _sw_eps_ = 1e-2
 
 """
 `cutsw(r, Rc, Lc)`
@@ -22,11 +21,11 @@ Implementation of the C^∞ Stillinger-Weber type cut-off potential
 `d_cutinf` implements the first derivative
 """
 @inline cutsw(r, Rc, Lc) =
-    1.0 ./ ( 1.0 + exp( Lc ./ ( max(Rc-r, 0.0) + _sw_eps_ ) ) )
+    1.0 ./ ( 1.0 + exp( Lc ./ ( max(Rc-r, 0.0) + 1e-2 ) ) )
 
 "derivative of `cutsw`"
 @inline function cutsw_d(r, Rc, Lc)
-    t = 1 ./ ( max(Rc-r, 0.0) + _sw_eps_ )    # a numerically stable (Rc-r)^{-1}
+    t = 1 ./ ( max(Rc-r, 0.0) + 1e-2 )    # a numerically stable (Rc-r)^{-1}
     e = 1.0 ./ (1.0 + exp(Lc * t))         # compute exponential only once
     return - Lc * (1.0 - e) .* e .* t.^2
 end

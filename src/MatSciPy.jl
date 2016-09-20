@@ -98,13 +98,14 @@ type NeighbourList <: AbstractNeighbourList
     R::JVecs{Float64}
     S::JVecs{Int32}
     pyarrays
+    length::Int
 end
 # the last field is a hack to make sure the python arrays are not freed
 # TODO: should study this again and maybe file an issue with PyCall
 
 # default constructor from an ASEAtoms object
 NeighbourList(at::ASEAtoms, cutoff::Float64) =
-   NeighbourList(cutoff, __neighbour_list__(at, cutoff)... )
+   NeighbourList(cutoff, __neighbour_list__(at, cutoff)..., length(at) )
 
 import Base.length
 length(nlist::NeighbourList) = length(nlist.i)
@@ -118,6 +119,8 @@ bonds(nlist::NeighbourList) = zip(nlist.i, nlist.j, nlist.r, nlist.R, nlist.S)
 type Sites
    nlist::NeighbourList
 end
+
+length(s::Sites) = s.nlist.length 
 
 sites(nlist::NeighbourList) = Sites(nlist)
 
