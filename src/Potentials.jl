@@ -58,6 +58,14 @@ include("pairpotentials.jl")
 # * MorsePotential
 # * SimpleExponential
 
+try
+   include("adsite.jl")
+   # * FDPotential : Site potential using ForwardDiff
+catch
+   warn("""adsite.jl could not be included; most likely some AD package is missing;
+      at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
+end
+
 include("EMT.jl")
 # * EMTCalculator
 

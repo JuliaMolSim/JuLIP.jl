@@ -2,7 +2,8 @@
 using JuLIP
 using JuLIP.Potentials
 using JuLIP.Testing
-using JuLIP.ASE: rnn
+using JuLIP.ASE
+
 
 pairpotentials = [
    LennardJones(1.0,1.0);
@@ -44,18 +45,44 @@ emt2 = JuLIP.Potentials.EMTCalculator(at2)
 set_calculator!(at2, emt2)
 push!(calculators, (emt2, at2))
 
-# [4] Stillinger-Weber model
-at3 = Atoms("Si", cubic=true, repeatcell=(2,2,2), pbc=(false, true, false))
-sw = StillingerWeber()
-set_calculator!(at3, sw)
-push!(calculators, (sw, at3))
-
 println("--------------------------------------------------")
 println(" EMT Consistency test: ")
 println("--------------------------------------------------")
 println(" E_ase - E_jl = ", energy(at) - energy(at2))
 println(" |Frc_ase - Frc_jl = ", maxnorm(forces(at) - forces(at2)))
 println("--------------------------------------------------")
+
+# [4] Stillinger-Weber model
+at3 = Atoms("Si", cubic=true, pbc=(false, true, false)) * 2
+sw = StillingerWeber()
+set_calculator!(at3, sw)
+push!(calculators, (sw, at3))
+
+# [5] a simple FDPotential
+@pot type FDPot <: FDPotential end
+fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
+JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot, R::Matrix{T}) =
+               sum( fdpot(Base.LinAlg.vecnorm2(R[:,i])) for i = 1:size(R,2) )
+JuLIP.cutoff(::FDPot) = 4.0
+at5 = Atoms("Si", pbc=false) * (3,3,1)
+push!(calculators, (FDPot(), at5))
+
+# [6] a simple FDPotential
+@pot type FDPot_r <: FDPotential_r end
+JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot_r, r::Vector{T}) = sum( fdpot.(r) )
+JuLIP.cutoff(::FDPot_r) = 4.0
+at6 = Atoms("Si", pbc=false) * (3,3,1)
+push!(calculators, (FDPot_r(), at6))
+
+# [7] a simple FDPotential
+@pot type RDPot_r <: RDPotential_r end
+JuLIP.Potentials.ad_evaluate{T<:Real}(pot::RDPot_r, r::Vector{T}) = sum( fdpot.(r) )
+JuLIP.cutoff(::RDPot_r) = 4.0
+at7 = Atoms("Si", pbc=false) * (3,3,1)
+push!(calculators, (RDPot_r(), at7))
+
+
+# ========== Run the finite-difference tests for all calculators ============
 
 println("============================================")
 println("  Testing calculator implementations ")
