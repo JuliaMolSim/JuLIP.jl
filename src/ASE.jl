@@ -41,11 +41,10 @@ import Base.repeat         # ✓
 export ASEAtoms,      # ✓
       repeat, rnn, chemical_symbols, ASECalculator, extend!
 using PyCall
-@pyimport ase
-@pyimport ase.lattice as lattice
+
 @pyimport ase.io as ase_io
 @pyimport ase.atoms as ase_atoms
-@pyimport ase.structure as ase_structure
+@pyimport ase.build as ase_build
 
 
 #################################################################
@@ -160,18 +159,22 @@ import Base.*
 *(n::Integer, at::ASEAtoms) = repeat(at, (n,n,n))
 
 
-export bulk, graphene_nanoribbon, nanotube
+export bulk, graphene_nanoribbon, nanotube, molecule
 
-@doc lattice.bulk[:__doc__] ->
-bulk(args...; kwargs...) = ASEAtoms(lattice.bulk(args...; kwargs...))
+@doc ase_build.bulk[:__doc__] ->
+bulk(args...; kwargs...) = ASEAtoms(ase_build.bulk(args...; kwargs...))
 
-@doc ase_structure.graphene_nanoribbon[:__doc__] ->
+@doc ase_build.graphene_nanoribbon[:__doc__] ->
 graphene_nanoribbon(args...; kwargs...) =
-   ASEAtoms(ase_structure.graphene_nanoribbon(args...; kwargs...))
+   ASEAtoms(ase_build.graphene_nanoribbon(args...; kwargs...))
 
 "nanotube(n, m, length=1, bond=1.42, symbol=\"C\", verbose=False)"
 nanotube(args...; kwargs...) =
-      ASEAtoms(ase_structure.nanotube(args...; kwargs...))
+      ASEAtoms(ase_build.nanotube(args...; kwargs...))
+
+@doc ase_build.molecule[:__doc__] ->
+      molecule(args...; kwargs...) =
+         ASEAtoms(ase_build.molecule(args...; kwargs...))
 
 
 ############################################################

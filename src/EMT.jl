@@ -7,10 +7,11 @@
 #
 
 
-import JuLIP: AbstractCalculator, neighbourlist
+using JuLIP: AbstractCalculator, neighbourlist
 import JuLIP.Potentials: cutsw, cutsw_d, evaluate, evaluate_d
-import JuLIP.ASE: ASEAtoms, chemical_symbols
+using JuLIP.ASE: ASEAtoms, chemical_symbols
 using PyCall
+
 
 # get access to the atomic numbers
 @pyimport ase.calculators.emt as ase_emt
@@ -21,7 +22,7 @@ using PyCall
 in Julia, largely for fun and comparison with Python; the goal is to make this
 so efficient that it can compete with ASAP.
 """
-type EMTCalculator <: Potential 
+type EMTCalculator <: Potential
    pair::Vector{AnalyticPotential}
    Cpair::Vector{Float64}
    rho::Vector{AnalyticPotential}

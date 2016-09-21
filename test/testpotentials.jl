@@ -51,6 +51,7 @@ println("--------------------------------------------------")
 println(" E_ase - E_jl = ", energy(at) - energy(at2))
 println(" |Frc_ase - Frc_jl = ", maxnorm(forces(at) - forces(at2)))
 println("--------------------------------------------------")
+@test abs(energy(at) - energy(at2)) < 1e-12
 
 # [4] Stillinger-Weber model
 at3 = Atoms("Si", cubic=true, pbc=(false, true, false)) * 2
@@ -80,6 +81,21 @@ JuLIP.Potentials.ad_evaluate{T<:Real}(pot::RDPot_r, r::Vector{T}) = sum( fdpot.(
 JuLIP.cutoff(::RDPot_r) = 4.0
 at7 = Atoms("Si", pbc=false) * (3,3,1)
 push!(calculators, (RDPot_r(), at7))
+
+# [8] PairSitePotential
+at8 = Atoms("Al", cubic=true, pbc=false) * 2
+pp = lennardjones(r0=rnn("Al"))
+psp = SitePotential(pp)
+push!(calculators, (psp, at8))
+
+println("--------------------------------------------------")
+println(" PairSitePotential Consistency test: ")
+println("--------------------------------------------------")
+println(" E_pp - E_psp = ", energy(pp, at8) - energy(psp, at8))
+println(" |Frc_pp - Frc_psp = ", maxnorm(forces(pp, at8) - forces(psp, at8)))
+println("--------------------------------------------------")
+@test abs(energy(pp, at8) - energy(psp, at8)) < 1e-12
+
 
 
 # ========== Run the finite-difference tests for all calculators ============

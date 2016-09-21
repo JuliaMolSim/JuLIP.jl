@@ -106,7 +106,7 @@ export AbstractAtoms,
       set_data!, get_data,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
-      neighbourlist
+      neighbourlist, cutoff
 
 # length is used for several things
 import Base: length, A_ldiv_B!, A_mul_B!, cell
@@ -309,7 +309,7 @@ potential_energy = energy
 #    energy(c, a) - energy(c, aref)
 
 """
-Returns the negative gradient of the total energy in the format `3 x length`.
+Returns the negative gradient of the total energy in the format.
 """
 @protofun forces(c::AbstractCalculator, a::AbstractAtoms)
 forces(at::AbstractAtoms) = forces(calculator(at), at)
@@ -327,7 +327,6 @@ grad(at::AbstractAtoms) = grad(calculator(at), at)
 type NullConstraint <: AbstractConstraint end
 
 """
-* `dofs(cons::AbstractConstraint, vecs::JVecs)`
 * `dofs(cons::AbstractConstraint, vecs::JVecs)`
 
 Take a direction in position space (e.g. a collection of forces)

@@ -26,7 +26,7 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
 # we also import grad from JuLIP, but to define derivatives
 import JuLIP: grad, energy, forces, cutoff
 
-export Potential, PairPotential
+export Potential, PairPotential, SitePotential
 
 """
 `Potential`: generic abstract supertype for all potential-like things
@@ -39,9 +39,34 @@ abstract Potential <: AbstractCalculator
 """
 abstract PairPotential <: Potential
 
+"""
+`SitePotential`: abstract supertype for generic site potentials
+"""
+abstract SitePotential <: Potential
+
 
 include("potentials_base.jl")
 # * @pot, @D, @DD, @GRAD and related things
+
+
+# Implementation of a generic site potential
+# ================================================
+
+energies(pot::SitePotential, at::AbstractAtoms) =
+   Float64[ pot(r, R) for (_1,_2, r, R,_4) in sites(at, cutoff(pot)) ]
+
+energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(energies(pot, at))
+
+function forces(pot::SitePotential, at::AbstractAtoms)
+   frc = zerovecs(length(at))
+   for (i, j, r, R, _) in sites(at, cutoff(pot))
+      dpot = @D pot(r, R)
+      frc[j] -= dpot
+      frc[i] += sum(dpot)
+   end
+   return frc
+end
+
 
 
 include("analyticpotential.jl")
@@ -84,7 +109,7 @@ ZeroSitePotential
 
 evaluate(p::ZeroSitePotential, r, R) = 0.0
 evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)
-
+cutoff(::ZeroSitePotential) = 0.0
 
 
 end

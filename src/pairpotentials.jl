@@ -1,12 +1,10 @@
 # included from Potentials.jl
 # part of the module JuLIP.Potentials
 
-using JuLIP: zerovecs
+using JuLIP: zerovecs, JVecsF, JVecF
 using JuLIP.ASE.MatSciPy: NeighbourList
 
-import JuLIP: energy, forces
-
-export ZeroPairPotential,
+export ZeroPairPotential, PairSitePotential,
          LennardJones, lennardjones,
          Morse, morse
 
@@ -60,7 +58,7 @@ lennardjones(; r0=1.0, e0=1.0, rcut = (1.9*r0, 2.7*r0)) = (
 """
 Morse(A, e0, r0) =
    AnalyticPotential(:( $e0 * ( exp(-$(2.0*A) * (r/$r0 - 1.0))
-                               - 2.0 * exp(-$A * (r/$r0 - 1.0)) ) ),
+                                - 2.0 * exp(-$A * (r/$r0 - 1.0)) ) ),
                      id="MorsePotential(A=$A, e0=$e0, r0=$r0)")
 Morse(;A=4.0, e0=1.0, r0=1.0) = Morse(A, e0, r0)
 
@@ -86,6 +84,21 @@ evaluate_dd(p::ZeroPairPotential, r::Float64) = 0.0
 cutoff(p::ZeroPairPotential) = 0.0
 
 
+# ========================================================
+# wrapping a pair potential in a site potential
+
+SitePotential(pp::PairPotential) = PairSitePotential(pp)
+
+Base.zero(::Type{JVecF}) = JVecF(0.0,0.0,0.0)
+
+@pot type PairSitePotential{P} <: SitePotential
+   pp::P
+end
+cutoff(psp::PairSitePotential) = cutoff(psp.pp)
+evaluate(psp::PairSitePotential, r, R) =
+            sum( [psp.pp(s) for s in r] )
+evaluate_d(psp::PairSitePotential, r, R) =
+            [ ((@D psp.pp(s))/s) * S for (s, S) in zip(r, R) ]
 
 # ======================================================================
 #      Special Preconditioner for Pair Potentials
