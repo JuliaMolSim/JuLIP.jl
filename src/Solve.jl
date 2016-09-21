@@ -29,7 +29,7 @@ export minimise!
 * `precond = Identity()` : preconditioner
 * `grtol = 1e-6`
 * `ftol = 1e-32`
-* `Optimiser = Optim.ConjugateGradient`
+* `Optimiser = Optim.ConjugateGradient` (currently this is ignored)
 * `verbose = 0`: 0 : no output, 1 : final, 2 : iteration
 """
 function minimise!( at::AbstractAtoms;
@@ -43,8 +43,7 @@ function minimise!( at::AbstractAtoms;
    # call Optim.jl
    # TODO: use verb flag to determine whether detailed output is wanted
    if isa(precond, Identity)
-      optimiser = Optim.ConjugateGradient(P = precond,
-                               precondprep! = (P, x) -> update!(P, at, x) )
+      optimiser = Optim.ConjugateGradient()
    else
       optimiser = Optim.LBFGS( P = precond,
                         precondprep! = (P, x) -> update!(P, at, x),

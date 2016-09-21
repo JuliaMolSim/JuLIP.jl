@@ -5,30 +5,7 @@ const _RD_ = ReverseDiffPrototype
 
 using JuLIP: vecs
 
-export SitePotential,
-   FDPotential, FDPotential_r,
-   RDPotential_r
-
-
-# Implementation of a generic site potential
-# ================================================
-
-abstract SitePotential <: Potential
-
-energies(pot::SitePotential, at::AbstractAtoms) =
-   Float64[ pot(r, R) for (_1,_2, r, R,_4) in sites(at, cutoff(pot)) ]
-
-energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(energies(pot, at))
-
-function forces(pot::SitePotential, at::AbstractAtoms)
-   frc = zerovecs(length(at))
-   for (i, j, r, R, _) in sites(at, cutoff(pot))
-      dpot = @D pot(r, R)
-      frc[j] -= dpot
-      frc[i] += sum(dpot)
-   end
-   return frc
-end
+export FDPotential, FDPotential_r, RDPotential_r
 
 
 # Implementation of a ForwardDiff site potential
@@ -86,3 +63,18 @@ function evaluate_d(pot::RDPotential_r, r, R)
    d = _RD_.gradient( r_ -> ad_evaluate(pot, r_), collect(r) )
    return [ (d[i]/r[i]) * R[i] for i = 1:length(r) ]
 end
+
+
+# # Implementation of a ReverseDiffSource site potential
+# # ========================================================
+#
+# abstract RDSPotential_r <: SitePotential
+#
+# init(pot::RDSPotential_r,
+#
+# evaluate(pot::RDPotential_r, r, R) = ad_evaluate(pot, collect(r))
+#
+# function evaluate_d(pot::RDPotential_r, r, R)
+#    d = _RD_.gradient( r_ -> ad_evaluate(pot, r_), collect(r) )
+#    return [ (d[i]/r[i]) * R[i] for i = 1:length(r) ]
+# end

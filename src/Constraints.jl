@@ -44,26 +44,27 @@ type FixedCell <: AbstractConstraint
    ifree::Vector{Int}
 end
 
-function FixedCell(at::AbstractAtoms; free=false, clamp=false, mask=false)
-   if any( (free, clamp, mask) )
+function FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing)
+   if length(find((free != nothing, clamp != nothing, mask != nothing))) > 1
       error("FixedCell: only one of `free`, `clamp`, `mask` may be provided")
-   elseif all( (!free, !clamp, !mask) )
+   elseif all( (free == nothing, clamp == nothing, mask == nothing) )
       # in this case (default) all atoms are free
       return FixedCell(collect(1:3*length(at)))
    end
 
    # determine free dof indices
    Nat = length(at)
-   if clamp != false
-      # reverse to setting free
-      free = setdiff(1:length(at), clamp)
+   if clamp != nothing
+      # revert to setting free
+      free = setdiff(1:Nat, clamp)
    end
-   if free != false
-      # convert free-at indices to free dof indices
-      return FixedCell([free; Nat+free; 2*Nat+free][:])
+   if free != nothing
+      # revert to setting mask
+      mask = Matrix{Bool}(3, Nat)
+      fill!(mask, false)
+      mask[:, free] = true
    end
-   @assert mask != false
-   error("FixedCell: `mask` is not yet implemented")
+   return FixedCell(find( mask[:] ))
 end
 
 dofs{T}( at::AbstractAtoms, cons::FixedCell, v::JVecs{T}) = mat(v)[cons.ifree]

@@ -3,15 +3,14 @@
 # import ReverseDiffSource
 # import ReverseDiffSource:rdiff
 
-import Calculus
-import Calculus: differentiate
-import FunctionWrappers
-import FunctionWrappers: FunctionWrapper
-
-typealias F64fun FunctionWrapper{Float64, Tuple{Float64}}
-
+using Calculus: differentiate
 
 export AnalyticPotential
+
+import FunctionWrappers
+import FunctionWrappers: FunctionWrapper
+typealias F64fun FunctionWrapper{Float64, Tuple{Float64}}
+
 
 # ===========================================================================
 #     macro that takes an expression, differentiates it
@@ -39,10 +38,10 @@ end
 
 
 # documentation attached below
-@pot type AnalyticPotential{F,F1,F2} <: PairPotential
-   f::F
-   f_d::F1
-   f_dd::F2
+@pot type AnalyticPotential <: PairPotential
+   f::F64fun
+   f_d::F64fun
+   f_dd::F64fun
    id::AbstractString
    cutoff::Float64
 end
@@ -76,7 +75,7 @@ AnalyticPotential(s::AbstractString; id = s, cutoff=Inf) =
 function AnalyticPotential(ex::Expr; id = string(ex), cutoff=Inf)
    @assert isa(id, AbstractString)
    f, f_d, f_dd = diff2(ex)
-   return AnalyticPotential(f, f_d, f_dd, id, cutoff)
+   return AnalyticPotential(F64fun(f), F64fun(f_d), F64fun(f_dd), id, cutoff)
 end
 
 # this is a hack to make tight-binding work; but it should be reconsidered
