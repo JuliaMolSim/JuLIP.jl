@@ -33,11 +33,3 @@ end''')
             self.results['energy'] = self.julia.energy(self.julip_calculator, julia_atoms)
         if 'forces' in properties:
             self.results['forces'] = np.array(self.julia.forces(self.julip_calculator, julia_atoms))
-
-if __name__ == '__main__':
-    from ase.build import bulk
-    at = bulk("Cu")
-    calc = JulipCalculator("JuLIP.Potentials.LennardJones()")
-    at.set_calculator(calc)
-    print at.get_potential_energy()
-    print at.get_forces()
