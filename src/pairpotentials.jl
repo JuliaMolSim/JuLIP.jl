@@ -87,18 +87,46 @@ cutoff(p::ZeroPairPotential) = 0.0
 # ========================================================
 # wrapping a pair potential in a site potential
 
-SitePotential(pp::PairPotential) = PairSitePotential(pp)
+SitePotential(pp::PairPotential) = PairSitePotential(pp, Val{:one}())
 
 Base.zero(::Type{JVecF}) = JVecF(0.0,0.0,0.0)
 
-@pot type PairSitePotential{P} <: SitePotential
-   pp::P
+@pot type PairSitePotential{PT, FT} <: SitePotential
+   pp::PT
+   F::FT
 end
+
 cutoff(psp::PairSitePotential) = cutoff(psp.pp)
-evaluate(psp::PairSitePotential, r, R) =
-            sum( [psp.pp(s) for s in r] )
-evaluate_d(psp::PairSitePotential, r, R) =
+
+function _sumpair_(pp, r)
+   # cant use a generator here since type is not inferred!
+   # Watch out for a bugfix
+   s = 0.0
+   for s in r
+      s += psp.pp(s)
+   end
+   return s
+end
+
+# special implementation of site energy and forces for a plain pair potential
+evaluate{PT}(psp::PairSitePotential{PT,Val{:one}}, r, R) = _sumpair_(psp.pp, r)
+
+evaluate_d{PT}(psp::PairSitePotential{PT,Val{:one}}, r, R) =
             [ ((@D psp.pp(s))/s) * S for (s, S) in zip(r, R) ]
+
+# general implementation with a nonlinear wrapper
+evaluate(psp::PairSitePotential, r, R) = psp.F(_sumpair_(psp.pp, r))
+
+function evaluate_d{PT}(psp::PairSitePotential{PT,Val{:one}}, r, R)
+   dF = @D psp.F(_sumpair_(psp.pp, r))
+   return [ dF_ * ((@D psp.pp(s))/s) * S for (s, S, dF_) in zip(r, R, dF) ]
+end
+
+# instead of this, use a `ComposePotential?`
+# and construct e.g. with  F ∘ sitepot = ComposePot(F, sitepot)
+
+
+
 
 # ======================================================================
 #      Special Preconditioner for Pair Potentials
