@@ -13,8 +13,8 @@ import Optim
 import Optim: DifferentiableFunction, optimize, ConjugateGradient, LBFGS
 
 
-using JuLIP: AbstractAtoms, Preconditioner, update!, Identity, update!,
-            dofs, energy, grad
+using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
+            dofs, energy, gradient
 
 
 export minimise!
@@ -39,7 +39,7 @@ function minimise!( at::AbstractAtoms;
 
    # create an objective function
    objective = DifferentiableFunction( x->energy(at, x),
-                                       (x,g)->copy!(g, grad(at, x)) )
+                                       (x,g)->copy!(g, gradient(at, x)) )
    # call Optim.jl
    # TODO: use verb flag to determine whether detailed output is wanted
    if isa(precond, Identity)
