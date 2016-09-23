@@ -6,12 +6,12 @@ TODO: write documentation
 """
 module Constraints
 
-import JuLIP: Dofs, AbstractConstraint,
-         dofs, project!, set_positions!, positions,
-         mat, vecs, JVecs,
-         AbstractAtoms
+using JuLIP: Dofs, AbstractConstraint, mat, vecs, JVecs, AbstractAtoms
 
-export FixedCell
+import JuLIP: dofs, project!, set_dofs!, positions
+
+
+export FixedCell, VariableCell
 
 
 function zeros_free{T}(n::Integer, x::Vector{T}, free::Vector{Int})
@@ -69,22 +69,25 @@ end
 FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
    FixedCell(analyze_mask(at, free, clamp, mask))
 
-dofs{T}( at::AbstractAtoms, cons::FixedCell, v::JVecs{T}) = mat(v)[cons.ifree]
-#    !!!!!!!! this may end up being a problem !!!!!!!
-# dofs{T}( at::AbstractAtoms, cons::FixedCell, p::JPts{T}) = mat(p)[cons.ifree]
+# convert positions to a dofs vector; TODO: use unsafe_positions????
+dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
 
-vecs(cons::FixedCell, at::AbstractAtoms, dofs::Dofs) =
-      zeros_free(length(at), dofs, cons.ifree) |> vecs
-
-positions(cons::FixedCell, at::AbstractAtoms, dofs::Dofs) =
+# a helper function to get a valid positions array from a dof-vector
+positions(at::AbstractAtoms, cons::FixedCell, dofs::Dofs) =
       insert_free!(positions(at) |> mat, dofs, cons.ifree) |> vecs
 
-project!(cons::FixedCell, at::AbstractAtoms) = at
+set_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
+      set_positions!(at, positions(at, cons, x))
+
+project!(at::AbstractAtoms, cons::FixedCell) = at
 
 # TODO: this is a temporaruy hack, and I think we need to
 #       figure out how to do this for more general constraints
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
+
+gradient(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
+      mat(gradient(set_dofs!(at, x)))[cons.ifree]
 
 
 
@@ -102,7 +105,7 @@ Set at most one of the kwargs:
 * `mask` : 3 x N Bool array to specify individual coordinates to be clamped
 * `fixvolume` : {false}; set true if the cell volume should be fixed
 """
-type FixedCell <: AbstractConstraint
+type VariableCell <: AbstractConstraint
    ifree::Vector{Int}
    fixvolume::Bool
 end
@@ -111,6 +114,8 @@ VariableCell(at::AbstractAtoms;
             free=nothing, clamp=nothing, mask=nothing, fixvolume=false) =
    VariableCell(analyze_mask(at, free, clamp, mask), fixvolume)
 
+# convert positions to a dofs vector
+# dofs{T}(at::AbstractAtoms, cons::FixedCell) = mat(unsafe_positions(at))[cons.ifree]
 
 
 
