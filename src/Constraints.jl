@@ -38,20 +38,19 @@ Set at most one of the kwargs:
 * no kwarg: all atoms are free
 * `free` : list of free atom indices (not dof indices)
 * `clamp` : list of clamped atom indices (not dof indices)
-* `mask` : TODO
+* `mask` : 3 x N Bool array to specify individual coordinates to be clamped
 """
 type FixedCell <: AbstractConstraint
    ifree::Vector{Int}
 end
 
-function FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing)
+function analyze_mask(at, free, clamp, mask)
    if length(find((free != nothing, clamp != nothing, mask != nothing))) > 1
       error("FixedCell: only one of `free`, `clamp`, `mask` may be provided")
    elseif all( (free == nothing, clamp == nothing, mask == nothing) )
       # in this case (default) all atoms are free
-      return FixedCell(collect(1:3*length(at)))
+      return collect(1:3*length(at))
    end
-
    # determine free dof indices
    Nat = length(at)
    if clamp != nothing
@@ -64,8 +63,11 @@ function FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing)
       fill!(mask, false)
       mask[:, free] = true
    end
-   return FixedCell(find( mask[:] ))
+   return mask[:]
 end
+
+FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
+   FixedCell(analyze_mask(at, free, clamp, mask))
 
 dofs{T}( at::AbstractAtoms, cons::FixedCell, v::JVecs{T}) = mat(v)[cons.ifree]
 #    !!!!!!!! this may end up being a problem !!!!!!!
@@ -82,6 +84,34 @@ project!(cons::FixedCell, at::AbstractAtoms) = at
 # TODO: this is a temporaruy hack, and I think we need to
 #       figure out how to do this for more general constraints
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
+
+
+
+
+"""
+`VariableCell`: both atom positions and cell shape are free
+
+Constructor:
+```julia
+VariableCell(at::AbstractAtoms; free=..., clamp=..., mask=..., fixvolume=false)
+```
+Set at most one of the kwargs:
+* no kwarg: all atoms are free
+* `free` : list of free atom indices (not dof indices)
+* `clamp` : list of clamped atom indices (not dof indices)
+* `mask` : 3 x N Bool array to specify individual coordinates to be clamped
+* `fixvolume` : {false}; set true if the cell volume should be fixed
+"""
+type FixedCell <: AbstractConstraint
+   ifree::Vector{Int}
+   fixvolume::Bool
+end
+
+VariableCell(at::AbstractAtoms;
+            free=nothing, clamp=nothing, mask=nothing, fixvolume=false) =
+   VariableCell(analyze_mask(at, free, clamp, mask), fixvolume)
+
+
 
 
 end
