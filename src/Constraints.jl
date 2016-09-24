@@ -26,6 +26,11 @@ function insert_free!{T}(p::Array{T}, x::Vector{T}, free::Vector{Int})
    return p
 end
 
+# a helper function to get a valid positions array from a dof-vector
+positions{TI<:Integer}(at::AbstractAtoms, ifree::AbstractVector{TI}, dofs::Dofs) =
+      insert_free!(positions(at) |> mat, dofs, ifree) |> vecs
+
+
 
 """
 `FixedCell`: no constraints are placed on the motion of atoms, but the
@@ -73,17 +78,14 @@ FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
 # convert positions to a dofs vector; TODO: use unsafe_positions????
 dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
 
-# a helper function to get a valid positions array from a dof-vector
-positions(at::AbstractAtoms, cons::FixedCell, dofs::Dofs) =
-      insert_free!(positions(at) |> mat, dofs, cons.ifree) |> vecs
-
 set_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
-      set_positions!(at, positions(at, cons, x))
+      set_positions!(at, positions(at, cons.ifree, x))
 
 project!(at::AbstractAtoms, cons::FixedCell) = at
 
 # TODO: this is a temporaruy hack, and I think we need to
 #       figure out how to do this for more general constraints
+#       maybe not too terrible
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 gradient(at::AbstractAtoms, cons::FixedCell) = mat(gradient(at))[cons.ifree]
@@ -110,12 +112,49 @@ type VariableCell <: AbstractConstraint
 end
 
 VariableCell(at::AbstractAtoms;
-            free=nothing, clamp=nothing, mask=nothing, fixvolume=false) =
+               free=nothing, clamp=nothing, mask=nothing,
+               fixvolume=false) =
    VariableCell(analyze_mask(at, free, clamp, mask), fixvolume)
 
-# convert positions to a dofs vector
-# dofs{T}(at::AbstractAtoms, cons::FixedCell) = mat(unsafe_positions(at))[cons.ifree]
+# F = Q U, U spd but in any case symmetric, so we should just allow F
+# to be symmetric.
+#
+# consider the perturbation
+#  F   -> F + t U
+#  x_i -> (F+t U) F^{-1} x_i = x_i + t U F^{-1} x_i  =: x_i^t
+# E({x_i^t}) ~ E({x_i}) + t ∑_i g_i ⋅ (U F^{-1} x_i) + O(t^2)
+#            ~ E({x_i}) + t ∑_i g_ia U_ab [F_{-1} x_i]_b
+#            ~ E({x_i}) + t U_ab : [ ∑_i g_{ia} [F^{-1} x_i]_b  ]_ab
+#            ~ E({x_i}) + t U : ∑_i g_i ⊗ (F^{-1} x_i)
+#
+# now consider
+#  x_i^t = (F + t U) F^{-1} (x_i + t u_i)
+#        ~ x_i + t u_i + t U F^{-1} x_i + O(t^2)
+#
+#   small issue: this is a nonlinear search path !!!
 
+dofs(at::AbstractAtoms, cons::VariableCell) =
+         [ mat(positions(at))[cons.ifree]; cell(at)[:] ]
 
+celldofs(x) = x[end-8:end]
 
+function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
+   set_positions!(at, positions(at, cons.ifree, x))
+   set_cell!(at, celldofs(x))
 end
+
+function gradient(at::AbstractAtoms, cons::VariableCell)
+   G = gradient(at)   # - forces ( = gradient assuming cell is fixed)
+   X = positions(at)
+   Finv = cell(at) |> JMat |> inv
+   S = sum( g * (Finv * x)'  for (g, x) in zip(G, X) )
+   return [ mat(G)[cons.ifree]; Array(S[:]) ]
+end
+
+# TODO: fix this once we implement the volume constraint ??????
+project!(at::AbstractAtoms, cons::VariableCell) = at
+
+# project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
+
+
+end # module

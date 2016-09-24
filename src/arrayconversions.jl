@@ -6,6 +6,7 @@ import Base.convert
 
 export mat, vecs
 export SVec, SMat, JVec, JVecs, JVecF, JVecsF
+export JMat, JMatF
 export zerovecs, maxdist, maxnorm
 
 export unsafe_pyarrayref, safe_pyarrayref
@@ -16,10 +17,19 @@ typealias SVec SVector
 "typealias for a static matrix type; currently `StaticArrays.SMatrix`"
 typealias SMat SMatrix
 
+typealias JMat SMatrix{3,3}
+typealias JMatF JMat{Float64}
+
+Base.zero{T}(::Type{JMat{T}}) = JMat(zero(T) for i = 1:9)
+
+
 "`JVec{T}` : 3-dimensional immutable vector"
 typealias JVec{T} SVec{3,T}
 typealias JVecF JVec{Float64}
 typealias JVecI JVec{Int}
+
+Base.zero{T}(::Type{JVec{T}}) = JVec(zero(T) for i=1:3)
+
 
 "`JVecs{T}` : List of 3-dimensional immutable vectors"
 typealias JVecs{T} Vector{JVec{T}}

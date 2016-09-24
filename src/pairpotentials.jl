@@ -89,7 +89,6 @@ cutoff(p::ZeroPairPotential) = 0.0
 
 SitePotential(pp::PairPotential) = PairSitePotential(pp)
 
-Base.zero(::Type{JVecF}) = JVecF(0.0,0.0,0.0)
 
 @pot type PairSitePotential{P} <: SitePotential
    pp::P
