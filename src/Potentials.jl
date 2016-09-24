@@ -23,8 +23,7 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
       JVec, JVecs, mat, vec
 
-# we also import grad from JuLIP, but to define derivatives
-import JuLIP: grad, energy, forces, cutoff
+import JuLIP: energy, forces, cutoff
 
 export Potential, PairPotential, SitePotential
 
