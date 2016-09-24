@@ -314,7 +314,7 @@ Returns the negative gradient of the total energy in the format.
 @protofun forces(c::AbstractCalculator, a::AbstractAtoms)
 forces(at::AbstractAtoms) = forces(calculator(at), at)
 
-"`grad(c,a) = - forces(c, a)`"
+"`gradient(c,a) = - forces(c, a)`"
 gradient(c::AbstractCalculator, a::AbstractAtoms) = scale!(forces(c, a), -1.0)
 gradient(at::AbstractAtoms) = gradient(calculator(at), at)
 
@@ -362,9 +362,9 @@ project!(at::AbstractAtoms) = project!(at, constraint(at))
 
 energy(at::AbstractAtoms, x::Dofs) = energy(set_dofs!(at, x))
 
-@protofun gradient(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs)
+@protofun gradient(at::AbstractAtoms, cons::AbstractConstraint)
 
-gradient(at::AbstractAtoms, x::Dofs) = gradient(at, constraint(at), x)
+gradient(at::AbstractAtoms, x::Dofs) = gradient(set_dofs!(at, x), constraint(at))
 
 
 
@@ -380,7 +380,7 @@ Update the preconditioner with the new geometry information.
 """
 @protofun update!(precond::Preconditioner, at::AbstractAtoms)
 update!(precond::Preconditioner, at::AbstractAtoms, x::Dofs) =
-            update!(precond, set_positions!(at, x))
+            update!(precond, set_dofs!(at, x))
 # TODO: this is a bit of a problem with the nice abstract framework we
 #       are constructing here; it can easily happen now that we
 #       update positions multiple times

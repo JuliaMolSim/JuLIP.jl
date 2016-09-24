@@ -8,13 +8,11 @@ the help for these:
 """
 module Solve
 
-
 import Optim
-import Optim: DifferentiableFunction, optimize, ConjugateGradient, LBFGS
-
+using Optim: DifferentiableFunction, optimize, ConjugateGradient, LBFGS
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
-            dofs, energy, gradient
+            dofs, energy, gradient, set_dofs!, set_constraint!
 
 
 export minimise!

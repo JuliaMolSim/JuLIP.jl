@@ -6,9 +6,10 @@ TODO: write documentation
 """
 module Constraints
 
-using JuLIP: Dofs, AbstractConstraint, mat, vecs, JVecs, AbstractAtoms
+using JuLIP: Dofs, AbstractConstraint, mat, vecs, JVecs, AbstractAtoms,
+         set_positions!
 
-import JuLIP: dofs, project!, set_dofs!, positions
+import JuLIP: dofs, project!, set_dofs!, positions, gradient
 
 
 export FixedCell, VariableCell
@@ -85,9 +86,7 @@ project!(at::AbstractAtoms, cons::FixedCell) = at
 #       figure out how to do this for more general constraints
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
-
-gradient(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
-      mat(gradient(set_dofs!(at, x)))[cons.ifree]
+gradient(at::AbstractAtoms, cons::FixedCell) = mat(gradient(at))[cons.ifree]
 
 
 
