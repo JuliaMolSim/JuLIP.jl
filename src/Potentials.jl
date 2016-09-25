@@ -23,7 +23,7 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
       JVec, JVecs, mat, vec
 
-import JuLIP: energy, forces, cutoff
+import JuLIP: energy, forces, cutoff, stress, site_energies
 
 export Potential, PairPotential, SitePotential
 
@@ -51,7 +51,7 @@ include("potentials_base.jl")
 # Implementation of a generic site potential
 # ================================================
 
-energies(pot::SitePotential, at::AbstractAtoms) =
+site_energies(pot::SitePotential, at::AbstractAtoms) =
    Float64[ pot(r, R) for (_1,_2, r, R,_4) in sites(at, cutoff(pot)) ]
 
 energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(energies(pot, at))
@@ -66,6 +66,11 @@ function forces(pot::SitePotential, at::AbstractAtoms)
    return frc
 end
 
+site_stress(dV, R) = sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
+
+stress(V::SitePotential, at::AbstractAtoms) =
+      sum(  site_stress(@ V(r, R), R)
+            for (_₁, _₂, r, R, _₃) in sites(at, cutoff(calc))  )
 
 
 include("analyticpotential.jl")

@@ -106,7 +106,8 @@ export AbstractAtoms,
       set_data!, get_data,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
-      neighbourlist, cutoff
+      neighbourlist, cutoff,
+      stress, site_stresses, site_energies
 
 # length is used for several things
 import Base: length, A_ldiv_B!, A_mul_B!, cell
@@ -300,6 +301,10 @@ energy(at::AbstractAtoms) = energy(calculator(at), at)
 "`potential_energy` : alias for `energy`"
 potential_energy = energy
 
+
+@protofun site_energies(c::AbstractCalculator, a::AbstractAtoms)
+site_energies(a::AbstractAtoms) = site_energies(calculator(a), a)
+
 # """
 # energy difference between two configurations; default is to just compute the
 # two energies, but this allows implementation of numerically robust
@@ -318,6 +323,11 @@ forces(at::AbstractAtoms) = forces(calculator(at), at)
 gradient(c::AbstractCalculator, a::AbstractAtoms) = scale!(forces(c, a), -1.0)
 gradient(at::AbstractAtoms) = gradient(calculator(at), at)
 
+@protofun stress(c::AbstractCalculator, a::AbstractAtoms)
+stress(a::AbstractAtoms) = stress(calculator(a), a)
+
+@protofun site_stresses(c::AbstractCalculator, a::AbstractAtoms)
+site_stress(a::AbstractAtoms) = site_stress(calculator(a), a)
 
 
 #######################################################################

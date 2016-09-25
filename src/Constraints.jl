@@ -31,6 +31,9 @@ positions{TI<:Integer}(at::AbstractAtoms, ifree::AbstractVector{TI}, dofs::Dofs)
       insert_free!(positions(at) |> mat, dofs, ifree) |> vecs
 
 
+# ========================================================================
+#          FIXED CELL IMPLEMENTATION
+# ========================================================================
 
 """
 `FixedCell`: no constraints are placed on the motion of atoms, but the
@@ -92,6 +95,28 @@ gradient(at::AbstractAtoms, cons::FixedCell) = mat(gradient(at))[cons.ifree]
 
 
 
+# ========================================================================
+#          VARIABLE CELL IMPLEMENTATION
+# ========================================================================
+
+# F = Q U, U spd but in any case symmetric, so we should just allow F
+# to be symmetric.
+#
+# consider the perturbation
+#  F   -> F + t U
+#  x_i -> (F+t U) F^{-1} x_i = x_i + t U F^{-1} x_i  =: x_i^t
+# E({x_i^t}) ~ E({x_i}) + t ∑_i g_i ⋅ (U F^{-1} x_i) + O(t^2)
+#            ~ E({x_i}) + t ∑_i g_ia U_ab [F_{-1} x_i]_b
+#            ~ E({x_i}) + t U_ab : [ ∑_i g_{ia} [F^{-1} x_i]_b  ]_ab
+#            ~ E({x_i}) + t U : ∑_i g_i ⊗ (F^{-1} x_i)
+#
+# now consider
+#  x_i^t = (F + t U) F^{-1} (x_i + t u_i)
+#        ~ x_i + t u_i + t U F^{-1} x_i + O(t^2)
+#
+#   small issue: this is a nonlinear search path !!!
+
+
 """
 `VariableCell`: both atom positions and cell shape are free
 
@@ -116,23 +141,6 @@ VariableCell(at::AbstractAtoms;
                fixvolume=false) =
    VariableCell(analyze_mask(at, free, clamp, mask), fixvolume)
 
-# F = Q U, U spd but in any case symmetric, so we should just allow F
-# to be symmetric.
-#
-# consider the perturbation
-#  F   -> F + t U
-#  x_i -> (F+t U) F^{-1} x_i = x_i + t U F^{-1} x_i  =: x_i^t
-# E({x_i^t}) ~ E({x_i}) + t ∑_i g_i ⋅ (U F^{-1} x_i) + O(t^2)
-#            ~ E({x_i}) + t ∑_i g_ia U_ab [F_{-1} x_i]_b
-#            ~ E({x_i}) + t U_ab : [ ∑_i g_{ia} [F^{-1} x_i]_b  ]_ab
-#            ~ E({x_i}) + t U : ∑_i g_i ⊗ (F^{-1} x_i)
-#
-# now consider
-#  x_i^t = (F + t U) F^{-1} (x_i + t u_i)
-#        ~ x_i + t u_i + t U F^{-1} x_i + O(t^2)
-#
-#   small issue: this is a nonlinear search path !!!
-
 dofs(at::AbstractAtoms, cons::VariableCell) =
          [ mat(positions(at))[cons.ifree]; cell(at)[:] ]
 
@@ -144,11 +152,9 @@ function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
 end
 
 function gradient(at::AbstractAtoms, cons::VariableCell)
-   G = gradient(at)   # - forces ( = gradient assuming cell is fixed)
-   X = positions(at)
-   Finv = cell(at) |> JMat |> inv
-   S = sum( g * (Finv * x)'  for (g, x) in zip(G, X) )
-   return [ mat(G)[cons.ifree]; Array(S[:]) ]
+   G = gradient(at)   # neg. forces
+   S = stress(at)     # ∂E / ∂F
+   return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
 # TODO: fix this once we implement the volume constraint ??????
