@@ -52,7 +52,7 @@ include("potentials_base.jl")
 # ================================================
 
 site_energies(pot::SitePotential, at::AbstractAtoms) =
-   Float64[ pot(r, R) for (_1,_2, r, R,_4) in sites(at, cutoff(pot)) ]
+   Float64[ pot(r, R) for (_₁, _₂, r, R, _₃) in sites(at, cutoff(pot)) ]
 
 energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(energies(pot, at))
 
@@ -69,7 +69,7 @@ end
 site_stress(dV, R) = sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
 
 stress(V::SitePotential, at::AbstractAtoms) =
-      sum(  site_stress(@ V(r, R), R)
+      sum(  site_stress((@D V(r, R)), R)
             for (_₁, _₂, r, R, _₃) in sites(at, cutoff(calc))  )
 
 
