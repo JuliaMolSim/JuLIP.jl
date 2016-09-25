@@ -13,7 +13,7 @@ println("-----------------------------------------------------------------")
 println("Testing `minimise!` with equilibration with LJ calculator to lattice")
 println("-----------------------------------------------------------------")
 calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = Atoms("Al", cubic=true, repeatcell=(3,3,3), pbc=(true,true,true))
+at = Atoms("Al", cubic=true, pbc=(true,true,true)) * 3
 X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
@@ -28,12 +28,21 @@ println("check that the optimiser really converged to a lattice")
 @show vecnorm(F*X0 - X1, Inf)
 
 
-println("-------------------------------------------------")
-println("same test but large and with Exp preconditioner")
-println("-------------------------------------------------")
+# println("-------------------------------------------------")
+# println("same test but large and with Exp preconditioner")
+# println("-------------------------------------------------")
+#
+# at = Atoms("Al", repeatcell=(20,20,2), pbc=(true,true,true), cubic=true)
+# at = rattle!(at, 0.02)
+# set_calculator!(at, calc)
+# set_constraint!(at, FixedCell(at))
+# minimise!(at, precond = Exp(at))
 
-at = Atoms("Al", repeatcell=(20,20,2), pbc=(true,true,true), cubic=true)
-at = rattle!(at, 0.02)
+
+println("-------------------------------------------------")
+println("   Variable Cell Test")
+println("-------------------------------------------------")
+calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
+at = Atoms("Al", cubic=true, pbc=(true,true,true))
 set_calculator!(at, calc)
-set_constraint!(at, FixedCell(at))
-minimise!(at, precond = Exp(at))
+set_constraint!(at, VariableCell(at))
