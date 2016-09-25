@@ -110,7 +110,7 @@ export AbstractAtoms,
       stress, site_stresses, site_energies
 
 # length is used for several things
-import Base: length, A_ldiv_B!, A_mul_B!, cell
+import Base: length, A_ldiv_B!, A_mul_B!, cell, gradient 
 
 export AbstractCalculator,
       energy, potential_energy, forces, gradient
@@ -118,7 +118,7 @@ export AbstractCalculator,
 export AbstractNeighbourList,
        sites, bonds
 
-export AbstractConstraint, NullConstraint, dofs
+export AbstractConstraint, NullConstraint, dofs, set_dofs!
 
 export Preconditioner, preconditioner
 

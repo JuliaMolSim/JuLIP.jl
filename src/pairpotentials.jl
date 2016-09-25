@@ -23,7 +23,7 @@ grad(pp::PairPotential, r::Float64, R::JVec) =
             (evaluate_d(p::PairPotential, r) / r) * R
 
 energy(pp::PairPotential, at::AbstractAtoms) =
-         sum( pp(r) for (_1,_2,r,_3,_4) in bonds(at, cutoff(pp)) )
+         sum( pp(r) for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(pp)) )
 
 function forces(pp::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
@@ -38,7 +38,7 @@ end
 
 stress(pp::PairPotential, at::AbstractAtoms) =
             sum(  ((@D pp(r))/r * R) * R'
-                  for (_₁, ₂, r, R, _₃) in bonds(at, cutoff(calc))  )
+                  for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))  )
 
 """
 `LennardJones:` e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
