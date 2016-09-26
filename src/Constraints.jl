@@ -7,7 +7,7 @@ TODO: write documentation
 module Constraints
 
 using JuLIP: Dofs, AbstractConstraint, mat, vecs, JVecs, AbstractAtoms,
-         set_positions!, set_cell!, stress 
+         set_positions!, set_cell!, stress
 
 import JuLIP: dofs, project!, set_dofs!, positions, gradient
 
@@ -153,8 +153,8 @@ function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
 end
 
 function gradient(at::AbstractAtoms, cons::VariableCell)
-   G = gradient(at)   # neg. forces
-   S = stress(at)     # ∂E / ∂F
+   G = gradient(at)                  # neg. forces
+   S = stress(at) / (cell(at)')     # ∂E / ∂F
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
