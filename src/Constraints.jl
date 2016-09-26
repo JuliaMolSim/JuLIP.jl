@@ -118,7 +118,9 @@ gradient(at::AbstractAtoms, cons::FixedCell) = mat(gradient(at))[cons.ifree]
 
 
 """
-`VariableCell`: both atom positions and cell shape are free
+`VariableCell`: both atom positions and cell shape are free;
+
+**WARNING:** read *meaning of dofs* instructions at bottom of help text.
 
 Constructor:
 ```julia
@@ -129,17 +131,29 @@ Set at most one of the kwargs:
 * `free` : list of free atom indices (not dof indices)
 * `clamp` : list of clamped atom indices (not dof indices)
 * `mask` : 3 x N Bool array to specify individual coordinates to be clamped
-* `fixvolume` : {false}; set true if the cell volume should be fixed
+
+### Meaning of dofs
+
+`dofs(at, cons::VariableCell)` returns a vector that represents a pair
+`(X1, F1)` of positions and a deformation matrix. These are to be understood
+*relative* to the reference `X0, F0` stored in `cons`; that is, they represent
+the configuration
+* `F = F1`   (the cell is then `F'`)
+* `X = [F1 * (F0 \ x0) + x1  for (x0,x1) in zip(X0, X1)]`
+
+One aspect of this definition is that clamped atom positions still change via
+`F`.
 """
 type VariableCell <: AbstractConstraint
    ifree::Vector{Int}
-   fixvolume::Bool
+   X0::JVecsF
+   F0::JMatF
 end
 
 VariableCell(at::AbstractAtoms;
-               free=nothing, clamp=nothing, mask=nothing,
-               fixvolume=false) =
-   VariableCell(analyze_mask(at, free, clamp, mask), fixvolume)
+               free=nothing, clamp=nothing, mask=nothing) =
+   VariableCell( analyze_mask(at, free, clamp, mask),
+                  positions(at), JMat(cell(at)') )
 
 dofs(at::AbstractAtoms, cons::VariableCell) =
          [ mat(positions(at))[cons.ifree]; cell(at)[:] ]
@@ -147,14 +161,27 @@ dofs(at::AbstractAtoms, cons::VariableCell) =
 celldofs(x) = x[end-8:end]
 posdofs(x) = x[1:end-9]
 
+
 function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
-   set_positions!(at, positions(at, cons.ifree, posdofs(x)))
-   set_cell!(at, reshape(celldofs(x), 3, 3))
+   X = copy(cons.X0)
+   F = JMatF(celldofs(x))
+   A = F / cons.F0
+   for n = 1:length(X)
+      X[n] = A * X[n]
+   end
+   X = mat(X)
+   X[cons.ifree] += posdofs(x)
+   X = vecs(X)
+
+   set_positions!(at, X)
+   set_cell!(at, Matrix(F)')
+   return at
 end
+
 
 function gradient(at::AbstractAtoms, cons::VariableCell)
    G = gradient(at)                  # neg. forces
-   S = stress(at) / cell(at)     # ∂E / ∂F
+   S = stress(at) / cell(at)'        # ∂E / ∂F
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
