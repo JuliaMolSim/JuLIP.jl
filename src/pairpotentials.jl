@@ -37,7 +37,7 @@ end
 
 
 stress(pp::PairPotential, at::AbstractAtoms) =
-            sum(  ((@D pp(r))/r * R) * R'
+            sum(  (((@D pp(r)) / r) * R) * R'
                   for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))  )
 
 """
@@ -100,13 +100,15 @@ cutoff(p::ZeroPairPotential) = 0.0
 
 SitePotential(pp::PairPotential) = PairSitePotential(pp)
 
-
 @pot type PairSitePotential{P} <: SitePotential
    pp::P
 end
+
 cutoff(psp::PairSitePotential) = cutoff(psp.pp)
+
 evaluate(psp::PairSitePotential, r, R) =
             sum( [psp.pp(s) for s in r] )
+
 evaluate_d(psp::PairSitePotential, r, R) =
             [ ((@D psp.pp(s))/s) * S for (s, S) in zip(r, R) ]
 

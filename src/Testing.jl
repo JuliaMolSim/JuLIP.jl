@@ -100,22 +100,22 @@ fdtest(V::PairPotential, r::AbstractVector; kwargs...) =
 
 
 
-function fdtest(calc::AbstractCalculator, at::AbstractAtoms; verbose=true)
+function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
+                verbose=true, rattle=true)
    X0 = copy(positions(at))
    calc0 = calculator(at)
    cons0 = constraint(at)
    # perturb atom positions a bit to get out of equilibrium states
-   at = rattle!(at, 0.02)
+   rattle ? at = rattle!(at, 0.02) : nothing
    # if no constraint is attached, then attach the NullConstraint
    if typeof(constraint(at)) == NullConstraint
       set_constraint!(at, FixedCell(at))
    end
    set_calculator!(at, calc)
    # call the actual FD test
-   fdtest( x-> energy(at, x),
-           x-> gradient(at, x),
-           dofs(at)
-         )
+   fdtest( x -> energy(at, x),
+           x -> gradient(at, x),
+           dofs(at) )
    # restore original atom positions
    set_positions!(at, X0)
    set_calculator!(at, calc0)
