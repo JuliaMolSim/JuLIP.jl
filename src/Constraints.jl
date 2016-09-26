@@ -154,7 +154,7 @@ end
 
 function gradient(at::AbstractAtoms, cons::VariableCell)
    G = gradient(at)                  # neg. forces
-   S = stress(at) / (cell(at)')     # ∂E / ∂F
+   S = stress(at) / cell(at)     # ∂E / ∂F
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
