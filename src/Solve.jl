@@ -57,8 +57,6 @@ function minimise!( at::AbstractAtoms;
 end
 
 
-
-
 # saddle search
 # include("saddlesearch.jl")
 

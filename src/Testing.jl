@@ -105,13 +105,19 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
    X0 = copy(positions(at))
    calc0 = calculator(at)
    cons0 = constraint(at)
-   # perturb atom positions a bit to get out of equilibrium states
-   rattle ? at = rattle!(at, 0.02) : nothing
    # if no constraint is attached, then attach the NullConstraint
    if typeof(constraint(at)) == NullConstraint
       set_constraint!(at, FixedCell(at))
    end
    set_calculator!(at, calc)
+   # random perturbation to positions (and cell for VariableCell)
+   # perturb atom positions a bit to get out of equilibrium states
+   # Don't use `rattle!` here which screws up the `VariableCell` constraint
+   # test!!! (but why?!?!?)
+   if rattle
+      x = dofs(at)
+      set_dofs!(at, x + 0.02*rand(x))
+   end
    # call the actual FD test
    fdtest( x -> energy(at, x),
            x -> gradient(at, x),
