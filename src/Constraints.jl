@@ -6,8 +6,10 @@ TODO: write documentation
 """
 module Constraints
 
-using JuLIP: Dofs, AbstractConstraint, mat, vecs, JVecs, AbstractAtoms,
-         set_positions!, set_cell!, stress, defm, set_defm!
+using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
+         mat, vecs, JVecs, JVecsF, JMatF, JMat,
+         set_positions!, set_cell!, stress, defm, set_defm!,
+         forces, stress
 
 import JuLIP: dofs, project!, set_dofs!, positions, gradient
 
@@ -166,34 +168,43 @@ VariableCell(at::AbstractAtoms;
 function dofs(at::AbstractAtoms, cons::VariableCell)
    X = positions(at)
    F = defm(at)
-   A = F / const.F0
+   A = F * inv(cons.F0)
    U = [x - A * x0 for (x,x0) in zip(X, cons.X0)]
    return [mat(U)[cons.ifree]; Matrix(F)[:]]
 end
 
-celldofs(x) = x[end-8:end]
+
 posdofs(x) = x[1:end-9]
+celldofs(x) = x[end-8:end]
 
 function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
    F = JMatF(celldofs(x))
-   A = F / cons.F0
-   X = [A * x for x in cons.X0]
+   A = F * inv(cons.F0)
+   X = [A * x0 for x0 in cons.X0]
    mat(X)[cons.ifree] += posdofs(x)
-
    set_positions!(at, X)
    set_defm!(at, F)
    return at
 end
 
+# for a variation x^t_i = (F+tU) F_0^{-1} x^0_i + u_i + v_i
+#   we get
+# dE/dt |_{t=0} = U : (S F_0^{-T}) - <frc, v>
+#
+# this is nice because there is no contribution from the stress to
+# the positions component of the gradient
+
 function gradient(at::AbstractAtoms, cons::VariableCell)
-   G = gradient(at)                  # neg. forces
-   S = stress(at) / cell(at)'        # ∂E / ∂F
+   G = scale!(forces(at), -1.0)      # neg. forces
+   S = stress(at) * inv(cons.F0)'        # ∂E / ∂F (Piola-Kirchhoff stress)
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
 # TODO: fix this once we implement the volume constraint ??????
 project!(at::AbstractAtoms, cons::VariableCell) = at
 
+# TODO: fix the abstraction for projecting a preconditioner;
+#       this will actually need to do quite a bit more in the future
 # project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 
