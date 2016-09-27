@@ -9,10 +9,10 @@ Look at `?` for
 """
 module Testing
 
-using JuLIP: AbstractCalculator, AbstractAtoms, energy, grad, forces,
+using JuLIP: AbstractCalculator, AbstractAtoms, energy, gradient, forces,
          constraint, calculator, set_positions!, dofs, NullConstraint,
-         mat, vecs, positions, rattle!
-using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, @D
+         mat, vecs, positions, rattle!, set_dofs!, set_constraint!, set_calculator!
+using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, grad, @D
 using JuLIP.Constraints: FixedCell
 
 
@@ -100,22 +100,32 @@ fdtest(V::PairPotential, r::AbstractVector; kwargs...) =
 
 
 
-function fdtest(calc::AbstractCalculator, at::AbstractAtoms; verbose=true)
+function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
+                verbose=true, rattle=true)
    X0 = copy(positions(at))
-   # perturb atom positions a bit to get out of equilibrium states
-   at = rattle!(at, 0.02)
+   calc0 = calculator(at)
+   cons0 = constraint(at)
    # if no constraint is attached, then attach the NullConstraint
-   cons = constraint(at)
-   if typeof(cons) == NullConstraint
-      cons = FixedCell(at)
+   if typeof(constraint(at)) == NullConstraint
+      set_constraint!(at, FixedCell(at))
+   end
+   set_calculator!(at, calc)
+   # random perturbation to positions (and cell for VariableCell)
+   # perturb atom positions a bit to get out of equilibrium states
+   # Don't use `rattle!` here which screws up the `VariableCell` constraint
+   # test!!! (but why?!?!?)
+   if rattle
+      x = dofs(at)
+      set_dofs!(at, x + 0.02*rand(x))
    end
    # call the actual FD test
-   fdtest( x-> energy(calc, set_positions!(cons, at, x)),
-           x-> mat(grad(calc, set_positions!(cons, at, x)))[:],
-           dofs(at, cons)
-         )
+   fdtest( x -> energy(at, x),
+           x -> gradient(at, x),
+           dofs(at) )
    # restore original atom positions
    set_positions!(at, X0)
+   set_calculator!(at, calc0)
+   set_constraint!(at, cons0)
 end
 
 
