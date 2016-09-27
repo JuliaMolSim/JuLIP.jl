@@ -98,6 +98,8 @@ cutoff(p::ZeroPairPotential) = 0.0
 # ========================================================
 # wrapping a pair potential in a site potential
 
+SitePotential(pp::PairPotential) = PairSitePotential(pp)
+
 @pot type PairSitePotential{P} <: SitePotential
    pp::P
 end
@@ -108,8 +110,8 @@ function _sumpair_(pp, r)
    # cant use a generator here since type is not inferred!
    # Watch out for a bugfix
    s = 0.0
-   for s in r
-      s += psp.pp(s)
+   for t in r
+      s += pp(t)
    end
    return s
 end
@@ -121,7 +123,7 @@ evaluate_d(psp::PairSitePotential, r, R) =
             [ ((@D psp.pp(s))/s) * S for (s, S) in zip(r, R) ]
 
 
-# instead of this, use a `ComposePotential?`
+# TODO: define a `ComposePotential?`
 # and construct e.g. with  F ∘ sitepot = ComposePot(F, sitepot)
 
 
