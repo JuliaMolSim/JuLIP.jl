@@ -158,7 +158,15 @@ get_cell = cell
 defm(at::AbstractAtoms) = JMat(cell(at)')
 
 "set the deformation matrix"
-set_defm!(at::AbstractAtoms, F::JMatF) = set_cell!(at, Matrix(F'))
+function set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false)
+   if updatepositions
+      A = JMat(F * inv(defm(at)))
+      X = [A * x for x in unsafe_positions(at)]
+      set_positions!(at, X)
+   end
+   set_cell!(at, Matrix(F'))
+end
+
 
 "set periodic boundary conditions"
 @protofun set_pbc!(::AbstractAtoms, ::NTuple{3,Bool})
@@ -321,15 +329,17 @@ site_energies(a::AbstractAtoms) = site_energies(calculator(a), a)
 #    energy(c, a) - energy(c, aref)
 
 """
-Returns the negative gradient of the total energy in the format.
+forces in `Vector{JVecF}`  (negative gradient w.r.t. atom positions only)
 """
 @protofun forces(c::AbstractCalculator, a::AbstractAtoms)
 forces(at::AbstractAtoms) = forces(calculator(at), at)
 
-"`gradient(c,a) = - forces(c, a)`"
-gradient(c::AbstractCalculator, a::AbstractAtoms) = scale!(forces(c, a), -1.0)
-gradient(at::AbstractAtoms) = gradient(calculator(at), at)
+"""
+* `stress(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
+* `stress(a::AbstractAtoms) -> JMatF`
 
+returns Cauchy-stress, *not* normalised against cell volume
+"""
 @protofun stress(c::AbstractCalculator, a::AbstractAtoms)
 stress(a::AbstractAtoms) = stress(calculator(a), a)
 
@@ -356,7 +366,8 @@ dofs(at::AbstractAtoms) = dofs(at, constraint(at))
 
 
 """
-`set_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) -> at`
+* `set_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) -> at`
+* `set_dofs!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
 
 change configuration stored in `at` according to `cons` and `x`.
 """
@@ -366,7 +377,8 @@ set_dofs!(at::AbstractAtoms, x::Dofs) = set_dofs!(at, constraint(at), x)
 
 
 """
-`project!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
+* `project!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
+* `project!(at::AbstractAtoms) -> at`
 
 project the `at` onto the constraint manifold.
 """
@@ -379,10 +391,20 @@ project!(at::AbstractAtoms) = project!(at, constraint(at))
 
 energy(at::AbstractAtoms, x::Dofs) = energy(set_dofs!(at, x))
 
+"""
+* `gradient(at) -> Dofs`
+* `gradient(at, cons::AbstractConstraint) -> Dofs`
+* `gradient(at, x::Dofs) -> Dofs`
+
+gradient of `potential_energy` in dof-format;
+depending on the constraint this could include e.g. a gradient w.r.t. cell
+shape
+"""
 @protofun gradient(at::AbstractAtoms, cons::AbstractConstraint)
 
 gradient(at::AbstractAtoms, x::Dofs) = gradient(set_dofs!(at, x), constraint(at))
 
+gradient(at::AbstractAtoms) = gradient(at, constraint(at))
 
 
 #######################################################################
