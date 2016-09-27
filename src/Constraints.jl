@@ -93,7 +93,8 @@ project!(at::AbstractAtoms, cons::FixedCell) = at
 #       maybe not too terrible
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
-gradient(at::AbstractAtoms, cons::FixedCell) = mat(gradient(at))[cons.ifree]
+gradient(at::AbstractAtoms, cons::FixedCell) =
+               scale!(mat(forces(at))[cons.ifree], -1.0)
 
 
 
@@ -101,28 +102,11 @@ gradient(at::AbstractAtoms, cons::FixedCell) = mat(gradient(at))[cons.ifree]
 #          VARIABLE CELL IMPLEMENTATION
 # ========================================================================
 
-# F = Q U, U spd but in any case symmetric, so we should just allow F
-# to be symmetric.
-#
-# consider the perturbation
-#  F   -> F + t U
-#  x_i -> (F+t U) F^{-1} x_i = x_i + t U F^{-1} x_i  =: x_i^t
-# E({x_i^t}) ~ E({x_i}) + t ∑_i g_i ⋅ (U F^{-1} x_i) + O(t^2)
-#            ~ E({x_i}) + t ∑_i g_ia U_ab [F_{-1} x_i]_b
-#            ~ E({x_i}) + t U_ab : [ ∑_i g_{ia} [F^{-1} x_i]_b  ]_ab
-#            ~ E({x_i}) + t U : ∑_i g_i ⊗ (F^{-1} x_i)
-#
-# now consider
-#  x_i^t = (F + t U) F^{-1} (x_i + t u_i)
-#        ~ x_i + t u_i + t U F^{-1} x_i + O(t^2)
-#
-#   small issue: this is a nonlinear search path !!!
-
-
 """
 `VariableCell`: both atom positions and cell shape are free;
 
-**WARNING:** read *meaning of dofs* instructions at bottom of help text.
+**WARNING:** before manipulating the dof-vectors returned by a `VariableCell`
+constraint, read *meaning of dofs* instructions at bottom of help text!
 
 Constructor:
 ```julia
