@@ -7,7 +7,7 @@ TODO: write documentation
 module Constraints
 
 using JuLIP: Dofs, AbstractConstraint, mat, vecs, JVecs, AbstractAtoms,
-         set_positions!, set_cell!, stress
+         set_positions!, set_cell!, stress, defm, set_defm!
 
 import JuLIP: dofs, project!, set_dofs!, positions, gradient
 
@@ -134,12 +134,14 @@ Set at most one of the kwargs:
 
 ### Meaning of dofs
 
+On call to the constructor, `VariableCell` stored positions and deformation
+`X0, F0`, dofs are understood *relative* to this "initial configuration".
+
 `dofs(at, cons::VariableCell)` returns a vector that represents a pair
-`(X1, F1)` of positions and a deformation matrix. These are to be understood
-*relative* to the reference `X0, F0` stored in `cons`; that is, they represent
-the configuration
+`(U, F1)` of a displacement and a deformation matrix. These are to be understood
+*relative* to the reference `X0, F0` stored in `cons` as follows:
 * `F = F1`   (the cell is then `F'`)
-* `X = [F1 * (F0 \ x0) + x1  for (x0,x1) in zip(X0, X1)]`
+* `X = [F1 * (F0 \ x0) + u  for (x0, u) in zip(X0, U)]`
 
 One aspect of this definition is that clamped atom positions still change via
 `F`.
@@ -150,34 +152,38 @@ type VariableCell <: AbstractConstraint
    F0::JMatF
 end
 
+
+
 VariableCell(at::AbstractAtoms;
                free=nothing, clamp=nothing, mask=nothing) =
    VariableCell( analyze_mask(at, free, clamp, mask),
-                  positions(at), JMat(cell(at)') )
+                 positions(at), JMat(cell(at)') )
 
-dofs(at::AbstractAtoms, cons::VariableCell) =
-         [ mat(positions(at))[cons.ifree]; cell(at)[:] ]
+# reverse map:
+#   F -> F
+#   U[n] = X[n] - A * X0[n]
+
+function dofs(at::AbstractAtoms, cons::VariableCell)
+   X = positions(at)
+   F = defm(at)
+   A = F / const.F0
+   U = [x - A * x0 for (x,x0) in zip(X, cons.X0)]
+   return [mat(U)[cons.ifree]; Matrix(F)[:]]
+end
 
 celldofs(x) = x[end-8:end]
 posdofs(x) = x[1:end-9]
 
-
 function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
-   X = copy(cons.X0)
    F = JMatF(celldofs(x))
    A = F / cons.F0
-   for n = 1:length(X)
-      X[n] = A * X[n]
-   end
-   X = mat(X)
-   X[cons.ifree] += posdofs(x)
-   X = vecs(X)
+   X = [A * x for x in cons.X0]
+   mat(X)[cons.ifree] += posdofs(x)
 
    set_positions!(at, X)
-   set_cell!(at, Matrix(F)')
+   set_defm!(at, F)
    return at
 end
-
 
 function gradient(at::AbstractAtoms, cons::VariableCell)
    G = gradient(at)                  # neg. forces
