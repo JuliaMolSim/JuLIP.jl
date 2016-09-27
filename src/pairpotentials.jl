@@ -8,6 +8,14 @@ export ZeroPairPotential, PairSitePotential,
          LennardJones, lennardjones,
          Morse, morse
 
+function site_energies(pp::PairPotential, at::AbstractAtoms)
+   Es = zeros(length(at))
+   for (i,_2,r,_3,_4) in bonds(at, cutoff(pp))
+      Es[i] += pp(r)
+   end
+   return Es
+end
+
 
 # TODO: why is this not in the abstract file?
 # a simplified way to calculate gradients of pair potentials
@@ -15,7 +23,7 @@ grad(pp::PairPotential, r::Float64, R::JVec) =
             (evaluate_d(p::PairPotential, r) / r) * R
 
 energy(pp::PairPotential, at::AbstractAtoms) =
-         sum( pp(r) for (_1,_2,r,_3,_4) in bonds(at, cutoff(pp)) )
+         sum( pp(r) for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(pp)) )
 
 function forces(pp::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
@@ -28,6 +36,9 @@ function forces(pp::PairPotential, at::AbstractAtoms)
 end
 
 
+stress(pp::PairPotential, at::AbstractAtoms) =
+            sum(  (((@D pp(r)) / r) * R) * R'
+                  for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))  )
 
 """
 `LennardJones:` e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
@@ -87,13 +98,8 @@ cutoff(p::ZeroPairPotential) = 0.0
 # ========================================================
 # wrapping a pair potential in a site potential
 
-SitePotential(pp::PairPotential) = PairSitePotential(pp, Val{:one}())
-
-Base.zero(::Type{JVecF}) = JVecF(0.0,0.0,0.0)
-
-@pot type PairSitePotential{PT, FT} <: SitePotential
-   pp::PT
-   F::FT
+@pot type PairSitePotential{P} <: SitePotential
+   pp::P
 end
 
 cutoff(psp::PairSitePotential) = cutoff(psp.pp)
@@ -109,22 +115,14 @@ function _sumpair_(pp, r)
 end
 
 # special implementation of site energy and forces for a plain pair potential
-evaluate{PT}(psp::PairSitePotential{PT,Val{:one}}, r, R) = _sumpair_(psp.pp, r)
+evaluate(psp::PairSitePotential, r, R) = _sumpair_(psp.pp, r)
 
-evaluate_d{PT}(psp::PairSitePotential{PT,Val{:one}}, r, R) =
+evaluate_d(psp::PairSitePotential, r, R) =
             [ ((@D psp.pp(s))/s) * S for (s, S) in zip(r, R) ]
 
-# general implementation with a nonlinear wrapper
-evaluate(psp::PairSitePotential, r, R) = psp.F(_sumpair_(psp.pp, r))
-
-function evaluate_d{PT}(psp::PairSitePotential{PT,Val{:one}}, r, R)
-   dF = @D psp.F(_sumpair_(psp.pp, r))
-   return [ dF_ * ((@D psp.pp(s))/s) * S for (s, S, dF_) in zip(r, R, dF) ]
-end
 
 # instead of this, use a `ComposePotential?`
 # and construct e.g. with  F ∘ sitepot = ComposePot(F, sitepot)
-
 
 
 

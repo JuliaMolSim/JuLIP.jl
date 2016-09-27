@@ -106,18 +106,20 @@ export AbstractAtoms,
       set_data!, get_data,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
-      neighbourlist, cutoff
+      neighbourlist, cutoff,
+      stress, site_stresses, site_energies,
+      defm, set_defm!
 
 # length is used for several things
-import Base: length, A_ldiv_B!, A_mul_B!, cell
+import Base: length, A_ldiv_B!, A_mul_B!, cell, gradient
 
 export AbstractCalculator,
-      energy, potential_energy, forces, grad
+      energy, potential_energy, forces, gradient
 
 export AbstractNeighbourList,
-      sites, bonds
+       sites, bonds
 
-export AbstractConstraint, NullConstraint, dofs
+export AbstractConstraint, NullConstraint, dofs, set_dofs!
 
 export Preconditioner, preconditioner
 
@@ -143,7 +145,7 @@ get_positions = positions
 
 set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
 
-"get computational cell"
+"get computational cell (the rows are the lattice vectors)"
 @protofun cell(::AbstractAtoms)
 
 "alias for `cell`"
@@ -151,6 +153,20 @@ get_cell = cell
 
 "set computational cell"
 @protofun set_cell!(::AbstractAtoms, ::Matrix)
+
+"deformation matrix; `defm(at) = cell(at)'`"
+defm(at::AbstractAtoms) = JMat(cell(at)')
+
+"set the deformation matrix"
+function set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false)
+   if updatepositions
+      A = JMat(F * inv(defm(at)))
+      X = [A * x for x in unsafe_positions(at)]
+      set_positions!(at, X)
+   end
+   set_cell!(at, Matrix(F'))
+end
+
 
 "set periodic boundary conditions"
 @protofun set_pbc!(::AbstractAtoms, ::NTuple{3,Bool})
@@ -270,9 +286,6 @@ bonds(at::AbstractAtoms, cutoff::Float64) = bonds(neighbourlist(at, cutoff))
 
 
 
-
-
-
 #######################################################################
 #     CALCULATOR
 #######################################################################
@@ -300,6 +313,10 @@ energy(at::AbstractAtoms) = energy(calculator(at), at)
 "`potential_energy` : alias for `energy`"
 potential_energy = energy
 
+
+@protofun site_energies(c::AbstractCalculator, a::AbstractAtoms)
+site_energies(a::AbstractAtoms) = site_energies(calculator(a), a)
+
 # """
 # energy difference between two configurations; default is to just compute the
 # two energies, but this allows implementation of numerically robust
@@ -309,15 +326,22 @@ potential_energy = energy
 #    energy(c, a) - energy(c, aref)
 
 """
-Returns the negative gradient of the total energy in the format.
+forces in `Vector{JVecF}`  (negative gradient w.r.t. atom positions only)
 """
 @protofun forces(c::AbstractCalculator, a::AbstractAtoms)
 forces(at::AbstractAtoms) = forces(calculator(at), at)
 
-"`grad(c,a) = - forces(c, a)`"
-grad(c::AbstractCalculator, a::AbstractAtoms) = scale!(forces(c, a), -1.0)
-grad(at::AbstractAtoms) = grad(calculator(at), at)
+"""
+* `stress(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
+* `stress(a::AbstractAtoms) -> JMatF`
 
+returns Cauchy-stress, *not* normalised against cell volume
+"""
+@protofun stress(c::AbstractCalculator, a::AbstractAtoms)
+stress(a::AbstractAtoms) = stress(calculator(a), a)
+
+@protofun site_stresses(c::AbstractCalculator, a::AbstractAtoms)
+site_stress(a::AbstractAtoms) = site_stress(calculator(a), a)
 
 
 #######################################################################
@@ -327,43 +351,57 @@ grad(at::AbstractAtoms) = grad(calculator(at), at)
 type NullConstraint <: AbstractConstraint end
 
 """
-* `dofs(cons::AbstractConstraint, vecs::JVecs)`
+`dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
 
-Take a direction in position space (e.g. a collection of forces)
-and project it to a dof-vector
+Take an atoms object `at` and return a Dof-vector that fully describes the
+state given the constraint `cons`
 """
 # function dofs end
-@protofun dofs(at::AbstractAtoms, cons::AbstractConstraint, v_or_p)
-dofs(at::AbstractAtoms, cons::AbstractConstraint) = dofs(at, cons, positions(at))
+@protofun dofs(at::AbstractAtoms, cons::AbstractConstraint)
+
 dofs(at::AbstractAtoms) = dofs(at, constraint(at))
 
 
 """
-`vecs(cons::AbstractConstraint, vecs::JVecs)`:
+* `set_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) -> at`
+* `set_dofs!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
 
-Take a dof-vector and reconstruct a direction in position space
+change configuration stored in `at` according to `cons` and `x`.
 """
-@protofun vecs(cons::AbstractConstraint, at::AbstractAtoms, dofs::Dofs)
+@protofun set_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs)
 
-@protofun positions(cons::AbstractConstraint, at::AbstractAtoms, dofs::Dofs)
+set_dofs!(at::AbstractAtoms, x::Dofs) = set_dofs!(at, constraint(at), x)
 
-set_positions!(cons::AbstractConstraint, at::AbstractAtoms, dofs::Dofs) =
-      set_positions!(at, positions(cons, at, dofs))
 
 """
-`project(cons::AbstractConstraint, at::AbstractAtoms)`
+* `project!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
+* `project!(at::AbstractAtoms) -> at`
 
-take an atomistic configuration (collection of positions) and project
-onto the manifold defined by the constraint.
+project the `at` onto the constraint manifold.
 """
 @protofun project!(at::AbstractAtoms, cons::AbstractConstraint)
 
-# a bunch of short-cuts
-energy(at::AbstractAtoms, x::Dofs) = energy(set_positions!(at, x))
-forces(at::AbstractAtoms, x::Dofs) = dofs(at, constraint(at), forces(set_positions!(at, x)))
-grad(at::AbstractAtoms, x::Dofs) = dofs(at, constraint(at), grad(set_positions!(at, x)))
-set_positions!(at::AbstractAtoms, dofs::Dofs) = set_positions!(constraint(at), at, dofs)
-positions(at::AbstractAtoms, dofs::Dofs) = positions(constraint(at), at, dofs)
+project!(at::AbstractAtoms) = project!(at, constraint(at))
+
+
+# converting calculator functionality
+
+energy(at::AbstractAtoms, x::Dofs) = energy(set_dofs!(at, x))
+
+"""
+* `gradient(at) -> Dofs`
+* `gradient(at, cons::AbstractConstraint) -> Dofs`
+* `gradient(at, x::Dofs) -> Dofs`
+
+gradient of `potential_energy` in dof-format;
+depending on the constraint this could include e.g. a gradient w.r.t. cell
+shape
+"""
+@protofun gradient(at::AbstractAtoms, cons::AbstractConstraint)
+
+gradient(at::AbstractAtoms, x::Dofs) = gradient(set_dofs!(at, x), constraint(at))
+
+gradient(at::AbstractAtoms) = gradient(at, constraint(at))
 
 
 #######################################################################
@@ -378,7 +416,7 @@ Update the preconditioner with the new geometry information.
 """
 @protofun update!(precond::Preconditioner, at::AbstractAtoms)
 update!(precond::Preconditioner, at::AbstractAtoms, x::Dofs) =
-            update!(precond, set_positions!(at, x))
+            update!(precond, set_dofs!(at, x))
 # TODO: this is a bit of a problem with the nice abstract framework we
 #       are constructing here; it can easily happen now that we
 #       update positions multiple times
