@@ -107,10 +107,11 @@ export AbstractAtoms,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
-      stress, site_stresses, site_energies
+      stress, site_stresses, site_energies,
+      defm, set_defm!
 
 # length is used for several things
-import Base: length, A_ldiv_B!, A_mul_B!, cell, gradient 
+import Base: length, A_ldiv_B!, A_mul_B!, cell, gradient
 
 export AbstractCalculator,
       energy, potential_energy, forces, gradient
@@ -144,7 +145,7 @@ get_positions = positions
 
 set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
 
-"get computational cell"
+"get computational cell (the rows are the lattice vectors)"
 @protofun cell(::AbstractAtoms)
 
 "alias for `cell`"
@@ -152,6 +153,12 @@ get_cell = cell
 
 "set computational cell"
 @protofun set_cell!(::AbstractAtoms, ::Matrix)
+
+"deformation matrix; `defm(at) = cell(at)'`"
+defm(at::AbstractAtoms) = JMat(cell(at)')
+
+"set the deformation matrix"
+set_defm!(at::AbstractAtoms, F::JMatF) = set_cell!(at, Matrix(F'))
 
 "set periodic boundary conditions"
 @protofun set_pbc!(::AbstractAtoms, ::NTuple{3,Bool})
