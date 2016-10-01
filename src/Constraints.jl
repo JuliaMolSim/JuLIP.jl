@@ -94,13 +94,13 @@ project!(at::AbstractAtoms, cons::FixedCell) = at
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 gradient(at::AbstractAtoms, cons::FixedCell) =
-               scale!(mat(forces(at))[cons.ifree], -1.0)
-
+         scale!(mat(forces(at))[cons.ifree], -1.0)
 
 
 # ========================================================================
 #          VARIABLE CELL IMPLEMENTATION
 # ========================================================================
+
 
 """
 `VariableCell`: both atom positions and cell shape are free;
@@ -136,14 +136,27 @@ type VariableCell <: AbstractConstraint
    ifree::Vector{Int}
    X0::JVecsF
    F0::JMatF
+   stress::JMatF
+   fixvolume::Bool
 end
 
 
 
-VariableCell(at::AbstractAtoms;
-               free=nothing, clamp=nothing, mask=nothing) =
-   VariableCell( analyze_mask(at, free, clamp, mask),
-                 positions(at), JMat(cell(at)') )
+function VariableCell(at::AbstractAtoms;
+               free=nothing, clamp=nothing, mask=nothing,
+               pressure = nothing, stress = nothing, fixvolume=false)
+   if pressure != nothing && stress != nothing
+      error("`VariableCell`: either `pressure` or `stress` may be set")
+   elseif pressure != nothing
+      stress = pressure * JMat(eye(3))
+   end
+   if vecnorm(stress - trace(stress)/3.0 * JMat(eye(3)), Inf) < 1e-10 && fixvolume
+      warning("specifying pressure and volume will leads to undefined results")
+   end
+   return VariableCell( analyze_mask(at, free, clamp, mask),
+                        positions(at), JMat(cell(at)'),
+                        stress, fixvolume )
+end
 
 # reverse map:
 #   F -> F
@@ -171,7 +184,7 @@ function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
    return at
 end
 
-# for a variation x^t_i = (F+tU) F_0^{-1} x^0_i + u_i + v_i
+# for a variation x^t_i = (F+tU) F_0^{-1} x^0_i + u_i + t v_i
 #   we get
 # dE/dt |_{t=0} = U : (S F_0^{-T}) - <frc, v>
 #
