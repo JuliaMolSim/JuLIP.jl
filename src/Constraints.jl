@@ -9,9 +9,9 @@ module Constraints
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          mat, vecs, JVecs, JVecsF, JMatF, JMat,
          set_positions!, set_cell!, stress, defm, set_defm!,
-         forces, stress
+         forces, stress, unsafe_positions
 
-import JuLIP: dofs, project!, set_dofs!, positions, gradient
+import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy
 
 
 export FixedCell, VariableCell
@@ -80,8 +80,8 @@ end
 FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
    FixedCell(analyze_mask(at, free, clamp, mask))
 
-# convert positions to a dofs vector; TODO: use unsafe_positions????
-dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
+# careful here: if Julia ever makes indexing a view, then this will be bad!
+dofs(at::AbstractAtoms, cons::FixedCell) = mat(unsafe_positions(at))[cons.ifree]
 
 set_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
       set_positions!(at, positions(at, cons.ifree, x))
@@ -94,13 +94,14 @@ project!(at::AbstractAtoms, cons::FixedCell) = at
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 gradient(at::AbstractAtoms, cons::FixedCell) =
-         scale!(mat(forces(at))[cons.ifree], -1.0)
+               scale!(mat(forces(at))[cons.ifree], -1.0)
+
+energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
 
 
 # ========================================================================
 #          VARIABLE CELL IMPLEMENTATION
 # ========================================================================
-
 
 """
 `VariableCell`: both atom positions and cell shape are free;
@@ -136,31 +137,21 @@ type VariableCell <: AbstractConstraint
    ifree::Vector{Int}
    X0::JVecsF
    F0::JMatF
-   stress::JMatF
+   pressure::Float64
    fixvolume::Bool
+   volume::Float64    # this is meaningless if `fixvolume == false`
 end
-
 
 
 function VariableCell(at::AbstractAtoms;
                free=nothing, clamp=nothing, mask=nothing,
-               pressure = nothing, stress = nothing, fixvolume=false)
-   if pressure != nothing && stress != nothing
-      error("`VariableCell`: either `pressure` or `stress` may be set")
-   elseif pressure != nothing
-      stress = pressure * JMat(eye(3))
-   end
-   if stress == nothing
-      stress = zero(JMatF)
-   else
-      # vecnorm(stress - trace(stress)/3.0 * JMat(eye(3)), Inf) < 1e-10
-      if fixvolume
-         warning("specifying pressure and volume will leads to undefined results")
-      end
+               pressure = 0.0, fixvolume=false)
+   if pressure != 0.0 && fixvolume
+      warning("the pressure setting will be ignores when `fixvolume==true`")
    end
    return VariableCell( analyze_mask(at, free, clamp, mask),
                         positions(at), defm(at),
-                        stress, fixvolume )
+                        pressure, fixvolume, det(defm(at)) )
 end
 
 # reverse map:
@@ -168,7 +159,7 @@ end
 #   U[n] = X[n] - A * X0[n]
 
 function dofs(at::AbstractAtoms, cons::VariableCell)
-   X = positions(at)
+   X = unsafe_positions(at)
    F = defm(at)
    A = F * inv(cons.F0)
    U = [x - A * x0 for (x,x0) in zip(X, cons.X0)]
@@ -196,11 +187,29 @@ end
 # this is nice because there is no contribution from the stress to
 # the positions component of the gradient
 
+vol(at::AbstractAtoms) = det(defm(at))
+vol_d(at::AbstractAtoms) = vol(at) * inv(defm(at))'
+# function vol_dd(at::AbstractAtoms)
+#    hdetI = zeros(3,3,3,3)
+#    h = 0.1
+#    for i = 1:3, j = 1:3
+#       Ih = eye(3); Ih[i,j] += h
+#       hdetI[:,:,i,j] = (ddet(Ih) - ddetI) / h
+#    end
+#    round(Int, reshape(hdetI, 9, 9))
+# end
+
 function gradient(at::AbstractAtoms, cons::VariableCell)
    G = scale!(forces(at), -1.0)      # neg. forces
    S = stress(at) * inv(cons.F0)'        # ∂E / ∂F (Piola-Kirchhoff stress)
+   S -= cons.pressure * vol_d(at)     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
+
+function energy(at::AbstractAtoms, cons::VariableCell)
+   return energy(at) - cons.pressure * det(defm(at))
+end
+
 
 # TODO: fix this once we implement the volume constraint ??????
 project!(at::AbstractAtoms, cons::VariableCell) = at
