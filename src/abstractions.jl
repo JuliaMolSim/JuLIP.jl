@@ -386,7 +386,17 @@ project!(at::AbstractAtoms) = project!(at, constraint(at))
 
 # converting calculator functionality
 
-energy(at::AbstractAtoms, x::Dofs) = energy(set_dofs!(at, x))
+"""
+* `gradient(at, cons::AbstractConstraint) -> Float64`
+* `gradient(at, x::Dofs) -> Float64`
+
+`potential_energy`; with potentially added cell terms, e.g., if there is
+applied stress or applied pressure.
+"""
+@protofun energy(at::AbstractAtoms, cons::AbstractConstraint)
+
+energy(at::AbstractAtoms, x::Dofs) = energy(set_dofs!(at, x), constraint(at))
+
 
 """
 * `gradient(at) -> Dofs`

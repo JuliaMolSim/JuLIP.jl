@@ -1,7 +1,7 @@
 # included from Potentials.jl
 # part of the module JuLIP.Potentials
 
-using JuLIP: zerovecs, JVecsF, JVecF
+using JuLIP: zerovecs, JVecsF, JVecF, JMatF 
 using JuLIP.ASE.MatSciPy: NeighbourList
 
 export ZeroPairPotential, PairSitePotential,
@@ -22,8 +22,14 @@ end
 grad(pp::PairPotential, r::Float64, R::JVec) =
             (evaluate_d(p::PairPotential, r) / r) * R
 
-energy(pp::PairPotential, at::AbstractAtoms) =
-         sum( pp(r) for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(pp)) )
+# TODO: rewrite using generator once bug is fixed
+function energy(pp::PairPotential, at::AbstractAtoms)
+   E = 0.0
+   for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(pp))
+      E += pp(r)
+   end
+   return E
+end
 
 function forces(pp::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
@@ -36,9 +42,15 @@ function forces(pp::PairPotential, at::AbstractAtoms)
 end
 
 
-stress(pp::PairPotential, at::AbstractAtoms) =
-            sum(  (((@D pp(r)) / r) * R) * R'
-                  for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))  )
+# TODO: rewrite using generator once bug is fixed
+function stress(pp::PairPotential, at::AbstractAtoms)
+   S = zeros(JMatF)
+   for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
+      S += (((@D pp(r)) / r) * R) * R'
+   end
+   return S
+end
+
 
 """
 `LennardJones:` e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
