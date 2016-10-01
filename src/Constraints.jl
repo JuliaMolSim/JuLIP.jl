@@ -150,11 +150,16 @@ function VariableCell(at::AbstractAtoms;
    elseif pressure != nothing
       stress = pressure * JMat(eye(3))
    end
-   if vecnorm(stress - trace(stress)/3.0 * JMat(eye(3)), Inf) < 1e-10 && fixvolume
-      warning("specifying pressure and volume will leads to undefined results")
+   if stress == nothing
+      stress = zero(JMatF)
+   else
+      # vecnorm(stress - trace(stress)/3.0 * JMat(eye(3)), Inf) < 1e-10
+      if fixvolume
+         warning("specifying pressure and volume will leads to undefined results")
+      end
    end
    return VariableCell( analyze_mask(at, free, clamp, mask),
-                        positions(at), JMat(cell(at)'),
+                        positions(at), defm(at),
                         stress, fixvolume )
 end
 
