@@ -35,3 +35,17 @@ z = dofs(at)
 println("ok")
 
 JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=true)
+
+println("-------------------------------------------------")
+println("Test optimisation with VariableCell")
+# start with a clean `at`
+at = Atoms("Al", pbc=(true,true,true)) * 2   # cubic=true,
+set_calculator!(at, calc)
+set_constraint!(at, VariableCell(at))
+
+println("For the initial state, stress is far from 0:")
+@show vecnorm(stress(at), Inf)
+JuLIP.Solve.minimise!(at)
+println("After optimisation, stress is 0:")
+@show vecnorm(stress(at), Inf)
+@test vecnorm(stress(at), Inf) < 1e-8
