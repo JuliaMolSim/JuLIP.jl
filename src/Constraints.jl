@@ -182,15 +182,18 @@ function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
    return at
 end
 
-# for a variation x^t_i = (F+tU) F_0^{-1} x^0_i + u_i + t v_i
+# for a variation x^t_i = (F+tU) F_0^{-1} (u_i + t v_i)
+#       ~ U F^{-1} F F0^{-1} u_i + F F0^{-1} v_i
 #   we get
-# dE/dt |_{t=0} = U : (S F_0^{-T}) - <frc, v>
+# dE/dt |_{t=0} = U : (S F^{-T}) - < (F * inv(F0))' * frc, v>
 #
 # this is nice because there is no contribution from the stress to
 # the positions component of the gradient
 
 vol(at::AbstractAtoms) = det(defm(at))
+
 vol_d(at::AbstractAtoms) = vol(at) * inv(defm(at))'
+
 # function vol_dd(at::AbstractAtoms)
 #    hdetI = zeros(3,3,3,3)
 #    h = 0.1
@@ -201,6 +204,7 @@ vol_d(at::AbstractAtoms) = vol(at) * inv(defm(at))'
 #    round(Int, reshape(hdetI, 9, 9))
 # end
 
+
 function gradient(at::AbstractAtoms, cons::VariableCell)
    F = defm(at)
    A = F * inv(cons.F0)
@@ -208,14 +212,13 @@ function gradient(at::AbstractAtoms, cons::VariableCell)
    for n = 1:length(G)
       G[n] = - A' * G[n]
    end
-   # G = [ A' * g for g in G ]
    S = stress(at) * inv(F)'        # ∂E / ∂F
-   # S -= cons.pressure * vol_d(at)     # applied stress
+   S -= cons.pressure * vol_d(at)     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
-energy(at::AbstractAtoms, cons::VariableCell) = energy(at)
-   #  - cons.pressure * det(defm(at))
+energy(at::AbstractAtoms, cons::VariableCell) =
+         energy(at) - cons.pressure * det(defm(at))
 
 # TODO: fix this once we implement the volume constraint ??????
 project!(at::AbstractAtoms, cons::VariableCell) = at

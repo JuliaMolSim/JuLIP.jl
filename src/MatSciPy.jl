@@ -60,8 +60,7 @@ function __neighbour_list__(atoms::ASEAtoms,
                      NTuple{length(quantities), PyArray}, quantities,
                      pyobject(atoms), cutoff)
    # create Julia arrays referencing the same memory
-   # TODO: copy should not be needed here?!?
-   jresults = [ copy(pyarrayref(r)) for r in results]
+   jresults = [pyarrayref(r) for r in results]
    # fix the arrays for later use
    for (idx, quantity) in enumerate(quantities)
       # convert indices to 1-based (Julia is 1-based, python 0-based)
@@ -121,7 +120,7 @@ type Sites
    nlist::NeighbourList
 end
 
-length(s::Sites) = s.nlist.length
+length(s::Sites) = s.nlist.length 
 
 sites(nlist::NeighbourList) = Sites(nlist)
 
