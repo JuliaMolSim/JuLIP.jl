@@ -108,7 +108,8 @@ set_array!(a::ASEAtoms, name, value) = a.po[:set_array(name, value)]
 #
 # TODO: write an explanation about storage layout here
 #
-positions(at::ASEAtoms) = copy( pyarrayref(at.po["positions"]) ) |> vecs
+positions(at::ASEAtoms) = (at.po[:positions]') |> vecs
+            # copy( pyarrayref(at.po["positions"]) ) |> vecs
 unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
 
 function set_positions!(a::ASEAtoms, p::JVecsF)

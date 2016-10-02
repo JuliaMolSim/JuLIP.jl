@@ -80,8 +80,7 @@ end
 FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
    FixedCell(analyze_mask(at, free, clamp, mask))
 
-# careful here: if Julia ever makes indexing a view, then this will be bad!
-dofs(at::AbstractAtoms, cons::FixedCell) = mat(unsafe_positions(at))[cons.ifree]
+dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
 
 set_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
       set_positions!(at, positions(at, cons.ifree, x))
@@ -125,10 +124,10 @@ On call to the constructor, `VariableCell` stored positions and deformation
 `X0, F0`, dofs are understood *relative* to this "initial configuration".
 
 `dofs(at, cons::VariableCell)` returns a vector that represents a pair
-`(U, F1)` of a displacement and a deformation matrix. These are to be understood
+`(Y, F1)` of a displacement and a deformation matrix. These are to be understood
 *relative* to the reference `X0, F0` stored in `cons` as follows:
 * `F = F1`   (the cell is then `F'`)
-* `X = [F1 * (F0 \ x0) + u  for (x0, u) in zip(X0, U)]`
+* `X = [F1 * (F0 \ y)  for y in Y)]`
 
 One aspect of this definition is that clamped atom positions still change via
 `F`.
@@ -156,13 +155,13 @@ end
 
 # reverse map:
 #   F -> F
-#   U[n] = X[n] - A * X0[n]
+#   X[n] = F * F^{-1} X0[n]
 
 function dofs(at::AbstractAtoms, cons::VariableCell)
-   X = unsafe_positions(at)
+   X = positions(at)
    F = defm(at)
-   A = F * inv(cons.F0)
-   U = [x - A * x0 for (x,x0) in zip(X, cons.X0)]
+   A = cons.F0 * inv(F)
+   U = [A * x for x in X]   # switch to broadcast!
    return [mat(U)[cons.ifree]; Matrix(F)[:]]
 end
 
@@ -173,9 +172,12 @@ celldofs(x) = x[end-8:end]
 function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
    F = JMatF(celldofs(x))
    A = F * inv(cons.F0)
-   X = [A * x0 for x0 in cons.X0]
-   mat(X)[cons.ifree] += posdofs(x)
-   set_positions!(at, X)
+   Y = copy(cons.X0)
+   mat(Y)[cons.ifree] = posdofs(x)
+   for n = 1:length(Y)
+      Y[n] = A * Y[n]
+   end
+   set_positions!(at, Y)
    set_defm!(at, F)
    return at
 end
@@ -200,16 +202,20 @@ vol_d(at::AbstractAtoms) = vol(at) * inv(defm(at))'
 # end
 
 function gradient(at::AbstractAtoms, cons::VariableCell)
-   G = scale!(forces(at), -1.0)      # neg. forces
-   S = stress(at) * inv(cons.F0)'        # ∂E / ∂F (Piola-Kirchhoff stress)
-   S -= cons.pressure * vol_d(at)     # applied stress
+   F = defm(at)
+   A = F * inv(cons.F0)
+   G = forces(at)
+   for n = 1:length(G)
+      G[n] = - A' * G[n]
+   end
+   # G = [ A' * g for g in G ]
+   S = stress(at) * inv(F)'        # ∂E / ∂F
+   # S -= cons.pressure * vol_d(at)     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
-function energy(at::AbstractAtoms, cons::VariableCell)
-   return energy(at) - cons.pressure * det(defm(at))
-end
-
+energy(at::AbstractAtoms, cons::VariableCell) = energy(at)
+   #  - cons.pressure * det(defm(at))
 
 # TODO: fix this once we implement the volume constraint ??????
 project!(at::AbstractAtoms, cons::VariableCell) = at
