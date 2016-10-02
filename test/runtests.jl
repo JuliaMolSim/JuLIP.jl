@@ -15,8 +15,10 @@ julip_tests = [
    # "testsolve.jl";
 ]
 
-println("Starting JuLIP Tests")
-println("=====================")
+println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
+println("  Starting JuLIP Tests")
+println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
+
 
 for test in julip_tests
    include(test)

@@ -37,7 +37,7 @@ function fdtest(F::Function, dF::Function, x; verbose=true)
    @printf("---------|----------- \n")
    for p = 2:11
       h = 0.1^p
-      dEh = zeros(dE)
+      dEh = copy(dE)
       for n = 1:length(dE)
          x[n] += h
          dEh[n] = (F(x) - E) / h
@@ -101,7 +101,12 @@ fdtest(V::PairPotential, r::AbstractVector; kwargs...) =
 
 
 function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
-                verbose=true, rattle=true)
+                verbose=true, rattle=0.01)
+   if isa(rattle, Bool)
+      warning("Deprecation: Testing.fdtest: rattle should be a float")
+      rattle ? rattle = 0.01 : rattle = 0.0
+   end
+
    X0 = copy(positions(at))
    calc0 = calculator(at)
    cons0 = constraint(at)
@@ -114,14 +119,12 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
    # perturb atom positions a bit to get out of equilibrium states
    # Don't use `rattle!` here which screws up the `VariableCell` constraint
    # test!!! (but why?!?!?)
-   if rattle
-      x = dofs(at)
-      set_dofs!(at, x + 0.02*rand(x))
-   end
+   x = dofs(at)
+   x += rattle * rand(length(x))
    # call the actual FD test
    fdtest( x -> energy(at, x),
            x -> gradient(at, x),
-           dofs(at) )
+           x )
    # restore original atom positions
    set_positions!(at, X0)
    set_calculator!(at, calc0)
