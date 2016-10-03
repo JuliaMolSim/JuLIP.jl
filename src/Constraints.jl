@@ -184,8 +184,8 @@ end
 
 # for a variation x^t_i = (F+tU) F_0^{-1} (u_i + t v_i)
 #       ~ U F^{-1} F F0^{-1} u_i + F F0^{-1} v_i
-#   we get
-# dE/dt |_{t=0} = U : (S F^{-T}) - < (F * inv(F0))' * frc, v>
+# we get
+#      dE/dt |_{t=0} = U : (S F^{-T}) - < (F * inv(F0))' * frc, v>
 #
 # this is nice because there is no contribution from the stress to
 # the positions component of the gradient
@@ -204,7 +204,6 @@ vol_d(at::AbstractAtoms) = vol(at) * inv(defm(at))'
 #    round(Int, reshape(hdetI, 9, 9))
 # end
 
-
 function gradient(at::AbstractAtoms, cons::VariableCell)
    F = defm(at)
    A = F * inv(cons.F0)
@@ -212,13 +211,127 @@ function gradient(at::AbstractAtoms, cons::VariableCell)
    for n = 1:length(G)
       G[n] = - A' * G[n]
    end
-   S = stress(at) * inv(F)'        # ∂E / ∂F
+   S = stress(at) * inv(F)'           # ∂E / ∂F
    S -= cons.pressure * vol_d(at)     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
 energy(at::AbstractAtoms, cons::VariableCell) =
-         energy(at) - cons.pressure * det(defm(at))
+               energy(at) - cons.pressure * det(defm(at))
+
+# TODO: fix this once we implement the volume constraint ??????
+project!(at::AbstractAtoms, cons::VariableCell) = at
+
+# TODO: fix the abstraction for projecting a preconditioner;
+#       this will actually need to do quite a bit more in the future
+# project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
+
+
+# ========================================================================
+#          EXP VARIABLE CELL IMPLEMENTATION
+# ========================================================================
+#
+# F = exp(U) F0
+# x =  F * F0^{-1} z  = exp(U) z
+#
+# ϕ( exp(U+tV) (z+tv) ) ~ ϕ'(x) ⋅ (exp(U) v) + ϕ'(x) ⋅ ( L(U, V) exp(-U) exp(U) z )
+#    >>> ∂E(U) : V  =  [S exp(-U)'] : L(U,V)
+#                   =  L'(U, S exp(-U)') : V
+#                   =  L(U', S exp(-U)') : V
+#                   =  L(U, S exp(-U)) : V     (provided U = U')
+#
+
+type ExpVariableCell <: AbstractConstraint
+   ifree::Vector{Int}
+   X0::JVecsF
+   F0::JMatF
+   pressure::Float64
+   fixvolume::Bool
+end
+
+# function polar(F::JMatF)
+#    F = Array(F)
+#    Q1, S, Q2 = svd(F)
+#    return JMat(Q1 * Q2'), JMat(Q2 * diagm(S) * Q2')
+# end
+
+
+function ExpVariableCell(at::AbstractAtoms;
+               free=nothing, clamp=nothing, mask=nothing,
+               pressure = 0.0, fixvolume=false)
+   if pressure != 0.0 && fixvolume
+      warning("the pressure setting will be ignores when `fixvolume==true`")
+   end
+   F0 = defm(at)
+   return VariableCell( analyze_mask(at, free, clamp, mask),
+                        positions(at), F0, pressure, fixvolume )
+end
+
+
+function logm_defm(at::AbstractAtoms, cons::ExpVariableCell)
+   F = defm(at)
+   # remove the reference deformation (F = expm(U) * F0)
+   expU = F * inv(cons.F0)
+   # expU should be spd, but roundoff (or other things) might mess this up
+   # do we need an extra check here?
+   U = logm(expU |> Array) |> JMat
+   U = real(0.5 * (U + U'))
+   # check that expm(U) * F0 ≈ F (if not, then something has gone horribly wrong)
+   if vecnorm(F - expm(U) * cons.F0, Inf) > 1e-12
+      @show F
+      @show expm(U) * cons.F0
+   end
+   return U, F
+end
+
+# reverse map:
+#   F -> F
+#   X[n] = F * F^{-1} X0[n]
+
+function dofs(at::AbstractAtoms, cons::ExpVariableCell)
+   X = positions(at)
+   U, F = logm_defm(at, cons)
+   # tranform the positions back to the reference cell (F0)
+   A = cons.F0 * expm(-U) * cons.Q0'
+   broadcast!(x->A*x, X, X)
+   # construct dof vector
+   return [mat(X)[cons.ifree]; Array(U)[:]]
+end
+
+
+function set_dofs!(at::AbstractAtoms, cons::ExpVariableCell, x::Dofs)
+   U = JMatF(celldofs(x))
+   expU = expm(U)
+   F = expU * cons.F0
+   Z = copy(cons.X0)
+   mat(Z)[cons.ifree] = posdofs(x)
+   broadcast!(z -> expU * z, Z, Z)
+   set_positions!(at, Z)
+   set_defm!(at, F)
+   return at
+end
+
+"""
+Directional derivative of matrix exponential. See Theorem 2.1 in
+AL-MOHY, HIGHAM SIAM J. Matrix Anal. Appl. 30, 2009.
+"""
+function dexpm(X::JMatF, E::JMatF)
+   X = X |> Matrix; E = E |> Matrix
+   return JMat( expm([ X E; zeros(3,3) X ])[1:3, 4:9] )
+end
+
+
+function gradient(at::AbstractAtoms, cons::ExpVariableCell)
+   U, F = logm_defm(at, cons)
+   G = forces(at)
+   broadcast!(g -> - (expm(U) * g), G, G)   # G[n] <- exp(U) * G[n]
+   T = dexpm(U, stress(at) * expm(-U))    # this should preserve symmetry; check!
+   # S -= cons.pressure * vol_d(at)     # applied stress
+   return [ mat(G)[cons.ifree]; Array(T)[:] ]
+end
+
+energy(at::AbstractAtoms, cons::ExpVariableCell) =
+               energy(at) # - cons.pressure * det(defm(at)) / det(cons.F0)
 
 # TODO: fix this once we implement the volume constraint ??????
 project!(at::AbstractAtoms, cons::VariableCell) = at
