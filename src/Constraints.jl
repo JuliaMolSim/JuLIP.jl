@@ -14,7 +14,7 @@ using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
 import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy
 
 
-export FixedCell, VariableCell
+export FixedCell, VariableCell, ExpVariableCell
 
 
 function zeros_free{T}(n::Integer, x::Vector{T}, free::Vector{Int})
@@ -249,12 +249,6 @@ type ExpVariableCell <: AbstractConstraint
    fixvolume::Bool
 end
 
-# function polar(F::JMatF)
-#    F = Array(F)
-#    Q1, S, Q2 = svd(F)
-#    return JMat(Q1 * Q2'), JMat(Q2 * diagm(S) * Q2')
-# end
-
 
 function ExpVariableCell(at::AbstractAtoms;
                free=nothing, clamp=nothing, mask=nothing,
@@ -262,9 +256,8 @@ function ExpVariableCell(at::AbstractAtoms;
    if pressure != 0.0 && fixvolume
       warning("the pressure setting will be ignores when `fixvolume==true`")
    end
-   F0 = defm(at)
-   return VariableCell( analyze_mask(at, free, clamp, mask),
-                        positions(at), F0, pressure, fixvolume )
+   return ExpVariableCell( analyze_mask(at, free, clamp, mask),
+                        positions(at), defm(at), pressure, fixvolume )
 end
 
 
@@ -284,40 +277,41 @@ function logm_defm(at::AbstractAtoms, cons::ExpVariableCell)
    return U, F
 end
 
-# reverse map:
-#   F -> F
-#   X[n] = F * F^{-1} X0[n]
+expposdofs(x) = x[1:end-6]
+expcelldofs(x) = x[end-5:end]
+U2dofs(U) = U[(1,2,3,5,6,9)]
+dofs2U(x) = JMat(expcelldofs(x)[(1,2,3,2,4,5,3,5,6)])
 
 function dofs(at::AbstractAtoms, cons::ExpVariableCell)
    X = positions(at)
-   U, F = logm_defm(at, cons)
+   U, _ = logm_defm(at, cons)
    # tranform the positions back to the reference cell (F0)
-   A = cons.F0 * expm(-U) * cons.Q0'
-   broadcast!(x->A*x, X, X)
+   broadcast!(x -> expm(-U) * x, X, X)
    # construct dof vector
-   return [mat(X)[cons.ifree]; Array(U)[:]]
+   return [mat(X)[cons.ifree]; U2dofs(U)]
 end
 
 
 function set_dofs!(at::AbstractAtoms, cons::ExpVariableCell, x::Dofs)
-   U = JMatF(celldofs(x))
+   U = dofs2U(x)
    expU = expm(U)
    F = expU * cons.F0
    Z = copy(cons.X0)
-   mat(Z)[cons.ifree] = posdofs(x)
+   mat(Z)[cons.ifree] = expposdofs(x)
    broadcast!(z -> expU * z, Z, Z)
    set_positions!(at, Z)
    set_defm!(at, F)
    return at
 end
 
+
 """
 Directional derivative of matrix exponential. See Theorem 2.1 in
 AL-MOHY, HIGHAM SIAM J. Matrix Anal. Appl. 30, 2009.
 """
-function dexpm(X::JMatF, E::JMatF)
-   X = X |> Matrix; E = E |> Matrix
-   return JMat( expm([ X E; zeros(3,3) X ])[1:3, 4:9] )
+function dexpm_3x3(X::AbstractMatrix, E::AbstractMatrix)
+   @assert size(X) == size(E) == (3, 3)
+   return expm([ X E; zeros(3,3) X ])[1:3, 4:6]
 end
 
 
@@ -325,16 +319,20 @@ function gradient(at::AbstractAtoms, cons::ExpVariableCell)
    U, F = logm_defm(at, cons)
    G = forces(at)
    broadcast!(g -> - (expm(U) * g), G, G)   # G[n] <- exp(U) * G[n]
-   T = dexpm(U, stress(at) * expm(-U))    # this should preserve symmetry; check!
-   # S -= cons.pressure * vol_d(at)     # applied stress
-   return [ mat(G)[cons.ifree]; Array(T)[:] ]
+   T = dexpm_3x3(U, stress(at) * expm(-U))
+   # add the forces acting on the upper diagonal of U to the lower diagonal
+   # this way we ensure that T : V = U2dofs(T) : U2dofs(V)
+   T[(2,3,6)] += T[(4,7,8)]
+   # add the pressure component
+   # S -= cons.pressure * vol_d(at)
+   return [ mat(G)[cons.ifree]; U2dofs(T) ]    # is this the correct way to convert T to dofs? could be that this is a problem and that I should first symmetrise it?
 end
 
 energy(at::AbstractAtoms, cons::ExpVariableCell) =
                energy(at) # - cons.pressure * det(defm(at)) / det(cons.F0)
 
 # TODO: fix this once we implement the volume constraint ??????
-project!(at::AbstractAtoms, cons::VariableCell) = at
+project!(at::AbstractAtoms, cons::ExpVariableCell) = at
 
 # TODO: fix the abstraction for projecting a preconditioner;
 #       this will actually need to do quite a bit more in the future
