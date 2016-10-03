@@ -324,12 +324,13 @@ function gradient(at::AbstractAtoms, cons::ExpVariableCell)
    # this way we ensure that T : V = U2dofs(T) : U2dofs(V)
    T[(2,3,6)] += T[(4,7,8)]
    # add the pressure component
-   # S -= cons.pressure * vol_d(at)
-   return [ mat(G)[cons.ifree]; U2dofs(T) ]    # is this the correct way to convert T to dofs? could be that this is a problem and that I should first symmetrise it?
+   T[(1,5,9)] += cons.pressure * exp(trace(U)) * U[(1,5,9)]
+   return [ mat(G)[cons.ifree]; U2dofs(T) ]
 end
 
 energy(at::AbstractAtoms, cons::ExpVariableCell) =
-               energy(at) # - cons.pressure * det(defm(at)) / det(cons.F0)
+               energy(at) + cons.pressure * det(defm(at)) / det(cons.F0)
+               #                            >>>>>>  exp(trace(U))  <<<<< (tested)
 
 # TODO: fix this once we implement the volume constraint ??????
 project!(at::AbstractAtoms, cons::ExpVariableCell) = at
