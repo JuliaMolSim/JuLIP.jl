@@ -16,7 +16,7 @@ set_defm!(at, defm(at) + 0.1*rand(JMatF), updatepositions=true)
 rattle!(at, 0.1)
 
 # set the constraint >>> this means the deformed cell defines F0 and X0
-set_constraint!(at, VariableCell(at))
+set_constraint!(at, ExpVariableCell(at))
 
 # check that energy, forces, stress, dofs, gradient evaluate at all
 print("check that energy, forces, stress, dofs, gradient evaluate ... ")
@@ -29,25 +29,24 @@ println("ok.")
 
 print("Check that setting and getting dofs is consistent ... ")
 x = dofs(at)
-@assert length(x) == 3 * length(at) + 9
+@assert length(x) == 3 * length(at) + 6
 y = x + 0.01 * rand(size(x))
 set_dofs!(at, y)
 z = dofs(at)
-@test vecnorm(y - z, Inf) < 1e-14
+@test vecnorm(y - z, Inf) < 1e-12
 println("ok")
 
-# now perform the finite-difference test
+# perform the finite-difference test
 set_dofs!(at, x)
 JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
 
 
-
 println("-------------------------------------------------")
-println("Test optimisation with VariableCell")
+println("Test optimisation with ExpVariableCell")
 # start with a clean `at`
 at = Atoms("Al", pbc=(true,true,true)) * 2   # cubic=true,
 set_calculator!(at, calc)
-set_constraint!(at, VariableCell(at))
+set_constraint!(at, ExpVariableCell(at))
 
 println("For the initial state, stress is far from 0:")
 @show vecnorm(stress(at), Inf)
@@ -56,15 +55,15 @@ println("After optimisation, stress is 0:")
 @show vecnorm(stress(at), Inf)
 @test vecnorm(stress(at), Inf) < 1e-4
 
-
-println("-------------------------------------------------")
-println("And now with pressure . . .")
-println("-------------------------------------------------")
-set_constraint!(at, VariableCell(at, pressure=10.0123))
-JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
-at = Atoms("Al", pbc=(true,true,true)) * 2   # cubic=true,
-set_calculator!(at, calc)
-set_constraint!(at, VariableCell(at, pressure=0.01))
-JuLIP.Solve.minimise!(at)
-@show vecnorm(stress(at), Inf)
-@test vecnorm(gradient(at), Inf) < 1e-4
+#
+# println("-------------------------------------------------")
+# println("And now with pressure . . .")
+# println("-------------------------------------------------")
+# set_constraint!(at, VariableCell(at, pressure=10.0123))
+# JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
+# at = Atoms("Al", pbc=(true,true,true)) * 2   # cubic=true,
+# set_calculator!(at, calc)
+# set_constraint!(at, VariableCell(at, pressure=0.01))
+# JuLIP.Solve.minimise!(at)
+# @show vecnorm(stress(at), Inf)
+# @test vecnorm(gradient(at), Inf) < 1e-4
