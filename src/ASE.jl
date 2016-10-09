@@ -27,7 +27,7 @@ import JuLIP:
       calculator, set_calculator!, # ✓
       constraint, set_constraint!, # ✓
       neighbourlist,                # ✓
-      energy, forces
+      energy, forces, stress, JMatF
 
 import Base.length, Base.deleteat!         # ✓
 
@@ -207,6 +207,21 @@ set_calculator!(at::ASEAtoms, po::PyObject) =
 
 forces(calc::ASECalculator, at::ASEAtoms) = at.po[:get_forces]()' |> vecs
 energy(calc::ASECalculator, at::ASEAtoms) = at.po[:get_potential_energy]()
+
+function stress(calc::ASECalculator, at::ASEAtoms)
+    s = at.po[:get_stress]()
+    if size(s) == (6,)
+      # unpack stress from compressed Voigt vector form
+      s11, s22, s33, s23, s13, s12 = s
+      return JMatF([s11 s12 s13;
+                    s12 s22 s23;
+                    s13 s23 s33])
+    elseif size(s) == (3,3)
+      return JMatF(s)
+    else
+      error("got unxpected size(stress) $(size(stress)) from ASE")
+    end
+end
 
 """
 Creates an `ASECalculator` that uses `ase.calculators.emt` to compute
