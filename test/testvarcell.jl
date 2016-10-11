@@ -18,11 +18,12 @@ rattle!(at, 0.1)
 # set the constraint >>> this means the deformed cell defines F0 and X0
 set_constraint!(at, VariableCell(at))
 
-print("check that energy, forces, virial, dofs, gradient evaluate ... ")
+print("check that energy, forces, virial, stress, dofs, gradient evaluate ... ")
 energy(at)
 forces(at)
 gradient(at)
 virial(at)
+@test stress(at) == - virial(at) / det(defm(at))
 println("ok.")
 @test true
 
@@ -67,3 +68,6 @@ set_constraint!(at, VariableCell(at, pressure=0.01))
 JuLIP.Solve.minimise!(at)
 @show vecnorm(virial(at), Inf)
 @test vecnorm(gradient(at), Inf) < 1e-4
+
+
+println("Check symmetry of stress")

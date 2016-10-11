@@ -44,9 +44,9 @@ end
 
 # TODO: rewrite using generator once bug is fixed
 function virial(pp::PairPotential, at::AbstractAtoms)
-   S = zeros(JMatF)
+   S = zero(JMatF)
    for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
-      S += (((@D pp(r)) / r) * R) * R'
+      S -= (((@D pp(r)) / r) * R) * R'
    end
    return S
 end
