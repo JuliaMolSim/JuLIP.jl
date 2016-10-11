@@ -107,7 +107,7 @@ export AbstractAtoms,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
-      stress, site_stresses, site_energies,
+      virial, site_virials, site_energies,
       defm, set_defm!
 
 # length is used for several things
@@ -332,16 +332,16 @@ forces in `Vector{JVecF}`  (negative gradient w.r.t. atom positions only)
 forces(at::AbstractAtoms) = forces(calculator(at), at)
 
 """
-* `stress(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
-* `stress(a::AbstractAtoms) -> JMatF`
+* `virial(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
+* `virial(a::AbstractAtoms) -> JMatF`
 
-returns Cauchy-stress, *not* normalised against cell volume
+returns virial, *not* normalised against cell volume
 """
-@protofun stress(c::AbstractCalculator, a::AbstractAtoms)
-stress(a::AbstractAtoms) = stress(calculator(a), a)
+@protofun virial(c::AbstractCalculator, a::AbstractAtoms)
+virial(a::AbstractAtoms) = virial(calculator(a), a)
 
-@protofun site_stresses(c::AbstractCalculator, a::AbstractAtoms)
-site_stress(a::AbstractAtoms) = site_stress(calculator(a), a)
+@protofun site_virials(c::AbstractCalculator, a::AbstractAtoms)
+site_virials(a::AbstractAtoms) = site_virials(calculator(a), a)
 
 
 #######################################################################
