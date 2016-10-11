@@ -212,7 +212,7 @@ function gradient(at::AbstractAtoms, cons::VariableCell)
    for n = 1:length(G)
       G[n] = - A' * G[n]
    end
-   S = virial(at) * inv(F)'        # ∂E / ∂F
+   S = - virial(at) * inv(F)'        # ∂E / ∂F
    S -= cons.pressure * vol_d(at)     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end

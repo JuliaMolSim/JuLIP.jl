@@ -107,14 +107,15 @@ export AbstractAtoms,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
-      virial, site_virials, site_energies,
       defm, set_defm!
 
 # length is used for several things
 import Base: length, A_ldiv_B!, A_mul_B!, cell, gradient
 
 export AbstractCalculator,
-      energy, potential_energy, forces, gradient
+      energy, potential_energy, forces, gradient,
+      site_energies,
+      stress, virial, site_virials
 
 export AbstractNeighbourList,
        sites, bonds
@@ -338,10 +339,14 @@ forces(at::AbstractAtoms) = forces(calculator(at), at)
 returns virial, *not* normalised against cell volume
 """
 @protofun virial(c::AbstractCalculator, a::AbstractAtoms)
+
 virial(a::AbstractAtoms) = virial(calculator(a), a)
 
-@protofun site_virials(c::AbstractCalculator, a::AbstractAtoms)
-site_virials(a::AbstractAtoms) = site_virials(calculator(a), a)
+stress(at::AbstractAtoms) = - virial(at) / det(defm(at))
+
+# remove these for now; not clear they are useful.
+# @protofun site_virials(c::AbstractCalculator, a::AbstractAtoms)
+# site_virials(a::AbstractAtoms) = site_virials(calculator(a), a)
 
 
 #######################################################################
