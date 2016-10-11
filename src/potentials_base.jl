@@ -47,6 +47,7 @@ Usage of `@pot` is not restricted to pair potentials, but can be applied to
 macro pot(fsig)
    @assert fsig.head == :type
    tname, tparams = t_info(fsig.args[2])
+   # isa(tname, Symbol) ? name_only = tname : name_only = tname.args[1]
    tname = esc(tname)
    for n = 1:length(tparams)
       tparams[n] = esc(tparams[n])
@@ -60,7 +61,6 @@ macro pot(fsig)
       ($sym::$tname){$(tparams...)}(::Type{Val{:GRAD}}, args...) = grad($sym, args...)
    end
 end
-
 
 # t_info extracts type name as symbol and type parameters as an array
 t_info(ex::Symbol) = (ex, tuple())

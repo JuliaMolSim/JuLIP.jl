@@ -18,12 +18,11 @@ rattle!(at, 0.1)
 # set the constraint >>> this means the deformed cell defines F0 and X0
 set_constraint!(at, VariableCell(at))
 
-# check that energy, forces, stress, dofs, gradient evaluate at all
-print("check that energy, forces, stress, dofs, gradient evaluate ... ")
+print("check that energy, forces, virial, dofs, gradient evaluate ... ")
 energy(at)
 forces(at)
 gradient(at)
-stress(at)
+virial(at)
 println("ok.")
 @test true
 
@@ -49,12 +48,12 @@ at = Atoms("Al", pbc=(true,true,true)) * 2   # cubic=true,
 set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at))
 
-println("For the initial state, stress is far from 0:")
-@show vecnorm(stress(at), Inf)
+println("For the initial state, stress/virial is far from 0:")
+@show vecnorm(virial(at), Inf)
 JuLIP.Solve.minimise!(at)
-println("After optimisation, stress is 0:")
-@show vecnorm(stress(at), Inf)
-@test vecnorm(stress(at), Inf) < 1e-4
+println("After optimisation, stress/virial should be 0:")
+@show vecnorm(virial(at), Inf)
+@test vecnorm(virial(at), Inf) < 1e-4
 
 
 println("-------------------------------------------------")
@@ -66,5 +65,5 @@ at = Atoms("Al", pbc=(true,true,true)) * 2   # cubic=true,
 set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at, pressure=0.01))
 JuLIP.Solve.minimise!(at)
-@show vecnorm(stress(at), Inf)
+@show vecnorm(virial(at), Inf)
 @test vecnorm(gradient(at), Inf) < 1e-4
