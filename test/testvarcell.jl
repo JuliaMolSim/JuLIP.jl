@@ -40,6 +40,13 @@ println("ok")
 set_dofs!(at, x)
 JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
 
+println("Check virial for SW potential")
+si = Atoms("Si", cubic=true, pbc=(true, true, true)) * 2
+rattle!(si, 0.1)
+set_defm!(si, defm(si) + 0.03 * rand(JMatF))
+sw = StillingerWeber()
+set_constraint!(si, VariableCell(si))
+JuLIP.Testing.fdtest(calc, si, verbose=true, rattle=0.1)
 
 
 println("-------------------------------------------------")
@@ -67,7 +74,6 @@ set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at, pressure=0.01))
 JuLIP.Solve.minimise!(at)
 @show vecnorm(virial(at), Inf)
+@show vecnorm(gradient(at), Inf)
 @test vecnorm(gradient(at), Inf) < 1e-4
-
-
-println("Check symmetry of stress")
+warn("something here is weird: virial is O(1) but gradient is small?")
