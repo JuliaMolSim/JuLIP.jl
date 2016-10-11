@@ -23,7 +23,7 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
       JVec, JVecs, mat, vec, JMat
 
-import JuLIP: energy, forces, cutoff, stress, site_energies
+import JuLIP: energy, forces, cutoff, virial, site_energies
 
 export Potential, PairPotential, SitePotential
 
@@ -66,10 +66,10 @@ function forces(pot::SitePotential, at::AbstractAtoms)
    return frc
 end
 
-site_stress(dV, R) = sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
+site_virial(dV, R) = - sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
 
-stress(V::SitePotential, at::AbstractAtoms) =
-      sum(  site_stress((@D V(r, R)), R)
+virial(V::SitePotential, at::AbstractAtoms) =
+      sum(  site_virial((@D V(r, R)), R)
             for (_₁, _₂, r, R, _₃) in sites(at, cutoff(V))  )
 
 
