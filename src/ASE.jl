@@ -213,8 +213,8 @@ function stress(calc::ASECalculator, at::ASEAtoms)
     if size(s) == (6,)
       # unpack stress from compressed Voigt vector form
       s11, s22, s33, s23, s13, s12 = s
-      return JMatF([s11 s12 s13;
-                    s12 s22 s23;
+      return JMatF([s11 s12 s13,
+                    s12 s22 s23,
                     s13 s23 s33])
     elseif size(s) == (3,3)
       return JMatF(s)
