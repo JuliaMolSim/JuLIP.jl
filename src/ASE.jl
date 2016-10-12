@@ -27,14 +27,14 @@ import JuLIP:
       calculator, set_calculator!, # ✓
       constraint, set_constraint!, # ✓
       neighbourlist,                # ✓
-      energy, forces, stress, JMatF
+      energy, forces, virial
 
 import Base.length, Base.deleteat!         # ✓
 
 # from arrayconversions:
-using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, pyarrayref,
+using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
-      AbstractCalculator, NullCalculator
+      AbstractCalculator, NullCalculator, defm
 
 # extra ASE functionality:
 import Base.repeat         # ✓
@@ -205,19 +205,20 @@ end
 set_calculator!(at::ASEAtoms, po::PyObject) =
       set_calculator!(at, ASECalculator(po))
 
-forces(calc::ASECalculator, at::ASEAtoms) = at.po[:get_forces]()' |> vecs
-energy(calc::ASECalculator, at::ASEAtoms) = at.po[:get_potential_energy]()
+forces(calc::ASECalculator, at::ASEAtoms) = calc.po[:get_forces](at.po)' |> vecs
+energy(calc::ASECalculator, at::ASEAtoms) = calc.po[:get_potential_energy](at.po)
 
-function stress(calc::ASECalculator, at::ASEAtoms)
-    s = at.po[:get_stress]()
+function virial(calc::ASECalculator, at::ASEAtoms)
+    s = calc.po[:get_stress](at.po)
+    vol = det(defm(at))
     if size(s) == (6,)
       # unpack stress from compressed Voigt vector form
       s11, s22, s33, s23, s13, s12 = s
-      return JMatF([s11 s12 s13,
-                    s12 s22 s23,
-                    s13 s23 s33])
+      return -JMatF([s11 s12 s13;
+                     s12 s22 s23;
+                     s13 s23 s33]) * vol
     elseif size(s) == (3,3)
-      return JMatF(s)
+      return -JMatF(s) * vol
     else
       error("got unxpected size(stress) $(size(stress)) from ASE")
     end
