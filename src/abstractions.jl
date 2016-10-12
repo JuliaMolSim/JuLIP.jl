@@ -336,15 +336,22 @@ forces(at::AbstractAtoms) = forces(calculator(at), at)
 * `virial(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
 * `virial(a::AbstractAtoms) -> JMatF`
 
-returns virial, *not* normalised against cell volume
+returns virial, (- ∂E / ∂F) where `F = defm(a)`
 """
 @protofun virial(c::AbstractCalculator, a::AbstractAtoms)
 
 virial(a::AbstractAtoms) = virial(calculator(a), a)
 
+"""
+* `stress(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
+* `stress(a::AbstractAtoms) -> JMatF`
+
+stress = - virial / volume; this function should *not* be overloaded;
+instead overload virial
+"""
 stress(c::AbstractCalculator, a::AbstractAtoms) = - virial(c, a) / det(defm(a))
 
-stress(at::AbstractAtoms) = stress(calculator(a), a)
+stress(at::AbstractAtoms) = stress(calculator(at), at)
 
 # remove these for now; not clear they are useful.
 # @protofun site_virials(c::AbstractCalculator, a::AbstractAtoms)
