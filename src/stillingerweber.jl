@@ -30,11 +30,9 @@ export StillingerWeber
 
 import JuLIP.Potentials: evaluate, evaluate_d, @pot, @D
 
-bondangle(R1, R2) = 0.5 * (dot(R1/vecnorm(R1), R2/vecnorm(R2)) + 1.0/3.0)^2
+bondangle(S1, S2) = 0.5 * (dot(S1, S2) + 1.0/3.0)^2
 
-function bondangle_d(R1, R2)
-   r1, r2 = vecnorm(R1), vecnorm(R2)
-   S1, S2 = R1/r1, R2/r2
+function bondangle_d(S1, S2, r1, r2)
    d = dot(S1, S2)
    b1 = (1.0/r1) * S2 - (d/r1) * S1
    b2 = (1.0/r2) * S1 - (d/r2) * S2
@@ -72,9 +70,10 @@ function evaluate(calc::StillingerWeber, r, R)
       Es += calc.V2(r1)
    end
    # three-body contributions
-   V3 = [calc.V3(s) for s in r]
+   S = [ R1/r1 for (R1,r1) in zip(R, r) ]
+   V3 = [ calc.V3(r1) for r1 in r ]
    for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
-      Es += V3[i1] * V3[i2] * bondangle(R[i1], R[i2])
+      Es += V3[i1] * V3[i2] * bondangle(S[i1], S[i2])
    end
    return Es
 end
@@ -84,10 +83,11 @@ function evaluate_d(calc::StillingerWeber, r, R)
    # TODO: why can't I use @D here??????
    dEs = [ ((@D calc.V2(ri)) / ri) * Ri for (ri, Ri) in zip(r, R) ]
    # three-body terms
+   S = [ R1/r1 for (R1,r1) in zip(R, r) ]
    V3 = [calc.V3(s) for s in r]
    dV3 = [(@D calc.V3(s)) / s for s in r]
    for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
-      a, b1, b2 = bondangle_d(R[i1], R[i2])
+      a, b1, b2 = bondangle_d(S[i1], S[i2], r[i1], r[i2])
       dEs[i1] += (V3[i1] * V3[i2]) * b1 + (dV3[i1] * V3[i2] * a) * R[i1]
       dEs[i2] += (V3[i1] * V3[i2]) * b2 + (V3[i1] * dV3[i2] * a) * R[i2]
    end

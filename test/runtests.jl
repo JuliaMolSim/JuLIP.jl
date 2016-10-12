@@ -33,3 +33,7 @@ sw = JuLIP.Potentials.StillingerWeber()
 @time forces(sw, si);
 @time forces(sw, si);
 @time forces(sw, si);
+
+@time sites(si, cutoff(sw))
+@time sites(si, cutoff(sw))
+@time sites(si, cutoff(sw))
