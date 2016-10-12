@@ -3,7 +3,7 @@ using JuLIP
 using JuLIP.Potentials
 using JuLIP.Solve
 using JuLIP.Constraints
-import JuLIP.Preconditioners: Exp
+using JuLIP.Preconditioners: Exp
 
 println("===================================================")
 println("          TEST SOLVE ")
@@ -38,11 +38,11 @@ println("check that the optimiser really converged to a lattice")
 # set_constraint!(at, FixedCell(at))
 # minimise!(at, precond = Exp(at))
 
-
-println("-------------------------------------------------")
-println("   Variable Cell Test")
-println("-------------------------------------------------")
-calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = Atoms("Al", cubic=true, pbc=(true,true,true))
-set_calculator!(at, calc)
-set_constraint!(at, VariableCell(at))
+#
+# println("-------------------------------------------------")
+# println("   Variable Cell Test")
+# println("-------------------------------------------------")
+# calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
+# at = Atoms("Al", cubic=true, pbc=(true,true,true))
+# set_calculator!(at, calc)
+# set_constraint!(at, VariableCell(at))
