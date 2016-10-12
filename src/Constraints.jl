@@ -213,12 +213,12 @@ function gradient(at::AbstractAtoms, cons::VariableCell)
       G[n] = - A' * G[n]
    end
    S = - virial(at) * inv(F)'        # ∂E / ∂F
-   S -= cons.pressure * vol_d(at)     # applied stress
+   S += cons.pressure * vol_d(at)     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
 energy(at::AbstractAtoms, cons::VariableCell) =
-         energy(at) - cons.pressure * det(defm(at))
+         energy(at) + cons.pressure * det(defm(at))
 
 # TODO: fix this once we implement the volume constraint ??????
 project!(at::AbstractAtoms, cons::VariableCell) = at
