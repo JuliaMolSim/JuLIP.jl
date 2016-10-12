@@ -342,7 +342,9 @@ returns virial, *not* normalised against cell volume
 
 virial(a::AbstractAtoms) = virial(calculator(a), a)
 
-stress(at::AbstractAtoms) = - virial(at) / det(defm(at))
+stress(c::AbstractCalculator, a::AbstractAtoms) = - virial(c, a) / det(defm(a))
+
+stress(at::AbstractAtoms) = stress(calculator(a), a)
 
 # remove these for now; not clear they are useful.
 # @protofun site_virials(c::AbstractCalculator, a::AbstractAtoms)
