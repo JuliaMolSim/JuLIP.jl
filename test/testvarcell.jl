@@ -76,4 +76,4 @@ JuLIP.Solve.minimise!(at)
 @show vecnorm(virial(at), Inf)
 @show vecnorm(gradient(at), Inf)
 @test vecnorm(gradient(at), Inf) < 1e-4
-warn("something here is weird: virial is O(1) but gradient is small?")
+println("note it is correct that virial is O(1) since we applied pressure")
