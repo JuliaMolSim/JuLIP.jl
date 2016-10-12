@@ -19,8 +19,8 @@ end
 
 # TODO: why is this not in the abstract file?
 # a simplified way to calculate gradients of pair potentials
-grad(pp::PairPotential, r::Float64, R::JVec) =
-            (evaluate_d(p::PairPotential, r) / r) * R
+grad(pp::PairPotential, r::Float64, R::JVecF) =
+            (evaluate_d(pp::PairPotential, r) / r) * R
 
 # TODO: rewrite using generator once bug is fixed
 function energy(pp::PairPotential, at::AbstractAtoms)
@@ -35,8 +35,8 @@ function forces(pp::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
    for (i,j,r,R,_) in bonds(at, cutoff(pp))
       # TODO: this should be equivalent, but for some reason using @GRAD is much slower!
-      # dE[j] -= 2 * @GRAD calc.pp(r, R)   # ∇ϕ(|R|) = (ϕ'(r)/r) R
-      dE[j] -= 2 * ((@D pp(r))/r) * R
+      # dE[j] -= 2 * (@GRAD pp(r, R))    # ∇ϕ(|R|) = (ϕ'(r)/r) R
+      dE[j] -= 2 * grad(pp, r, R)
    end
    return dE
 end
@@ -46,7 +46,7 @@ end
 function virial(pp::PairPotential, at::AbstractAtoms)
    S = zero(JMatF)
    for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
-      S -= (((@D pp(r)) / r) * R) * R'
+      S -= grad(pp, r, R) * R'  # (((@D pp(r)) / r) * R) * R'
    end
    return S
 end
@@ -131,7 +131,7 @@ end
 evaluate(psp::PairSitePotential, r, R) = _sumpair_(psp.pp, r)
 
 evaluate_d(psp::PairSitePotential, r, R) =
-            [ ((@D psp.pp(s))/s) * S for (s, S) in zip(r, R) ]
+            [ grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
 
 
 # TODO: define a `ComposePotential?`
