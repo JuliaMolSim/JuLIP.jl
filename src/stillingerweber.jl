@@ -30,15 +30,14 @@ export StillingerWeber
 
 import JuLIP.Potentials: evaluate, evaluate_d, @pot, @D
 
-
-iprhat(R1, R2) = dot(R1/norm(R1), R2/norm(R2))
-
-bondangle(R1, R2) = 0.5 * (iprhat(R1, R2) + 1.0/3.0)^2
+bondangle(R1, R2) = 0.5 * (dot(R1/vecnorm(R1), R2/vecnorm(R2)) + 1.0/3.0)^2
 
 function bondangle_d(R1, R2)
-   d = dot(R1/norm(R1), R2/norm(R2))
-   b1 = R2 / (norm(R2)*norm(R1)) - (d/norm(R1)^2) * R1
-   b2 = R1 / (norm(R1)*norm(R2)) - (d/norm(R2)^2) * R2
+   r1, r2 = vecnorm(R1), vecnorm(R2)
+   S1, S2 = R1/r1, R2/r2
+   d = dot(S1, S2)
+   b1 = (1.0/r1) * S2 - (d/r1) * S1
+   b2 = (1.0/r2) * S1 - (d/r2) * S2
    return 0.5*(d+1./3.)^2, (d+1./3.)*b1, (d+1./3.)*b2
 end
 
@@ -61,9 +60,9 @@ StillingerWeber(; ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
    StillingerWeber(
       AnalyticPotential(:( $(0.5 * ϵ * A) * ($B * (r/$σ)^(-$p) - 1.0)
                                  * exp( 1.0 / (r/$σ - $a) ) ),
-                        cutoff = a*σ-1e-3),
+                        cutoff = a*σ-1e-2),
       AnalyticPotential(:( $(sqrt(ϵ) * λ) * exp( $γ / (r/$σ - $a) ) ),
-                        cutoff = a*σ-1e-3)
+                        cutoff = a*σ-1e-2)
    )
 
 function evaluate(calc::StillingerWeber, r, R)
@@ -73,8 +72,9 @@ function evaluate(calc::StillingerWeber, r, R)
       Es += calc.V2(r1)
    end
    # three-body contributions
+   V3 = [calc.V3(s) for s in r]
    for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
-      Es += calc.V3(r[i1]) * calc.V3(r[i2]) * bondangle(R[i1], R[i2])
+      Es += V3[i1] * V3[i2] * bondangle(R[i1], R[i2])
    end
    return Es
 end
@@ -82,21 +82,14 @@ end
 function evaluate_d(calc::StillingerWeber, r, R)
    # two-body terms
    # TODO: why can't I use @D here??????
-   dEs = [ (evaluate_d(calc.V2, ri) / ri) * Ri for (ri, Ri) in zip(r, R) ]
+   dEs = [ ((@D calc.V2(ri)) / ri) * Ri for (ri, Ri) in zip(r, R) ]
    # three-body terms
+   V3 = [calc.V3(s) for s in r]
+   dV3 = [(@D calc.V3(s)) / s for s in r]
    for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
       a, b1, b2 = bondangle_d(R[i1], R[i2])
-      V1 = calc.V3(r[i1])
-      V2 = calc.V3(r[i2])
-      dV1 = (@D calc.V3(r[i1])) * R[i1] / r[i1]
-      dV2 = (@D calc.V3(r[i2])) * R[i2] / r[i2]
-      dEs[i1] += V1 * V2 * b1 + dV1 * V2 * a
-      dEs[i2] += V1 * V2 * b2 + V1 * dV2 * a
+      dEs[i1] += (V3[i1] * V3[i2]) * b1 + (dV3[i1] * V3[i2] * a) * R[i1]
+      dEs[i2] += (V3[i1] * V3[i2]) * b2 + (V3[i1] * dV3[i2] * a) * R[i2]
    end
    return dEs
 end
-
-site_energies(calc::StillingerWeber, at::AbstractAtoms) =
-   [ calc(r, R) for (_₁, _₂, r, R, _₃) in sites(at, cutoff(calc)) ]
-
-energy(calc::StillingerWeber, at::AbstractAtoms) = sum_kbn(site_energies(calc, at))
