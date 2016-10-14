@@ -61,8 +61,8 @@ X = positions(at)          # returns a Vector{JVec}
 X = positions(at) |> mat   # returns a Matrix
 ```
 """
-mat{T}(V::JVecs{T}) = reinterpret(T, V, (3, length(V)))
-mat{T}(X::AbstractVector{JVec{T}}) = mat(collect(X))
+mat{N,T}(V::Vector{SVec{N,T}}) = reinterpret(T, V, (N, length(V)))
+mat{N,T}(X::AbstractVector{SVec{N,T}}) = mat(collect(X))
 
 # rewrite all of this in terms of `convert` (TODO: is this needed?)
 convert{T}(::Type{Matrix{T}}, V::JVecs{T}) = mat(V)

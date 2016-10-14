@@ -4,13 +4,14 @@ println(" Testing JuLIP.ASE")
 println("-------------------")
 
 using JuLIP
+using JuLIP.ASE
 
 # ======================================================================
 
 println("Check that the cubic unit cell for Al is reproduced correctly")
 a0 = 2.025
 p = [ [0.0;0.0;0.0] [0.0;a0;a0] [a0;0.0;a0] [a0;a0;0.0] ]
-at = Atoms("Al", cubic=true)
+at = bulk("Al", cubic=true)
 @test (positions(at) |> mat) == p
 
 # ======================================================================
@@ -19,7 +20,8 @@ println("Check neighbourlist without periodicity")
 # TODO: implement a test with periodicity!!!
 println("   TODO: implement test with periodicity as well?")
 println("   ... assemble neighbour list ...")
-at = Atoms("Al", cubic=true, pbc = (false,false,false), repeatcell=(3,3,3))
+at = bulk("Al", cubic=true) * 3
+set_pbc!(at, (false,false,false))
 cutoff = 1.7 * a0
 nlist = neighbourlist(at, cutoff)
 # create a neighbourlist via a naive double-loop

@@ -4,7 +4,7 @@ println("-------------------------------------------------")
 println("   Variable Cell Test")
 println("-------------------------------------------------")
 calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = Atoms("Al", pbc=(true,true,true)) * 2      # cubic=true,
+at = bulk("Al") * 2      # cubic=true,
 set_calculator!(at, calc)
 
 # perturb the cell shape
@@ -41,7 +41,7 @@ set_dofs!(at, x)
 JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
 
 println("Check virial for SW potential")
-si = Atoms("Si", cubic=true, pbc=(true, true, true)) * 2
+si = bulk("Si", cubic=true) * 2
 rattle!(si, 0.1)
 set_defm!(si, defm(si) + 0.03 * rand(JMatF))
 sw = StillingerWeber()
@@ -52,7 +52,7 @@ JuLIP.Testing.fdtest(calc, si, verbose=true, rattle=0.1)
 println("-------------------------------------------------")
 println("Test optimisation with VariableCell")
 # start with a clean `at`
-at = Atoms("Al", pbc=(true,true,true)) * 2   # cubic=true,
+at = bulk("Al") * 2   # cubic=true,
 set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at))
 
@@ -69,7 +69,7 @@ println("And now with pressure . . .")
 println("-------------------------------------------------")
 set_constraint!(at, VariableCell(at, pressure=10.0123))
 JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
-at = Atoms("Al", pbc=(true,true,true)) * 2   # cubic=true,
+at = bulk("Al") * 2   # cubic=true,
 set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at, pressure=0.01))
 JuLIP.Solve.minimise!(at)

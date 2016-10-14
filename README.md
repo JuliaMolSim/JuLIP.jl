@@ -110,8 +110,8 @@ More intersting examples will hopefully follow soon.
 ## Vacancy in a bulk Si cell
 
 ```julia
-using JuLIP
-at = Atoms("Si", cubic=true, pbc=(true,true,true)) * (4,4,4)
+using JuLIP, JuLIP.ASE
+at = bulk("Si", cubic=true) * 4
 deleteat!(at, 1)
 set_calculator!(at, JuLIP.Potentials.StillingerWeber())
 set_constraint!(at, FixedCell(at))
@@ -149,12 +149,12 @@ TB = TightBinding
 # sp model for Si (NRL-Tight Binding)
 tbm = TB.NRLTB.NRLTBModel(elem=TB.NRLTB.Si_sp, nkpoints = (0,0,0))
 # bulk crystal
-at = Atoms("Si", cubic=true, pbc=(true,true,true)) * (4,4,4)
+at = bulk("Si", cubic=true) * 4
 Eref = energy(tbm, at)
 # create vacancy
 deleteat!(at, 1)
 Edef = energy(tbm, at)
-# formation energy:
+# formation energy: (not really but sort of)
 println("Vacancy formation energy = ", Edef - Eref * length(at)/(length(at)+1))
 println("(probably this should not be negative! Increase simulation accuracy!)")
 ```
