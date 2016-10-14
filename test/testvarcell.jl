@@ -1,10 +1,10 @@
-using JuLIP.Potentials
+using JuLIP.Potentials, JuLIP.ASE
 
 println("-------------------------------------------------")
 println("   Variable Cell Test")
 println("-------------------------------------------------")
 calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = bulk("Al") * 2      # cubic=true,
+at = set_pbc!(bulk("Al") * 2, true)
 set_calculator!(at, calc)
 
 # perturb the cell shape
