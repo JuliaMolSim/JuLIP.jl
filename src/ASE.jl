@@ -59,10 +59,7 @@ Julia wrapper for the ASE `Atoms` class.
 
 ## Constructors
 
-The default constructor is
-```
-at = ASEAtoms("Al"; repeat=(2,3,4), cubic=true, pbc = (true, false, true))
-```
+* `ASEAtoms(s::AbstractString, X::JVecsF) -> at::ASEAtoms`
 
 For internal usage there is also a constructor `ASEAtoms(po::PyObject)`
 """
@@ -87,16 +84,9 @@ end
 constraint(at::ASEAtoms) = at.cons
 
 
-function ASEAtoms( s::AbstractString;
-                   repeatcell=nothing, cubic=false, pbc=(true,true,true) )
-   at = bulk(s, cubic=cubic)
-   repeatcell != nothing ? at = repeat(at, repeatcell) : nothing
-   set_pbc!(at, pbc)
-   return at
-end
-
-ASEAtoms(s::AbstractString, X::JVecsF) = ASEAtoms( ase_atoms.Atoms(s, mat(X)') )
-
+ASEAtoms(s::AbstractString, X::JVecsF) = ASEAtoms(s, mat(X))
+ASEAtoms(s::AbstractString, X::Matrix) = ASEAtoms(ase_atoms.Atoms(s, X'))
+ASEAtoms(s::AbstractString) = ASEAtoms(ase_atoms.Atoms(s))
 
 "Return the PyObject associated with `a`"
 pyobject(a::ASEAtoms) = a.po

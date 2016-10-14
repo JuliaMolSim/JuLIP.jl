@@ -13,7 +13,7 @@ println("-----------------------------------------------------------------")
 println("Testing `minimise!` with equilibration with LJ calculator to lattice")
 println("-----------------------------------------------------------------")
 calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = Atoms("Al", cubic=true, pbc=(true,true,true)) * 3
+at = bulk("Al", cubic=true) * 3
 X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
