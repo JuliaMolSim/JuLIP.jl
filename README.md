@@ -36,14 +36,18 @@ to install; please follow instructions on the respective websites.
 
 Afterwards, install JuLIP, from the Julia REPL:
 ```julia
-Pkg.add("FunctionWrappers")
-Pkg.clone("https://github.com/libAtoms/JuLIP.jl.git")
+Pkg.add("JuLIP")
 ```
 and run
 ```
 Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. If a test fails, please open an issue.
+
+At the moment, best to use master, i.e., from the Julia REPL run
+```
+Pkg.checkout("JuLIP")
+```
 
 ## `imolecule` and dependencies
 
