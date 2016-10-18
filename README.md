@@ -49,6 +49,7 @@ At the moment, best to use master, i.e., from the Julia REPL run
 Pkg.checkout("JuLIP")
 ```
 
+
 ## `imolecule` and dependencies
 
 This part can be skipped if no visualisation is required; `using JuLIP` will then
@@ -103,6 +104,16 @@ export BABEL_LIBDIR="/Users/ortner/anaconda/lib/openbabel/2.3.90/"
 (Update: the configuration can be written directly to a JSON file, which
 ought to circumvent the need for OpenBabel. Need to test this on a clean system.)
 -->
+
+## Automatic Differentiation
+
+There is some experimental AD support implemented; see `src/adsite.jl`, which
+require `ForwardDiff` and `ReverseDiffPrototype`. These can be installed via
+```
+Pkg.add("ForwardDiff")
+Pkg.clone("https://github.com/jrevels/ReverseDiffPrototype.jl.git")
+```
+If the packages are missing then the AD functionality is simply turned off.
 
 
 # Examples

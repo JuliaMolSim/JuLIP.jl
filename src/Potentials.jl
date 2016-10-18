@@ -90,9 +90,10 @@ include("pairpotentials.jl")
 try
    include("adsite.jl")
    # * FDPotential : Site potential using ForwardDiff
+   # * RDPotential : Site potential using ReverseDiffPrototype
 catch
-   warn("""adsite.jl could not be included; most likely some AD package is missing;
-      at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
+   # warn("""adsite.jl could not be included; most likely some AD package is missing;
+   #    at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
 end
 
 include("EMT.jl")

@@ -74,7 +74,7 @@ function analyze_mask(at, free, clamp, mask)
       fill!(mask, false)
       mask[:, free] = true
    end
-   return mask[:]
+   return find(mask[:])
 end
 
 FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
