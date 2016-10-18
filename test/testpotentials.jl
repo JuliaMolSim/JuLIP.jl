@@ -58,28 +58,28 @@ sw = StillingerWeber()
 set_calculator!(at3, sw)
 push!(calculators, (sw, at3))
 
-# [5] a simple FDPotential
-@pot type FDPot <: FDPotential end
-fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
-JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot, R::Matrix{T}) =
-               sum( fdpot(Base.LinAlg.vecnorm2(R[:,i])) for i = 1:size(R,2) )
-JuLIP.cutoff(::FDPot) = 4.0
-at5 = set_pbc!(bulk("Si") * (3,3,1), false)
-push!(calculators, (FDPot(), at5))
-
-# [6] a simple FDPotential
-@pot type FDPot_r <: FDPotential_r end
-JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot_r, r::Vector{T}) = sum( fdpot.(r) )
-JuLIP.cutoff(::FDPot_r) = 4.0
-at6 = set_pbc!(bulk("Si") * (3,3,1), false)
-push!(calculators, (FDPot_r(), at6))
-
-# [7] a simple FDPotential
-@pot type RDPot_r <: RDPotential_r end
-JuLIP.Potentials.ad_evaluate{T<:Real}(pot::RDPot_r, r::Vector{T}) = sum( fdpot.(r) )
-JuLIP.cutoff(::RDPot_r) = 4.0
-at7 = set_pbc!(bulk("Si") * (3,3,1), false)
-push!(calculators, (RDPot_r(), at7))
+# # [5] a simple FDPotential
+# @pot type FDPot <: FDPotential end
+# fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot, R::Matrix{T}) =
+#                sum( fdpot(Base.LinAlg.vecnorm2(R[:,i])) for i = 1:size(R,2) )
+# JuLIP.cutoff(::FDPot) = 4.0
+# at5 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (FDPot(), at5))
+#
+# # [6] a simple FDPotential
+# @pot type FDPot_r <: FDPotential_r end
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot_r, r::Vector{T}) = sum( fdpot.(r) )
+# JuLIP.cutoff(::FDPot_r) = 4.0
+# at6 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (FDPot_r(), at6))
+#
+# # [7] a simple RDPotential
+# @pot type RDPot_r <: RDPotential_r end
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::RDPot_r, r::Vector{T}) = sum( fdpot.(r) )
+# JuLIP.cutoff(::RDPot_r) = 4.0
+# at7 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (RDPot_r(), at7))
 
 # [8] PairSitePotential
 at8 = set_pbc!( bulk("Al", cubic=true), false ) * 2
