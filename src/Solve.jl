@@ -9,6 +9,8 @@ the help for these:
 module Solve
 
 import Optim
+import LineSearches
+
 using Optim: DifferentiableFunction, optimize, ConjugateGradient, LBFGS
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
@@ -43,9 +45,9 @@ function minimise!( at::AbstractAtoms;
    if isa(precond, Identity)
       optimiser = Optim.ConjugateGradient()
    else
-      optimiser = Optim.LBFGS( P = precond,
+      optimiser = Optim.ConjugateGradient( P = precond, 
                         precondprep! = (P, x) -> update!(P, at, x),
-                        linesearch! = Optim.quadbt_linesearch! )
+                        linesearch! = LineSearches.interpbacktrack! )
    end
    results = optimize( objective, dofs(at), method = optimiser,
                         f_tol = ftol, g_tol = gtol, show_trace = (verbose > 1) )
