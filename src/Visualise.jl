@@ -24,6 +24,11 @@ using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
     for custom elements or overriding the defaults in imolecule.js
 * `show_save`: If True, displays a save icon for rendering molecule as an
     image.
+
+## More kwargs:
+
+* bonds: :babel, :auto
+* cutoff: :auto or a number
 """
 function show(at::AbstractAtoms; bonds=:babel, box=:auto,
             camera_type="perspective", size=(500,500), display_html=false,
