@@ -21,7 +21,7 @@ module Potentials
 
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
-      JVec, JVecs, mat, vec, JMat
+      JVec, JVecs, mat, vec, JMat, JVecF
 
 import JuLIP: energy, forces, cutoff, virial, site_energies
 
@@ -55,6 +55,9 @@ site_energies(pot::SitePotential, at::AbstractAtoms) =
    Float64[ pot(r, R) for (_₁, _₂, r, R, _₃) in sites(at, cutoff(pot)) ]
 
 energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(site_energies(pot, at))
+
+evaluate(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate(pot, norm.(R), R)
+evaluate_d(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate_d(pot, norm.(R), R)
 
 function forces(pot::SitePotential, at::AbstractAtoms)
    frc = zerovecs(length(at))
