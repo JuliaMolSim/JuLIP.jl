@@ -9,6 +9,8 @@ the help for these:
 module Solve
 
 import Optim
+import LineSearches
+
 using Optim: DifferentiableFunction, optimize, ConjugateGradient, LBFGS
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
@@ -32,7 +34,7 @@ export minimise!
 """
 function minimise!( at::AbstractAtoms;
                   precond = Identity(), gtol=1e-6, ftol=1e-32,
-                  Optimiser = ConjugateGradient,
+                  method = :auto,
                   verbose = 1 )
 
    # create an objective function
@@ -40,13 +42,22 @@ function minimise!( at::AbstractAtoms;
                                        (x,g)->copy!(g, gradient(at, x)) )
    # call Optim.jl
    # TODO: use verb flag to determine whether detailed output is wanted
-   if isa(precond, Identity)
-      optimiser = Optim.ConjugateGradient()
-   else
-      optimiser = Optim.LBFGS( P = precond,
+   if method == :auto
+      if isa(precond, Identity)
+         optimiser = Optim.ConjugateGradient()
+      else
+         optimiser = Optim.ConjugateGradient( P = precond,
+                           precondprep! = (P, x) -> update!(P, at, x),
+                           linesearch! = LineSearches.interpbacktrack! )
+      end
+   elseif method == :lbfgs
+      optimiser = Optim.LBFGS( P = precond, extrapolate=true,
                         precondprep! = (P, x) -> update!(P, at, x),
-                        linesearch! = Optim.quadbt_linesearch! )
+                        linesearch! = LineSearches.interpbacktrack! )
+   else
+      error("JulIP.Solve.minimise!: unkonwn `method` option")
    end
+
    results = optimize( objective, dofs(at), method = optimiser,
                         f_tol = ftol, g_tol = gtol, show_trace = (verbose > 1) )
    # analyse the results
