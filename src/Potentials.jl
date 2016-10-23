@@ -21,9 +21,9 @@ module Potentials
 
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
-      JVec, JVecs, mat, vec, JMat
+      JVec, JVecs, mat, vec, JMat, JVecF
 
-import JuLIP: energy, forces, cutoff, stress, site_energies
+import JuLIP: energy, forces, cutoff, virial, site_energies
 
 export Potential, PairPotential, SitePotential
 
@@ -56,6 +56,9 @@ site_energies(pot::SitePotential, at::AbstractAtoms) =
 
 energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(site_energies(pot, at))
 
+evaluate(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate(pot, norm.(R), R)
+evaluate_d(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate_d(pot, norm.(R), R)
+
 function forces(pot::SitePotential, at::AbstractAtoms)
    frc = zerovecs(length(at))
    for (i, j, r, R, _) in sites(at, cutoff(pot))
@@ -66,10 +69,10 @@ function forces(pot::SitePotential, at::AbstractAtoms)
    return frc
 end
 
-site_stress(dV, R) = sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
+site_virial(dV, R) = - sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
 
-stress(V::SitePotential, at::AbstractAtoms) =
-      sum(  site_stress((@D V(r, R)), R)
+virial(V::SitePotential, at::AbstractAtoms) =
+      sum(  site_virial((@D V(r, R)), R)
             for (_₁, _₂, r, R, _₃) in sites(at, cutoff(V))  )
 
 
@@ -90,9 +93,10 @@ include("pairpotentials.jl")
 try
    include("adsite.jl")
    # * FDPotential : Site potential using ForwardDiff
+   # * RDPotential : Site potential using ReverseDiffPrototype
 catch
-   warn("""adsite.jl could not be included; most likely some AD package is missing;
-      at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
+   # warn("""adsite.jl could not be included; most likely some AD package is missing;
+   #    at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
 end
 
 include("EMT.jl")

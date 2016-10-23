@@ -1,7 +1,7 @@
 # included from Potentials.jl
 # part of the module JuLIP.Potentials
 
-using JuLIP: zerovecs, JVecsF, JVecF, JMatF 
+using JuLIP: zerovecs, JVecsF, JVecF, JMatF
 using JuLIP.ASE.MatSciPy: NeighbourList
 
 export ZeroPairPotential, PairSitePotential,
@@ -19,8 +19,8 @@ end
 
 # TODO: why is this not in the abstract file?
 # a simplified way to calculate gradients of pair potentials
-grad(pp::PairPotential, r::Float64, R::JVec) =
-            (evaluate_d(p::PairPotential, r) / r) * R
+grad(pp::PairPotential, r::Float64, R::JVecF) =
+            (evaluate_d(pp::PairPotential, r) / r) * R
 
 # TODO: rewrite using generator once bug is fixed
 function energy(pp::PairPotential, at::AbstractAtoms)
@@ -35,18 +35,18 @@ function forces(pp::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
    for (i,j,r,R,_) in bonds(at, cutoff(pp))
       # TODO: this should be equivalent, but for some reason using @GRAD is much slower!
-      # dE[j] -= 2 * @GRAD calc.pp(r, R)   # ∇ϕ(|R|) = (ϕ'(r)/r) R
-      dE[j] -= 2 * ((@D pp(r))/r) * R
+      # dE[j] -= 2 * (@GRAD pp(r, R))    # ∇ϕ(|R|) = (ϕ'(r)/r) R
+      dE[j] -= 2 * grad(pp, r, R)
    end
    return dE
 end
 
 
 # TODO: rewrite using generator once bug is fixed
-function stress(pp::PairPotential, at::AbstractAtoms)
-   S = zeros(JMatF)
+function virial(pp::PairPotential, at::AbstractAtoms)
+   S = zero(JMatF)
    for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
-      S += (((@D pp(r)) / r) * R) * R'
+      S -= grad(pp, r, R) * R'  # (((@D pp(r)) / r) * R) * R'
    end
    return S
 end
@@ -96,11 +96,10 @@ morse(A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0)) = (
          :  SplineCutoff(rcut[1], rcut[2]) * Morse(A, e0, r0) )
 
 
-@pot type ZeroPairPotential end
+@pot  type ZeroPairPotential end
 """
 `ZeroPairPotential()`: creates a potential that just returns zero
-"""
-ZeroPairPotential
+""" ZeroPairPotential
 evaluate(p::ZeroPairPotential, r::Float64) = 0.0
 evaluate_d(p::ZeroPairPotential, r::Float64) = 0.0
 evaluate_dd(p::ZeroPairPotential, r::Float64) = 0.0
@@ -132,7 +131,7 @@ end
 evaluate(psp::PairSitePotential, r, R) = _sumpair_(psp.pp, r)
 
 evaluate_d(psp::PairSitePotential, r, R) =
-            [ ((@D psp.pp(s))/s) * S for (s, S) in zip(r, R) ]
+            [ grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
 
 
 # TODO: define a `ComposePotential?`

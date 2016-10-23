@@ -36,14 +36,22 @@ to install; please follow instructions on the respective websites.
 
 Afterwards, install JuLIP, from the Julia REPL:
 ```julia
-Pkg.add("FunctionWrappers")
-Pkg.clone("https://github.com/libAtoms/JuLIP.jl.git")
+Pkg.add("JuLIP")
 ```
 and run
 ```
 Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. If a test fails, please open an issue.
+
+At the moment, best to use master for `JuLIP, Optim` and `LineSearches`, i.e., from the Julia REPL run
+```
+Pkg.checkout("JuLIP")
+Pkg.checkout("Optim")
+Pkg.checkout("LineSearches")
+```
+(though for Optim and LineSearches this requirement should very soon drop)
+
 
 ## `imolecule` and dependencies
 
@@ -100,6 +108,16 @@ export BABEL_LIBDIR="/Users/ortner/anaconda/lib/openbabel/2.3.90/"
 ought to circumvent the need for OpenBabel. Need to test this on a clean system.)
 -->
 
+## Automatic Differentiation
+
+There is some experimental AD support implemented; see `src/adsite.jl`, which
+require `ForwardDiff` and `ReverseDiffPrototype`. These can be installed via
+```
+Pkg.add("ForwardDiff")
+Pkg.clone("https://github.com/jrevels/ReverseDiffPrototype.jl.git")
+```
+If the packages are missing then the AD functionality is simply turned off.
+
 
 # Examples
 
@@ -110,8 +128,8 @@ More intersting examples will hopefully follow soon.
 ## Vacancy in a bulk Si cell
 
 ```julia
-using JuLIP
-at = Atoms("Si", cubic=true, pbc=(true,true,true)) * (4,4,4)
+using JuLIP, JuLIP.ASE
+at = bulk("Si", cubic=true) * 4
 deleteat!(at, 1)
 set_calculator!(at, JuLIP.Potentials.StillingerWeber())
 set_constraint!(at, FixedCell(at))
@@ -149,12 +167,12 @@ TB = TightBinding
 # sp model for Si (NRL-Tight Binding)
 tbm = TB.NRLTB.NRLTBModel(elem=TB.NRLTB.Si_sp, nkpoints = (0,0,0))
 # bulk crystal
-at = Atoms("Si", cubic=true, pbc=(true,true,true)) * (4,4,4)
+at = bulk("Si", cubic=true) * 4
 Eref = energy(tbm, at)
 # create vacancy
 deleteat!(at, 1)
 Edef = energy(tbm, at)
-# formation energy:
+# formation energy: (not really but sort of)
 println("Vacancy formation energy = ", Edef - Eref * length(at)/(length(at)+1))
 println("(probably this should not be negative! Increase simulation accuracy!)")
 ```

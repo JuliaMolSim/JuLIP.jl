@@ -107,14 +107,15 @@ export AbstractAtoms,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
-      stress, site_stresses, site_energies,
       defm, set_defm!
 
 # length is used for several things
 import Base: length, A_ldiv_B!, A_mul_B!, cell, gradient
 
 export AbstractCalculator,
-      energy, potential_energy, forces, gradient
+      energy, potential_energy, forces, gradient,
+      site_energies,
+      stress, virial, site_virials
 
 export AbstractNeighbourList,
        sites, bonds
@@ -332,16 +333,29 @@ forces in `Vector{JVecF}`  (negative gradient w.r.t. atom positions only)
 forces(at::AbstractAtoms) = forces(calculator(at), at)
 
 """
+* `virial(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
+* `virial(a::AbstractAtoms) -> JMatF`
+
+returns virial, (- ∂E / ∂F) where `F = defm(a)`
+"""
+@protofun virial(c::AbstractCalculator, a::AbstractAtoms)
+
+virial(a::AbstractAtoms) = virial(calculator(a), a)
+
+"""
 * `stress(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
 * `stress(a::AbstractAtoms) -> JMatF`
 
-returns Cauchy-stress, *not* normalised against cell volume
+stress = - virial / volume; this function should *not* be overloaded;
+instead overload virial
 """
-@protofun stress(c::AbstractCalculator, a::AbstractAtoms)
-stress(a::AbstractAtoms) = stress(calculator(a), a)
+stress(c::AbstractCalculator, a::AbstractAtoms) = - virial(c, a) / det(defm(a))
 
-@protofun site_stresses(c::AbstractCalculator, a::AbstractAtoms)
-site_stress(a::AbstractAtoms) = site_stress(calculator(a), a)
+stress(at::AbstractAtoms) = stress(calculator(at), at)
+
+# remove these for now; not clear they are useful.
+# @protofun site_virials(c::AbstractCalculator, a::AbstractAtoms)
+# site_virials(a::AbstractAtoms) = site_virials(calculator(a), a)
 
 
 #######################################################################

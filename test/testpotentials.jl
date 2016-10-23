@@ -29,17 +29,16 @@ calculators = Any[]
 
 # [1] basic lennard-jones calculator test
 push!(calculators, (  lennardjones(r0=rnn("Al")),
-         Atoms("Al", cubic=true, repeatcell=(3,3,2), pbc=(true,false,false)) ) )
+         set_pbc!(bulk("Al", cubic=true) * (3,3,2), (true,false,false)) ) )
 
 # [2] ASE's EMT calculator
 emt = JuLIP.ASE.EMTCalculator()
-at = Atoms("Cu", cubic=true, repeatcell=(2,2,2); pbc=(true,false,false))
-rattle!(at, 0.1)
+at = rattle!( set_pbc!( bulk("Cu", cubic=true) * 2, (true,false,false) ), 0.1 )
 set_calculator!(at, emt)
 push!(calculators, (emt, at))
 
 # [3] JuLIP's EMT calculator
-at2 = Atoms("Cu", cubic=true, repeatcell=(2,2,2); pbc=(true,false,false))
+at2 = set_pbc!( bulk("Cu", cubic=true) * (2,2,2), (true,false,false) )
 set_positions!(at2, positions(at))
 emt2 = JuLIP.Potentials.EMTCalculator(at2)
 set_calculator!(at2, emt2)
@@ -54,36 +53,36 @@ println("--------------------------------------------------")
 @test abs(energy(at) - energy(at2)) < 1e-12
 
 # [4] Stillinger-Weber model
-at3 = Atoms("Si", cubic=true, pbc=(false, true, false)) * 2
+at3 = set_pbc!( bulk("Si", cubic=true) * 2, (false, true, false) )
 sw = StillingerWeber()
 set_calculator!(at3, sw)
 push!(calculators, (sw, at3))
 
-# [5] a simple FDPotential
-@pot type FDPot <: FDPotential end
-fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
-JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot, R::Matrix{T}) =
-               sum( fdpot(Base.LinAlg.vecnorm2(R[:,i])) for i = 1:size(R,2) )
-JuLIP.cutoff(::FDPot) = 4.0
-at5 = Atoms("Si", pbc=false) * (3,3,1)
-push!(calculators, (FDPot(), at5))
-
-# [6] a simple FDPotential
-@pot type FDPot_r <: FDPotential_r end
-JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot_r, r::Vector{T}) = sum( fdpot.(r) )
-JuLIP.cutoff(::FDPot_r) = 4.0
-at6 = Atoms("Si", pbc=false) * (3,3,1)
-push!(calculators, (FDPot_r(), at6))
-
-# [7] a simple FDPotential
-@pot type RDPot_r <: RDPotential_r end
-JuLIP.Potentials.ad_evaluate{T<:Real}(pot::RDPot_r, r::Vector{T}) = sum( fdpot.(r) )
-JuLIP.cutoff(::RDPot_r) = 4.0
-at7 = Atoms("Si", pbc=false) * (3,3,1)
-push!(calculators, (RDPot_r(), at7))
+# # [5] a simple FDPotential
+# @pot type FDPot <: FDPotential end
+# fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot, R::Matrix{T}) =
+#                sum( fdpot(Base.LinAlg.vecnorm2(R[:,i])) for i = 1:size(R,2) )
+# JuLIP.cutoff(::FDPot) = 4.0
+# at5 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (FDPot(), at5))
+#
+# # [6] a simple FDPotential
+# @pot type FDPot_r <: FDPotential_r end
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot_r, r::Vector{T}) = sum( fdpot.(r) )
+# JuLIP.cutoff(::FDPot_r) = 4.0
+# at6 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (FDPot_r(), at6))
+#
+# # [7] a simple RDPotential
+# @pot type RDPot_r <: RDPotential_r end
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::RDPot_r, r::Vector{T}) = sum( fdpot.(r) )
+# JuLIP.cutoff(::RDPot_r) = 4.0
+# at7 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (RDPot_r(), at7))
 
 # [8] PairSitePotential
-at8 = Atoms("Al", cubic=true, pbc=false) * 2
+at8 = set_pbc!( bulk("Al", cubic=true), false ) * 2
 pp = lennardjones(r0=rnn("Al"))
 psp = SitePotential(pp)
 push!(calculators, (psp, at8))
