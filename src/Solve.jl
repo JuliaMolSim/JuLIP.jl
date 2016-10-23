@@ -27,10 +27,12 @@ export minimise!
 
 ## Keyword arguments:
 * `precond = Identity()` : preconditioner
-* `grtol = 1e-6`
-* `ftol = 1e-32`
-* `Optimiser = Optim.ConjugateGradient` (currently this is ignored)
-* `verbose = 0`: 0 : no output, 1 : final, 2 : iteration
+* `grtol = 1e-6` : gradient tolerance (max-norm)
+* `ftol = 1e-32` : objective tolerance
+* `Optimiser = :auto`, `:auto` should always work, at least on the master
+   branch of `Optim`; `:lbfgs` needs the `extraplbfgs2` branch, which is not
+   yet merged. Other options might be introduced in the future.
+* `verbose = 1`: 0 : no output, 1 : final, 2 : iteration and final
 """
 function minimise!( at::AbstractAtoms;
                   precond = Identity(), gtol=1e-6, ftol=1e-32,
