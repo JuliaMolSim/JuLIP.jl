@@ -9,7 +9,7 @@ module Constraints
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          mat, vecs, JVecs, JVecsF, JMatF, JMat,
          set_positions!, set_cell!, virial, defm, set_defm!,
-         forces, unsafe_positions
+         forces, unsafe_positions, stress
 
 import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy
 
@@ -254,7 +254,7 @@ function ExpVariableCell(at::AbstractAtoms;
                free=nothing, clamp=nothing, mask=nothing,
                pressure = 0.0, fixvolume=false)
    if pressure != 0.0 && fixvolume
-      warning("the pressure setting will be ignores when `fixvolume==true`")
+      warning("the pressure setting will be ignored when `fixvolume==true`")
    end
    return ExpVariableCell( analyze_mask(at, free, clamp, mask),
                         positions(at), defm(at), pressure, fixvolume )
@@ -273,6 +273,7 @@ function logm_defm(at::AbstractAtoms, cons::ExpVariableCell)
    if vecnorm(F - expm(U) * cons.F0, Inf) > 1e-12
       @show F
       @show expm(U) * cons.F0
+      error("something has gone wrong; U is not symmetric?")
    end
    return U, F
 end
@@ -318,8 +319,8 @@ end
 function gradient(at::AbstractAtoms, cons::ExpVariableCell)
    U, F = logm_defm(at, cons)
    G = forces(at)
-   broadcast!(g -> - (expm(U) * g), G, G)   # G[n] <- exp(U) * G[n]
-   T = dexpm_3x3(U, stress(at) * expm(-U))
+   broadcast!(g -> - (expm(U) * g), G, G)   # G[n] <- -exp(U) * G[n]
+   T = dexpm_3x3(U, - virial(at) * expm(-U))
    # add the forces acting on the upper diagonal of U to the lower diagonal
    # this way we ensure that T : V = U2dofs(T) : U2dofs(V)
    T[(2,3,6)] += T[(4,7,8)]

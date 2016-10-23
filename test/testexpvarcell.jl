@@ -1,10 +1,12 @@
-using JuLIP.Potentials
+using JuLIP: stress
+using JuLIP.Potentials, JuLIP.ASE
 
 println("-------------------------------------------------")
 println("   Variable Cell Test")
 println("-------------------------------------------------")
 calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = Atoms("Al", pbc=(true,true,true)) * 2      # cubic=true,
+at = bulk("Al") * 2      # cubic=true,
+set_pbc!(at, true)
 set_calculator!(at, calc)
 
 # perturb the cell shape
@@ -41,28 +43,29 @@ set_dofs!(at, x)
 JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
 
 
-println("-------------------------------------------------")
-println("Test optimisation with ExpVariableCell")
-# # start with a clean `at`
-at = Atoms("Si", pbc=(true,true,true)) * 2   # cubic=true,
-set_calculator!(at, StillingerWeber())
-set_constraint!(at, ExpVariableCell(at))
-#
-println("For the initial state, stress is far from 0:")
-@show vecnorm(stress(at), Inf)
-@show vecnorm(dofs(at), Inf)
-# JuLIP.Solve.minimise!(at, verbose=2)
-dt = 1e-4
-for n = 1:100
-   x = dofs(at)
-   ∇E = gradient(at)
-   @printf(" %3d  |  %4.2e \n", n, vecnorm(∇E, Inf))
-   x -= dt * ∇E
-   set_dofs!(at, x)
-end
-println("After optimisation, stress is 0:")
-@show vecnorm(stress(at), Inf)
-# @test vecnorm(stress(at), Inf) < 1e-4
+# println("-------------------------------------------------")
+# println("Test optimisation with ExpVariableCell")
+# # # start with a clean `at`
+# at = Atoms("Si") * 2   # cubic=true,
+# set_pbc!(at, true)
+# set_calculator!(at, StillingerWeber())
+# set_constraint!(at, ExpVariableCell(at))
+# #
+# println("For the initial state, stress is far from 0:")
+# @show vecnorm(stress(at), Inf)
+# @show vecnorm(dofs(at), Inf)
+# # JuLIP.Solve.minimise!(at, verbose=2)
+# dt = 1e-4
+# for n = 1:100
+#    x = dofs(at)
+#    ∇E = gradient(at)
+#    @printf(" %3d  |  %4.2e \n", n, vecnorm(∇E, Inf))
+#    x -= dt * ∇E
+#    set_dofs!(at, x)
+# end
+# println("After optimisation, stress is 0:")
+# @show vecnorm(stress(at), Inf)
+# # @test vecnorm(stress(at), Inf) < 1e-4
 
 
 
