@@ -18,12 +18,13 @@ julia.using("JuLIP")
 ASEAtoms = julia.eval('ASEAtoms(a) = JuLIP.ASE.ASEAtoms(a)')
 ASECalculator = julia.eval('ASECalculator(c) = JuLIP.ASE.ASECalculator(c)')
 fixedcell = julia.eval('fixedcell(a) = JuLIP.Constraints.FixedCell(a)')
+variablecell = julia.eval('variablecell(a) = JuLIP.Constraints.VariableCell(a)')
 
 class JulipCalculator(Calculator):
     """
     ASE-compatible Calculator that calls JuLIP.jl for forces and energy
     """
-    implemented_properties = ['forces', 'energy']
+    implemented_properties = ['forces', 'energy', 'stress']
     default_parameters = {}
     name = 'JulipCalculator'
 
@@ -39,6 +40,8 @@ class JulipCalculator(Calculator):
             self.results['energy'] = julia.energy(self.julip_calculator, julia_atoms)
         if 'forces' in properties:
             self.results['forces'] = np.array(julia.forces(self.julip_calculator, julia_atoms))
+        if 'stress' in properties:
+            self.results['stress'] = np.array(julia.stress(self.julip_calculator, julia_atoms))
 
 
 class JulipOptimizer(Optimizer):
@@ -47,14 +50,22 @@ class JulipOptimizer(Optimizer):
     """
 
     def __init__(self, atoms, restart=None, logfile='-',
-                 trajectory=None, master=None, optimizer='JuLIP.Solve.ConjugateGradient'):
+                 trajectory=None, master=None, variable_cell=False,
+                 optimizer='JuLIP.Solve.ConjugateGradient'):
         """Parameters:
 
         atoms: Atoms object
             The Atoms object to relax.
+
+        restart, logfile ,trajector master : as for ase.optimize.optimize.Optimzer
+
+        variable_cell : bool
+            If true optimize the cell degresses of freedom as well as the
+            atomic positions. Default is False.
         """
         Optimizer.__init__(self, atoms, restart, logfile, trajectory, master)
         self.optimizer = julia.eval(optimizer)
+        self.variable_cell = variable_cell
 
     def run(self, fmax=0.05):
         """
@@ -68,7 +79,12 @@ class JulipOptimizer(Optimizer):
 
         if self.atoms.constraints != []:
             raise NotImplementedError("No support for ASE constraints yet!")
-        julia.set_constraint_b(julia_atoms, fixedcell(julia_atoms))
+        if self.variable_cell:
+            julia.set_constraint_b(julia_atoms, variablecell(julia_atoms))
+        else:
+            julia.set_constraint_b(julia_atoms, fixedcell(julia_atoms))
 
+        # FIXME - should send output to logfile, and also add callback hook
+        # to write frames to trajectory (Callbacks not yet supported by Optim.jl).
         results = julia.minimise_b(julia_atoms, gtol=fmax, verbose=2)
         return results

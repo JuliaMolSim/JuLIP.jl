@@ -2,6 +2,7 @@ julia 0.5-
 PyCall
 StaticArrays
 Optim
+LineSearches
 Calculus
 PyAMG
 JSON

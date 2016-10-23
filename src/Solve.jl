@@ -9,6 +9,8 @@ the help for these:
 module Solve
 
 import Optim
+import LineSearches
+
 using Optim: DifferentiableFunction, optimize, ConjugateGradient, LBFGS
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
@@ -25,14 +27,16 @@ export minimise!
 
 ## Keyword arguments:
 * `precond = Identity()` : preconditioner
-* `grtol = 1e-6`
-* `ftol = 1e-32`
-* `Optimiser = Optim.ConjugateGradient` (currently this is ignored)
-* `verbose = 0`: 0 : no output, 1 : final, 2 : iteration
+* `grtol = 1e-6` : gradient tolerance (max-norm)
+* `ftol = 1e-32` : objective tolerance
+* `Optimiser = :auto`, `:auto` should always work, at least on the master
+   branch of `Optim`; `:lbfgs` needs the `extraplbfgs2` branch, which is not
+   yet merged. Other options might be introduced in the future.
+* `verbose = 1`: 0 : no output, 1 : final, 2 : iteration and final
 """
 function minimise!( at::AbstractAtoms;
                   precond = Identity(), gtol=1e-6, ftol=1e-32,
-                  Optimiser = ConjugateGradient,
+                  method = :auto,
                   verbose = 1 )
 
    # create an objective function
@@ -40,13 +44,22 @@ function minimise!( at::AbstractAtoms;
                                        (x,g)->copy!(g, gradient(at, x)) )
    # call Optim.jl
    # TODO: use verb flag to determine whether detailed output is wanted
-   if isa(precond, Identity)
-      optimiser = Optim.ConjugateGradient()
-   else
-      optimiser = Optim.LBFGS( P = precond,
+   if method == :auto
+      if isa(precond, Identity)
+         optimiser = Optim.ConjugateGradient()
+      else
+         optimiser = Optim.ConjugateGradient( P = precond,
+                           precondprep! = (P, x) -> update!(P, at, x),
+                           linesearch! = LineSearches.interpbacktrack! )
+      end
+   elseif method == :lbfgs
+      optimiser = Optim.LBFGS( P = precond, extrapolate=true,
                         precondprep! = (P, x) -> update!(P, at, x),
-                        linesearch! = Optim.quadbt_linesearch! )
+                        linesearch! = LineSearches.interpbacktrack! )
+   else
+      error("JulIP.Solve.minimise!: unkonwn `method` option")
    end
+
    results = optimize( objective, dofs(at), method = optimiser,
                         f_tol = ftol, g_tol = gtol, show_trace = (verbose > 1) )
    # analyse the results

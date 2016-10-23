@@ -8,8 +8,8 @@ module Constraints
 
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          mat, vecs, JVecs, JVecsF, JMatF, JMat,
-         set_positions!, set_cell!, stress, defm, set_defm!,
-         forces, stress, unsafe_positions
+         set_positions!, set_cell!, virial, defm, set_defm!,
+         forces, unsafe_positions
 
 import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy
 
@@ -74,7 +74,7 @@ function analyze_mask(at, free, clamp, mask)
       fill!(mask, false)
       mask[:, free] = true
    end
-   return mask[:]
+   return find(mask[:])
 end
 
 FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
@@ -211,13 +211,13 @@ function gradient(at::AbstractAtoms, cons::VariableCell)
    for n = 1:length(G)
       G[n] = - A' * G[n]
    end
-   S = stress(at) * inv(F)'           # ∂E / ∂F
-   S -= cons.pressure * vol_d(at)     # applied stress
+   S = - virial(at) * inv(F)'        # ∂E / ∂F
+   S += cons.pressure * vol_d(at)     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
 energy(at::AbstractAtoms, cons::VariableCell) =
-               energy(at) - cons.pressure * det(defm(at))
+         energy(at) + cons.pressure * det(defm(at))
 
 # TODO: fix this once we implement the volume constraint ??????
 project!(at::AbstractAtoms, cons::VariableCell) = at

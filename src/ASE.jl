@@ -27,14 +27,14 @@ import JuLIP:
       calculator, set_calculator!, # ✓
       constraint, set_constraint!, # ✓
       neighbourlist,                # ✓
-      energy, forces
+      energy, forces, virial
 
 import Base.length, Base.deleteat!         # ✓
 
 # from arrayconversions:
-using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, pyarrayref,
+using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
-      AbstractCalculator, NullCalculator
+      AbstractCalculator, NullCalculator, defm
 
 # extra ASE functionality:
 import Base.repeat         # ✓
@@ -59,10 +59,7 @@ Julia wrapper for the ASE `Atoms` class.
 
 ## Constructors
 
-The default constructor is
-```
-at = ASEAtoms("Al"; repeat=(2,3,4), cubic=true, pbc = (true, false, true))
-```
+* `ASEAtoms(s::AbstractString, X::JVecsF) -> at::ASEAtoms`
 
 For internal usage there is also a constructor `ASEAtoms(po::PyObject)`
 """
@@ -87,16 +84,9 @@ end
 constraint(at::ASEAtoms) = at.cons
 
 
-function ASEAtoms( s::AbstractString;
-                   repeatcell=nothing, cubic=false, pbc=(true,true,true) )
-   at = bulk(s, cubic=cubic)
-   repeatcell != nothing ? at = repeat(at, repeatcell) : nothing
-   set_pbc!(at, pbc)
-   return at
-end
-
-ASEAtoms(s::AbstractString, X::JVecsF) = ASEAtoms( ase_atoms.Atoms(s, mat(X)') )
-
+ASEAtoms(s::AbstractString, X::JVecsF) = ASEAtoms(s, mat(X))
+ASEAtoms(s::AbstractString, X::Matrix) = ASEAtoms(ase_atoms.Atoms(s, X'))
+ASEAtoms(s::AbstractString) = ASEAtoms(ase_atoms.Atoms(s))
 
 "Return the PyObject associated with `a`"
 pyobject(a::ASEAtoms) = a.po
@@ -205,8 +195,24 @@ end
 set_calculator!(at::ASEAtoms, po::PyObject) =
       set_calculator!(at, ASECalculator(po))
 
-forces(calc::ASECalculator, at::ASEAtoms) = at.po[:get_forces]()' |> vecs
-energy(calc::ASECalculator, at::ASEAtoms) = at.po[:get_potential_energy]()
+forces(calc::ASECalculator, at::ASEAtoms) = calc.po[:get_forces](at.po)' |> vecs
+energy(calc::ASECalculator, at::ASEAtoms) = calc.po[:get_potential_energy](at.po)
+
+function virial(calc::ASECalculator, at::ASEAtoms)
+    s = calc.po[:get_stress](at.po)
+    vol = det(defm(at))
+    if size(s) == (6,)
+      # unpack stress from compressed Voigt vector form
+      s11, s22, s33, s23, s13, s12 = s
+      return -JMatF([s11 s12 s13;
+                     s12 s22 s23;
+                     s13 s23 s33]) * vol
+    elseif size(s) == (3,3)
+      return -JMatF(s) * vol
+    else
+      error("got unxpected size(stress) $(size(stress)) from ASE")
+    end
+end
 
 """
 Creates an `ASECalculator` that uses `ase.calculators.emt` to compute
