@@ -9,7 +9,7 @@ module Constraints
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          mat, vecs, JVecs, JVecsF, JMatF, JMat,
          set_positions!, set_cell!, virial, defm, set_defm!,
-         forces, unsafe_positions, stress
+         forces, unsafe_positions
 
 import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy
 
