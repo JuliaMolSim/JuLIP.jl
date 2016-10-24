@@ -30,6 +30,8 @@ typealias JVecI JVec{Int}
 
 Base.zero{T}(::Type{JVec{T}}) = JVec([zero(T) for i=1:3])
 
+Base.eye{T}(::Type{JMat{T}}) = JMat(T, eye(3))
+
 
 "`JVecs{T}` : List of 3-dimensional immutable vectors"
 typealias JVecs{T} Vector{JVec{T}}
