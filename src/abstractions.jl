@@ -333,6 +333,12 @@ forces in `Vector{JVecF}`  (negative gradient w.r.t. atom positions only)
 forces(at::AbstractAtoms) = forces(calculator(at), at)
 
 """
+hessian with respect to all atom positions
+"""
+@protofun hessian_pos(calc::AbstractCalculator, at::AbstractAtoms)
+
+
+"""
 * `virial(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
 * `virial(a::AbstractAtoms) -> JMatF`
 
@@ -426,6 +432,17 @@ shape
 gradient(at::AbstractAtoms, x::Dofs) = gradient(set_dofs!(at, x), constraint(at))
 
 gradient(at::AbstractAtoms) = gradient(at, constraint(at))
+
+"""
+`hessian`: compute hessian of total energy with respect to DOFs!
+
+TODO: write docs
+"""
+@protofun hessian(at::AbstractAtoms, cons::AbstractConstraint)
+
+hessian(at::AbstractAtoms, x::Dofs) = hessian(set_dofs!(at, x), constraint(at))
+
+hessian(at::AbstractAtoms) = hessian(at, constraint(at))
 
 
 #######################################################################
