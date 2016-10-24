@@ -52,6 +52,21 @@ function virial(pp::PairPotential, at::AbstractAtoms)
 end
 
 
+hess(pp::PairPotential, r::Float64, R::JVecF) = (
+      evaluate_dd(pp, r) * (R * R')
+      + evaluate_d(pp, r)/r * ((@SMatrix eye(3)) - R * R')
+  )
+
+# hess(pp::PairPotential, r::Float64, R::JVecF) = (
+#         (@DD pp(r)) * (R * R')
+#         + (@D pp(r))/r * ((@SMatrix eye(3)) - R * R')
+#     )
+
+function hessian_pos(pp::PairPotential, r, R)
+  # TODO: assemble the global hessian here
+end
+
+
 """
 `LennardJones:` e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
 
