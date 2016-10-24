@@ -54,7 +54,7 @@ end
 
 hess(pp::PairPotential, r::Float64, R::JVecF) = (
       evaluate_dd(pp, r) * (R * R')
-      + evaluate_d(pp, r)/r * ((@SMatrix eye(3)) - R * R')
+      + evaluate_d(pp, r)/r * (eye(JMatF) - R * R')
   )
 
 # hess(pp::PairPotential, r::Float64, R::JVecF) = (
