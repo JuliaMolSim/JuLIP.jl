@@ -298,7 +298,8 @@ type  NullCalculator <: AbstractCalculator end
 
 """
 `energy`: can be called in various ways
-*  `energy(calc, at)`: base definition
+*  `energy(calc, at)`: base definition; this is normally the only method that
+     needs to be overloaded when a new calculator is implemented. 
 * `energy(at) = energy(calculator(at), at)`: if a calculator is attached to `at`
 * `energy(calc, at, const, dof) = energy(calc, dof2at!(at,const,dof))`
 * `energy(calc, at, dof) = energy(calc, at, constraint(dof), dof)`
