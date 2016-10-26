@@ -51,6 +51,18 @@ using PyCall
 ###  Wrapper for ASE Atoms object and its basic functionality
 ################################################################
 
+"""
+`TransientData`
+
+some data which needs to be updated if the configuration (positions only!) has
+changed too much.
+"""
+type TransientData
+   max_change::Float64    # how much X may change before recomputing
+   accum_change::Float64   # how much has it changed already
+   data::Any
+end
+
 
 """
 `type ASEAtoms <: AbstractAtoms`
@@ -67,6 +79,7 @@ type ASEAtoms <: AbstractAtoms
    po::PyObject       # ase.Atoms instance
    calc::AbstractCalculator
    cons::AbstractConstraint
+   transient::Dict{Symbol, TransientData}
 end
 
 
@@ -91,23 +104,31 @@ ASEAtoms(s::AbstractString) = ASEAtoms(ase_atoms.Atoms(s))
 "Return the PyObject associated with `a`"
 pyobject(a::ASEAtoms) = a.po
 
-get_array(a::ASEAtoms, name) = a.po[:get_array(name)]
 
-set_array!(a::ASEAtoms, name, value) = a.po[:set_array(name, value)]
+length(at::ASEAtoms) = length( unsafe_positions(at::ASEAtoms) )
 
-#
-# TODO: write an explanation about storage layout here
-#
+
+# ==========================================
+#    some logic for storing permanent data
+
 positions(at::ASEAtoms) = copy( pyarrayref(at.po["positions"]) ) |> vecs
+
+"""
+return a reference to the positions array stored in `at.po[:positions]`,
+manipulating this array will change the stored positions, hence use with care.
+Normally, `unsafe_positions` should only be used when it is certain that the
+data will only be *read* but not manipulated.
+"""
 unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
 
 function set_positions!(a::ASEAtoms, p::JVecsF)
+   pold = positions(a)
+   r = maxdist(pold, p)
    p_py = PyReverseDims(mat(p))
    a.po[:set_positions](p_py)
+   update_transient_data!(a, r)
    return a
 end
-
-length(at::ASEAtoms) = length( unsafe_positions(at::ASEAtoms) )
 
 set_pbc!(at::ASEAtoms, val::Bool) = set_pbc!(at, (val,val,val))
 
@@ -128,6 +149,41 @@ function deleteat!(at::ASEAtoms, n::Integer)
 end
 
 
+# ==========================================
+#    some logic for storing transient data
+
+
+function update_transient_data!(a::ASEAtoms, r::Real)
+   for (key, t) in a.transient
+      t.accum_change += r
+      if t.accum_change + r >= t.max_change
+         delete!(a.transient, key)
+      end
+   end
+   return a
+end
+
+# Python arrays
+array(a::ASEAtoms, name) = a.po[:get_array](string(name))
+get_array(a::ASEAtoms, name) = array(a, name)
+set_array!(a::ASEAtoms, name, value::Array) = a.po[:set_array](string(name), value)
+
+# Python info
+data(a::ASEAtoms, name) = a.po[:get_info](string(name))
+get_data(a::ASEAtoms, name) = data(a, name)
+set_data!(a::ASEAtoms, name, value::Any) = a.po[:set_info](string(name), value)
+
+# Julia transient data
+has_transient(a::ASEAtoms, name) = haskey(a.transient, name)
+transient(a::ASEAtoms, name) = (a.transient[name]).data
+function set_constraint!(a::ASEAtoms, name, value, max_change=0.0)
+   a.transient[name] = TransientData(max_change, 0.0, value)
+   return a
+end
+
+
+# ========================================================================
+#     some nice Atoms generating and manipulating
 
 
 """
@@ -173,8 +229,14 @@ nanotube(args...; kwargs...) =
 
 include("MatSciPy.jl")
 
-neighbourlist(at::ASEAtoms, cutoff::Float64) = MatSciPy.NeighbourList(at, cutoff)
-
+function neighbourlist(at::ASEAtoms, cutoff::Float64)::NeighbourList
+   # if no previous neighbourlist is available, compute a new one
+   if !has_transient(at, :nlist)
+      # this nlist will be destroyed as soon as positions change
+      set_transient!(at, :nlist, MatSciPy.NeighbourList(at, cutoff))
+   end
+   return transient(at, :nlist)
+end
 
 
 ######################################################
@@ -237,7 +299,8 @@ add `atadd` atoms to `at` and returns `at`; only `at` is modified
 
 A short variant is
 ```julia
-extend!(at, (s, x))
+#  extend!(at, (s, x))  <<<< deprecated
+extend!(at, s, x)
 ```
 where `s` is a string, `x::JVecF` a position
 """
@@ -246,9 +309,12 @@ function extend!(at::ASEAtoms, atadd::ASEAtoms)
    return at
 end
 
-extend!{S <: AbstractString}(at::ASEAtoms, atnew::Tuple{S,JVecF}) =
-   extend!(at, ASEAtoms(atnew[1], atnew[2]))
+function extend!{S <: AbstractString}(at::ASEAtoms, atnew::Tuple{S,JVecF})
+   warn("`extend!(at, (s,x))` is deprecated; use `extend!(at, s, x)` instead")
+   extend!(at, atnew[1], atnew[2])
+end
 
+extend!(at::ASEAtoms, S::AbstractString, x::JVecF) = extend!(at, ASEAtoms(S, [x]))
 
 
 "return vector of chemical symbols as strings"
@@ -259,9 +325,6 @@ write(filename::AbstractString, at::ASEAtoms) = ase_io.write(filename, at.po)
 # TODO: trajectory; see
 #       https://wiki.fysik.dtu.dk/ase/ase/io/trajectory.html
 
-
-# TODO: rnn should be generalised to compute a reasonable rnn estimate for
-#       an arbitrary set of positions
 """
 `rnn(species)` : returns the nearest-neighbour distance for a given species
 """
