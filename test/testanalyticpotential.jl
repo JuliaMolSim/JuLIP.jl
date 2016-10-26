@@ -13,7 +13,7 @@ const e0 = 0.99
 const r0 = 1.05
 const A = 4.1
 
-lj = JuLIP.Potentials.AnalyticPotential(
+lj = JuLIP.Potentials.PairPotential(
                      "$e0 * (exp(-2*$A*(r/$r0-1.0)) - 2.0*exp(-$A*(r/$r0-1.0)))",
                      id="Morse(e0=$e0,r0=$r0,A=$A)")
 @show typeof(lj)

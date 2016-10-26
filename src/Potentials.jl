@@ -35,6 +35,11 @@ abstract Potential <: AbstractCalculator
 
 """
 `PairPotential`: abstract supertype for pair potentials
+
+Can also be used as a constructor for analytic pair potentials, e.g.,
+```julia
+lj = PairPotential( :( r^(-12) - 2 * r^(-6) ) )
+```
 """
 abstract PairPotential <: Potential
 
@@ -78,6 +83,8 @@ virial(V::SitePotential, at::AbstractAtoms) =
 
 include("analyticpotential.jl")
 # * AnalyticPotential
+# * AnalyticPairPotential
+# * WrappedPPotential
 
 include("cutoffs.jl")
 #   * SWCutoff

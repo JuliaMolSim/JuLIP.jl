@@ -148,7 +148,7 @@ function Exp(at::AbstractAtoms;
    end
    rcut = r0 * cutoff_mult
    exp_shit = exp( - A*(rcut/r0 - 1.0) )
-   pot = AnalyticPotential( :(exp( - $A * (r/$r0 - 1.0)) - $exp_shit),
+   pot = PairPotential( :(exp( - $A * (r/$r0 - 1.0)) - $exp_shit),
                             cutoff = rcut )
    return AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
 end

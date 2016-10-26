@@ -147,7 +147,7 @@ using JuLIP
 using JuLIP.Potentials
 r0 = JuLIP.ASE.rnn("Al")
 A = 4.0;  # stiffness paramter
-pot = AnalyticPotential( :( 6.0 * exp(- $A * (r/$r0 - 1.)) - $A * ($r0/r)^6 ) )
+pot = PairPotential( :( 6.0 * exp(- $A * (r/$r0 - 1.)) - $A * ($r0/r)^6 ) )
 pot = pot * SplineCutoff(2.1*r0, 3.5*r0)   
 # `pot` can now be used as a calculator to do something interesting ...
 ```

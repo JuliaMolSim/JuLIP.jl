@@ -7,13 +7,13 @@ using JuLIP.Testing
 verbose=true
 
 julip_tests = [
-   # "testaux.jl";
-   # "testase.jl";
-   # "testanalyticpotential.jl";
-   # "testpotentials.jl";
-   # "testvarcell.jl";
+   "testaux.jl";
+   "testase.jl";
+   "testanalyticpotential.jl";
+   "testpotentials.jl";
+   "testvarcell.jl";
    "testexpvarcell.jl";
-   # "testsolve.jl";
+   "testsolve.jl";
 ]
 
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")

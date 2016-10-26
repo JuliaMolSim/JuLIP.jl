@@ -48,13 +48,15 @@ macro pot(fsig)
    @assert fsig.head == :type
    tname, tparams = t_info(fsig.args[2])
    # isa(tname, Symbol) ? name_only = tname : name_only = tname.args[1]
+   # @show name_only
    tname = esc(tname)
    for n = 1:length(tparams)
       tparams[n] = esc(tparams[n])
    end
    sym = esc(:x)
-   return quote
+   quote
       $(esc(fsig))
+      # Docs.@__doc__ $(name_only)
       ($sym::$tname){$(tparams...)}(args...) = evaluate($sym, args...)
       ($sym::$tname){$(tparams...)}(::Type{Val{:D}}, args...) = evaluate_d($sym, args...)
       ($sym::$tname){$(tparams...)}(::Type{Val{:DD}}, args...) = evaluate_dd($sym, args...)
@@ -118,8 +120,10 @@ end
    p1::P1
    p2::P2
 end
-"sum of two pair potentials"
-SumPot
+
+# "sum of two pair potentials"
+# SumPot
+
 import Base.+
 +(p1::PairPotential, p2::PairPotential) = SumPot(p1, p2)
 evaluate(p::SumPot, r) = p.p1(r) + p.p2(r)
