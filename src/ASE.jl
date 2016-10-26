@@ -34,7 +34,7 @@ import Base.length, Base.deleteat!         # ✓
 # from arrayconversions:
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
-      AbstractCalculator, NullCalculator, defm
+      AbstractCalculator, NullCalculator, defm, maxdist
 
 # extra ASE functionality:
 import Base.repeat         # ✓
@@ -82,8 +82,8 @@ type ASEAtoms <: AbstractAtoms
    transient::Dict{Symbol, TransientData}
 end
 
-
-ASEAtoms(po::PyObject) = ASEAtoms(po, NullCalculator(), NullConstraint())
+ASEAtoms(po::PyObject) = ASEAtoms(po, NullCalculator(), NullConstraint(),
+                                 Dict{Symbol, TransientData}())
 
 function set_calculator!(at::ASEAtoms, calc::AbstractCalculator)
    at.calc = calc
@@ -176,7 +176,7 @@ set_data!(a::ASEAtoms, name, value::Any) = a.po[:set_info](string(name), value)
 # Julia transient data
 has_transient(a::ASEAtoms, name) = haskey(a.transient, name)
 transient(a::ASEAtoms, name) = (a.transient[name]).data
-function set_constraint!(a::ASEAtoms, name, value, max_change=0.0)
+function set_transient!(a::ASEAtoms, name, value, max_change=0.0)
    a.transient[name] = TransientData(max_change, 0.0, value)
    return a
 end
@@ -229,7 +229,7 @@ nanotube(args...; kwargs...) =
 
 include("MatSciPy.jl")
 
-function neighbourlist(at::ASEAtoms, cutoff::Float64)::NeighbourList
+function neighbourlist(at::ASEAtoms, cutoff::Float64)::MatSciPy.NeighbourList
    # if no previous neighbourlist is available, compute a new one
    if !has_transient(at, :nlist)
       # this nlist will be destroyed as soon as positions change
