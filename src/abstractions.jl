@@ -192,6 +192,19 @@ for `set_data!`.
 Base.setindex!(at::AbstractAtoms, value,
                name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
+# `positions` is a special version of `get_data`; others are
+# `momenta`, `velocities`, `masses`, ...others?...
+
+"return momenta as a `JVecsF`"
+@protofun momenta(::AbstractAtoms)
+"alias for `momenta`"
+get_momenta(at::AbstractAtoms) = momenta(at)
+"set momenta array"
+@protofun set_momenta!(::AbstractAtoms, ::JVecsF)
+
+
+
+
 """
 `get_data(a, name)`:
 obtain some data stored with `set_data!`
