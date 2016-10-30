@@ -23,7 +23,7 @@ import JuLIP:
       positions, set_positions!,  unsafe_positions,  # ✓
       cell, set_cell!,             # ✓
       pbc, set_pbc!,               # ✓
-      set_data!, get_data,         # ✓
+      set_data!, get_data, has_data,  # ✓
       calculator, set_calculator!, # ✓
       constraint, set_constraint!, # ✓
       neighbourlist,                # ✓
@@ -40,7 +40,8 @@ using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
 import Base.repeat         # ✓
 export ASEAtoms,      # ✓
       repeat, rnn, chemical_symbols, ASECalculator, extend!,
-      get_info, set_info!, get_array, set_array!
+      get_info, set_info!, get_array, set_array!, has_array, has_info,
+      get_transient, set_transient!, has_transient
 using PyCall
 
 @pyimport ase.io as ase_io
@@ -165,10 +166,10 @@ function update_transient_data!(a::ASEAtoms, r::Real)
 end
 
 # Python arrays
-has_array(a::ASEAtoms, name) = haskey(a.po["arrays"], name)
+has_array(a::ASEAtoms, name) = haskey(PyDict(a.po["arrays"]), name)
 get_array(a::ASEAtoms, name) = a.po[:get_array](string(name))
 function set_array!(a::ASEAtoms, name, value::Array)
-   if hastransient(a, name) || hasinfo(a, name)
+   if has_transient(a, name) || has_info(a, name)
       error("""cannot set_array!(..., $(name), ...)" since this key already
                exists in either `transient` or `info`""")
    end
@@ -177,14 +178,14 @@ function set_array!(a::ASEAtoms, name, value::Array)
 end
 
 # Python info
-has_info(a::ASEAtoms, name) = haskey(a.po["info"], name)
-get_info(a::ASEAtoms, name) = a.po[:get_info](string(name))
+has_info(a::ASEAtoms, name) = haskey(PyDict(a.po["info"]), name)
+get_info(a::ASEAtoms, name) = PyDict(a.po["info"])[string(name)]
 function set_info!(a::ASEAtoms, name, value::Any)
-   if hastransient(a, name) || hasarray(a, name)
+   if has_transient(a, name) || has_array(a, name)
       error("""cannot set_info!(..., $(name), ...)" since this key already
                exists in either `transient` or `arrays`""")
    end
-   a.po[:set_info](string(name), value)
+   PyDict(a.po["info"])[string(name)] = value
    return a
 end
 
@@ -192,7 +193,7 @@ end
 has_transient(a::ASEAtoms, name) = haskey(a.transient, name)
 get_transient(a::ASEAtoms, name) = (a.transient[name]).data
 function set_transient!(a::ASEAtoms, name, value, max_change=0.0)
-   if haskey(a.po["arrays"], name) || haskey(a.po["info"], name)
+   if has_array(a, name) || has_info(a, name)
       error("""cannot set_transient!(..., $(name), ...)" since this key already
                exists in either `arrays` or `info`""")
    end
@@ -201,24 +202,35 @@ function set_transient!(a::ASEAtoms, name, value, max_change=0.0)
 end
 
 # teach the generic set_data! where to put the data
+has_data(at::ASEAtoms, name) =
+   has_array(at, name) || has_info(at, name) || has_transient(at, name)
+
 set_data!(at::ASEAtoms, name, value::Any) =
    set_info!(at, name, value)
 set_data!(at::ASEAtoms, name, value::Any, max_change) =
    set_transient!(at, name, value, max_change)
 set_data!(at::ASEAtoms, name, value::Matrix) =
    size(value, 2) == length(at) ? set_array!(at, name, value) : set_info!(at, name, value)
+set_data!{T <: Number}(at::ASEAtoms, name, value::Vector{T}) =
+   set_array!(at, name, value)
 set_data!{N,T}(at::ASEAtoms, name, value::Vector{SVec{N,T}}) =
    set_array(at, name, value >> mat)
 
 function get_data(at::ASEAtoms, name)
    # there are three different places where it could be stored, just try all three.
    if has_array(at, name)
-      return get_array(at, name)
+      d = get_array(at, name)
+      # convert the data to a vector of short vectors
+      if length(size(d)) > 1
+         d = vecs(d)
+      end
+      return d
    elseif has_info(at, name)
       return get_info(at, name)
-   else
+   elseif has_transient(at, name)
       return get_transient(at, name)
    end
+   error("`get_data`: key $(name) not found")
 end
 
 
@@ -235,7 +247,7 @@ end
 Takes an `ASEAtoms` configuration / cell and repeats is n_j times
 into the j-th dimension. For example,
 ```
-    atm = repeat( bulk("C"), (3,3,3) )
+    atm = repeat( KeyError: key "z" not found"C"), (3,3,3) )
 ```
 creates 3 x 3 x 3 unit cells of carbon.
 """

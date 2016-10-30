@@ -56,3 +56,37 @@ end
 @test maximum(simple) == 0
 
 # ======================================================================
+
+println("Checking `***_data`, `***_array`, `***_info`, `***_transient`")
+
+at = bulk("Cu") * 3
+N = length(at)
+# set an array and test that it is read back correctly
+z = rand(N)
+set_array!(at, "z", z)
+@test get_array(at, "z") == z
+@test get_data(at, "z") == z
+# set data and check it is read as an array
+set_data!(at, "y", z)
+@test get_array(at, "y") == z
+# set some info and test reading
+i = "some info"
+set_info!(at, "i", i)
+@test get_info(at, "i") == i
+@test get_data(at, "i") == i
+# Now try to set an array "i" and check that we get an error
+caught = false
+try
+   set_array!(at, "i", z)
+catch
+   caught = true
+end
+@test caught
+# ***_transient should be tested automatically via the calculators.
+# test the has_***
+@test has_data(at, "z")
+@test has_data(at, "i")
+@test has_array(at, "z")
+@test has_info(at, "i")
+@test !has_array(at, "i")
+@test !has_info(at, "z")
