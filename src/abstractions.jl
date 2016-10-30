@@ -103,7 +103,7 @@ end
 export AbstractAtoms,
       positions, get_positions, set_positions!, unsafe_positions,
       get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
-      set_data!, get_data,
+      set_data!, get_data, has_data,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
@@ -203,6 +203,9 @@ for `get_data`.
 Base.getindex(at::AbstractAtoms,
                name::Union{Symbol, AbstractString}) = get_data(at, name)
 
+"check whether some data with id `name` is already stored"
+@protofun has_data(a::AbstractAtoms, name::Any)
+
 "delete an atom"
 @protofun deleteat!(a::AbstractAtoms, n::Integer)
 
@@ -301,7 +304,7 @@ type  NullCalculator <: AbstractCalculator end
 """
 `energy`: can be called in various ways
 *  `energy(calc, at)`: base definition; this is normally the only method that
-     needs to be overloaded when a new calculator is implemented. 
+     needs to be overloaded when a new calculator is implemented.
 * `energy(at) = energy(calculator(at), at)`: if a calculator is attached to `at`
 * `energy(calc, at, const, dof) = energy(calc, dof2at!(at,const,dof))`
 * `energy(calc, at, dof) = energy(calc, at, constraint(dof), dof)`
