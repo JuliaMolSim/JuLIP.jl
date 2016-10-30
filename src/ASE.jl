@@ -27,7 +27,8 @@ import JuLIP:
       calculator, set_calculator!, # ✓
       constraint, set_constraint!, # ✓
       neighbourlist,                # ✓
-      energy, forces, virial
+      energy, forces, virial,
+      momenta, set_momenta!
 
 import Base.length, Base.deleteat!         # ✓
 
@@ -41,7 +42,8 @@ import Base.repeat         # ✓
 export ASEAtoms,      # ✓
       repeat, rnn, chemical_symbols, ASECalculator, extend!,
       get_info, set_info!, get_array, set_array!, has_array, has_info,
-      get_transient, set_transient!, has_transient
+      get_transient, set_transient!, has_transient,
+      velocities, set_velocities!, masses, set_masses!
 using PyCall
 
 @pyimport ase.io as ase_io
@@ -234,7 +236,24 @@ function get_data(at::ASEAtoms, name)
 end
 
 
-
+# special arrays: momenta, velocities, masses, chemical_symbols
+"get the momenta array"
+momenta(at::ASEAtoms) = at.po[:get_momenta]()
+"set the momenta array"
+set_momenta!(at::ASEAtoms, p::JVecsF) = at.po[:set_momenta](p|>mat)
+"get the velocities array (convert from momenta)"
+velocities(at::ASEAtoms) = at.po[:get_velocities]()
+"convert to momenta, then set the momenta array"
+set_velocities!(at::ASEAtoms, v::JVecsF) = at.po[:get_velocities](v|>mat)
+"get Vector of atom masses"
+masses(at::ASEAtoms) = at.po[:get_masses]()
+"set atom mass array as Vector{Float64}"
+set_masses!(at::ASEAtoms, m::Vector{Float64}) = at.po[:set_masses](m)
+"return vector of chemical symbols as strings"
+chemical_symbols(at::ASEAtoms) = pyobject(at)[:get_chemical_symbols]()
+"set the chemical symbols"
+set_chemical_symbols!{T <: AbstractString}(at::ASEAtoms, s::Vector{T}) =
+   pyobject(at)[:set_chemical_symbols](s)
 
 
 # ========================================================================
@@ -370,10 +389,6 @@ function extend!{S <: AbstractString}(at::ASEAtoms, atnew::Tuple{S,JVecF})
 end
 
 extend!(at::ASEAtoms, S::AbstractString, x::JVecF) = extend!(at, ASEAtoms(S, [x]))
-
-
-"return vector of chemical symbols as strings"
-chemical_symbols(at::ASEAtoms) = pyobject(at)[:get_chemical_symbols]()
 
 write(filename::AbstractString, at::ASEAtoms) = ase_io.write(filename, at.po)
 
