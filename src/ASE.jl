@@ -34,12 +34,13 @@ import Base.length, Base.deleteat!         # ✓
 # from arrayconversions:
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
-      AbstractCalculator, NullCalculator, defm, maxdist
+      AbstractCalculator, NullCalculator, defm, maxdist, SVec
 
 # extra ASE functionality:
 import Base.repeat         # ✓
 export ASEAtoms,      # ✓
-      repeat, rnn, chemical_symbols, ASECalculator, extend!
+      repeat, rnn, chemical_symbols, ASECalculator, extend!,
+      get_info, set_info!, get_array, set_array!
 using PyCall
 
 @pyimport ase.io as ase_io
@@ -164,22 +165,64 @@ function update_transient_data!(a::ASEAtoms, r::Real)
 end
 
 # Python arrays
-array(a::ASEAtoms, name) = a.po[:get_array](string(name))
-get_array(a::ASEAtoms, name) = array(a, name)
-set_array!(a::ASEAtoms, name, value::Array) = a.po[:set_array](string(name), value)
+has_array(a::ASEAtoms, name) = haskey(a.po["arrays"], name)
+get_array(a::ASEAtoms, name) = a.po[:get_array](string(name))
+function set_array!(a::ASEAtoms, name, value::Array)
+   if hastransient(a, name) || hasinfo(a, name)
+      error("""cannot set_array!(..., $(name), ...)" since this key already
+               exists in either `transient` or `info`""")
+   end
+   a.po[:set_array](string(name), value)
+   return a
+end
 
 # Python info
-data(a::ASEAtoms, name) = a.po[:get_info](string(name))
-get_data(a::ASEAtoms, name) = data(a, name)
-set_data!(a::ASEAtoms, name, value::Any) = a.po[:set_info](string(name), value)
+has_info(a::ASEAtoms, name) = haskey(a.po["info"], name)
+get_info(a::ASEAtoms, name) = a.po[:get_info](string(name))
+function set_info!(a::ASEAtoms, name, value::Any)
+   if hastransient(a, name) || hasarray(a, name)
+      error("""cannot set_info!(..., $(name), ...)" since this key already
+               exists in either `transient` or `arrays`""")
+   end
+   a.po[:set_info](string(name), value)
+   return a
+end
 
 # Julia transient data
 has_transient(a::ASEAtoms, name) = haskey(a.transient, name)
-transient(a::ASEAtoms, name) = (a.transient[name]).data
+get_transient(a::ASEAtoms, name) = (a.transient[name]).data
 function set_transient!(a::ASEAtoms, name, value, max_change=0.0)
+   if haskey(a.po["arrays"], name) || haskey(a.po["info"], name)
+      error("""cannot set_transient!(..., $(name), ...)" since this key already
+               exists in either `arrays` or `info`""")
+   end
    a.transient[name] = TransientData(max_change, 0.0, value)
    return a
 end
+
+# teach the generic set_data! where to put the data
+set_data!(at::ASEAtoms, name, value::Any) =
+   set_info!(at, name, value)
+set_data!(at::ASEAtoms, name, value::Any, max_change) =
+   set_transient!(at, name, value, max_change)
+set_data!(at::ASEAtoms, name, value::Matrix) =
+   size(value, 2) == length(at) ? set_array!(at, name, value) : set_info!(at, name, value)
+set_data!{N,T}(at::ASEAtoms, name, value::Vector{SVec{N,T}}) =
+   set_array(at, name, value >> mat)
+
+function get_data(at::ASEAtoms, name)
+   # there are three different places where it could be stored, just try all three.
+   if has_array(at, name)
+      return get_array(at, name)
+   elseif has_info(at, name)
+      return get_info(at, name)
+   else
+      return get_transient(at, name)
+   end
+end
+
+
+
 
 
 # ========================================================================
@@ -235,7 +278,7 @@ function neighbourlist(at::ASEAtoms, cutoff::Float64)::MatSciPy.NeighbourList
       # this nlist will be destroyed as soon as positions change
       set_transient!(at, :nlist, MatSciPy.NeighbourList(at, cutoff))
    end
-   return transient(at, :nlist)
+   return get_transient(at, :nlist)
 end
 
 

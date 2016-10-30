@@ -183,9 +183,10 @@ is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 
 """
 `set_data!(at, name, value)`:
-associate some data with `at`; to be stored in a Dict within `at`;
-if `name` is of type `Symbol` or `String` then can also use
- `setindex!`
+associate some data with `at`; to be stored in a Dict within `at`
+
+if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
+for `set_data!`.
 """
 @protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
 Base.setindex!(at::AbstractAtoms, value,
@@ -193,9 +194,10 @@ Base.setindex!(at::AbstractAtoms, value,
 
 """
 `get_data(a, name)`:
-obtain some data stored with `set_data!`,
-if `name` is of type `Symbol` or `String` then can also use
- `getindex`
+obtain some data stored with `set_data!`
+
+if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
+for `get_data`.
 """
 @protofun get_data(a::AbstractAtoms, name::Any)
 Base.getindex(at::AbstractAtoms,
