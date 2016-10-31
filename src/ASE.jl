@@ -244,7 +244,7 @@ set_momenta!(at::ASEAtoms, p::JVecsF) = at.po[:set_momenta](p|>mat)
 "get the velocities array (convert from momenta)"
 velocities(at::ASEAtoms) = at.po[:get_velocities]()
 "convert to momenta, then set the momenta array"
-set_velocities!(at::ASEAtoms, v::JVecsF) = at.po[:get_velocities](v|>mat)
+set_velocities!(at::ASEAtoms, v::JVecsF) = at.po[:set_velocities](v|>mat)
 "get Vector of atom masses"
 masses(at::ASEAtoms) = at.po[:get_masses]()
 "set atom mass array as Vector{Float64}"
