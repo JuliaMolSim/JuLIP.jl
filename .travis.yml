@@ -3,6 +3,8 @@ language: julia
 os:
   - linux
   - osx
+install:
+  - "pip install ase"
 julia:
   - release
   - nightly
