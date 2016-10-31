@@ -103,7 +103,7 @@ end
 export AbstractAtoms,
       positions, get_positions, set_positions!, unsafe_positions,
       get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
-      set_data!, get_data,
+      set_data!, get_data, has_data,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
@@ -183,23 +183,41 @@ is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 
 """
 `set_data!(at, name, value)`:
-associate some data with `at`; to be stored in a Dict within `at`;
-if `name` is of type `Symbol` or `String` then can also use
- `setindex!`
+associate some data with `at`; to be stored in a Dict within `at`
+
+if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
+for `set_data!`.
 """
 @protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
 Base.setindex!(at::AbstractAtoms, value,
                name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
+# `positions` is a special version of `get_data`; others are
+# `momenta`, `velocities`, `masses`, ...others?...
+
+"return momenta as a `JVecsF`"
+@protofun momenta(::AbstractAtoms)
+"alias for `momenta`"
+get_momenta(at::AbstractAtoms) = momenta(at)
+"set momenta array"
+@protofun set_momenta!(::AbstractAtoms, ::JVecsF)
+
+
+
+
 """
 `get_data(a, name)`:
-obtain some data stored with `set_data!`,
-if `name` is of type `Symbol` or `String` then can also use
- `getindex`
+obtain some data stored with `set_data!`
+
+if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
+for `get_data`.
 """
 @protofun get_data(a::AbstractAtoms, name::Any)
 Base.getindex(at::AbstractAtoms,
                name::Union{Symbol, AbstractString}) = get_data(at, name)
+
+"check whether some data with id `name` is already stored"
+@protofun has_data(a::AbstractAtoms, name::Any)
 
 "delete an atom"
 @protofun deleteat!(a::AbstractAtoms, n::Integer)
@@ -299,7 +317,7 @@ type  NullCalculator <: AbstractCalculator end
 """
 `energy`: can be called in various ways
 *  `energy(calc, at)`: base definition; this is normally the only method that
-     needs to be overloaded when a new calculator is implemented. 
+     needs to be overloaded when a new calculator is implemented.
 * `energy(at) = energy(calculator(at), at)`: if a calculator is attached to `at`
 * `energy(calc, at, const, dof) = energy(calc, dof2at!(at,const,dof))`
 * `energy(calc, at, dof) = energy(calc, at, constraint(dof), dof)`
