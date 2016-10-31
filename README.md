@@ -1,6 +1,6 @@
 # JuLIP: Julia Library for Interatomic Potentials
 
-<!-- [![Build Status](https://travis-ci.org/cortner/JuLIP.jl.svg?branch=master)](https://travis-ci.org/cortner/JuLIP.jl) -->
+[![Build Status](https://travis-ci.org/libAtoms/JuLIP.jl.svg?branch=master)](https://travis-ci.org/libAtoms/JuLIP.jl)
 
 A package for rapid implementation and testing of new interatomic potentials and
 molecular simulation algorithms. Requires v0.5 of Julia.
