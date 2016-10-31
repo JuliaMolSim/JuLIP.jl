@@ -4,6 +4,7 @@ os:
   - linux
   - osx
 install:
+  - "pip install --user numpy"
   - "pip install --user ase"
 julia:
   - release
