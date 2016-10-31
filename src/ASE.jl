@@ -43,7 +43,7 @@ export ASEAtoms,      # ✓
       repeat, rnn, chemical_symbols, ASECalculator, extend!,
       get_info, set_info!, get_array, set_array!, has_array, has_info,
       get_transient, set_transient!, has_transient,
-      velocities, set_velocities!, masses, set_masses!
+      velocities, set_velocities!, masses, set_masses!, momenta, set_momenta!
 using PyCall
 
 @pyimport ase.io as ase_io
@@ -238,13 +238,13 @@ end
 
 # special arrays: momenta, velocities, masses, chemical_symbols
 "get the momenta array"
-momenta(at::ASEAtoms) = at.po[:get_momenta]()
+momenta(at::ASEAtoms) = at.po[:get_momenta]()' |> vecs
 "set the momenta array"
-set_momenta!(at::ASEAtoms, p::JVecsF) = at.po[:set_momenta](p|>mat)
+set_momenta!(at::ASEAtoms, p::JVecsF) = at.po[:set_momenta](p |> mat |> PyReverseDims)
 "get the velocities array (convert from momenta)"
-velocities(at::ASEAtoms) = at.po[:get_velocities]()
+velocities(at::ASEAtoms) = at.po[:get_velocities]()' |> vecs
 "convert to momenta, then set the momenta array"
-set_velocities!(at::ASEAtoms, v::JVecsF) = at.po[:set_velocities](v|>mat)
+set_velocities!(at::ASEAtoms, v::JVecsF) = at.po[:set_velocities](v |> mat |> PyReverseDims)
 "get Vector of atom masses"
 masses(at::ASEAtoms) = at.po[:get_masses]()
 "set atom mass array as Vector{Float64}"
