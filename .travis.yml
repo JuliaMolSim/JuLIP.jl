@@ -4,7 +4,7 @@ os:
   - linux
   - osx
 install:
-  - "pip install ase"
+  - "pip install --user ase"
 julia:
   - release
   - nightly
