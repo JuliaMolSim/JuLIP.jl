@@ -30,12 +30,13 @@ import JuLIP:
       energy, forces, virial,
       momenta, set_momenta!
 
-import Base.length, Base.deleteat!         # ✓
+import Base.length, Base.deleteat!, Base.write         # ✓
 
 # from arrayconversions:
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
-      AbstractCalculator, NullCalculator, defm, maxdist, SVec
+      AbstractCalculator, NullCalculator, defm, maxdist, SVec,
+      Dofs, set_dofs!
 
 # extra ASE functionality:
 import Base.repeat         # ✓
@@ -125,7 +126,7 @@ data will only be *read* but not manipulated.
 """
 unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
 
-Base.getindex(at::ASEAtoms, idx::Integer) = (unsafe_positions(at))[idx] 
+Base.getindex(at::ASEAtoms, idx::Integer) = (unsafe_positions(at))[idx]
 
 function set_positions!(a::ASEAtoms, p::JVecsF)
    pold = positions(a)
@@ -369,9 +370,10 @@ end
 #
 
 """
-`extend!(at::ASEAtoms, atadd::ASEAtoms)`
+* `extend!(at::ASEAtoms, atadd::ASEAtoms)::ASEAtoms`
+* `extend!(at::ASEAtoms, S::AbstractString, x::JVecF)::ASEAtoms`
 
-add `atadd` atoms to `at` and returns `at`; only `at` is modified
+add `atadd` atoms to `at` and returns `at`; only `at` is modified.
 
 A short variant is
 ```julia
@@ -380,7 +382,7 @@ extend!(at, s, x)
 ```
 where `s` is a string, `x::JVecF` a position
 """
-function extend!(at::ASEAtoms, atadd::ASEAtoms)
+function extend!(at::ASEAtoms, atadd::ASEAtoms)::ASEAtoms
    at.po[:extend](atadd.po)
    return at
 end
@@ -392,10 +394,40 @@ end
 
 extend!(at::ASEAtoms, S::AbstractString, x::JVecF) = extend!(at, ASEAtoms(S, [x]))
 
-write(filename::AbstractString, at::ASEAtoms) = ase_io.write(filename, at.po)
+"""
+* `write(filename, at, mode=:write)` : write atoms object to `filename`
+* `write(filehandle, at)` : write atoms object as xyz file
+* `write(filename, ats::Vector{ASEAtoms}, mode=:write)` : write a time series to a file
+* `write(filename, at, x::Vector{Dofs}, mode=:write)` : write a time series to a file
 
-# TODO: trajectory; see
-#       https://wiki.fysik.dtu.dk/ase/ase/io/trajectory.html
+to append to an existing file, use `:append` or `"a"` instead of `:write`.
+"""
+write(filename::AbstractString, at::ASEAtoms, mode=:write) =
+   mode == :write ? ase_io.write(filename, at.po) : write(filename, [at], mode)
+
+write(filehandle::PyObject, at::ASEAtoms) = ase_io.write(filehandle, at.po, format="xyz")
+
+# open and close files from Python (to get a python filehandle)
+pyopenf(filename::AbstractString, mode::AbstractString) = pyeval("open('$(filename)', '$(mode)')")
+pyclosef(filehandle) = filehandle[:close]()
+
+function write(filename::AbstractString, at::ASEAtoms, xs::AbstractVector{Dofs}, mode=:write)
+    filehandle = pyopenf(filename, string(mode)[1:1])
+    for x in xs
+        write(filehandle, set_dofs!(at, x))
+    end
+    pyclosef(filehandle)
+end
+
+function write(filename::AbstractString, ats::AbstractVector{ASEAtoms}, mode=:write)
+   filehandle = pyopenf(filename, string(mode)[1:1])
+   for at in ats
+      write(filehandle, at)
+   end
+   pyclosef(filehandle)
+end
+
+
 
 """
 `rnn(species)` : returns the nearest-neighbour distance for a given species
