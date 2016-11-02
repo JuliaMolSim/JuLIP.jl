@@ -125,6 +125,8 @@ data will only be *read* but not manipulated.
 """
 unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
 
+Base.getindex(at::ASEAtoms, idx::Integer) = (unsafe_positions(at))[idx] 
+
 function set_positions!(a::ASEAtoms, p::JVecsF)
    pold = positions(a)
    r = maxdist(pold, p)

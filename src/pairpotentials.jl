@@ -90,7 +90,7 @@ Morse(;A=4.0, e0=1.0, r0=1.0) = Morse(A, e0, r0)
 
 simplified constructor for `Morse` (type unstable)
 """
-morse(A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0)) = (
+morse(;A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0)) = (
    (rcut == nothing || rcut == Inf)
          ?  Morse(A, e0, r0)
          :  SplineCutoff(rcut[1], rcut[2]) * Morse(A, e0, r0) )
