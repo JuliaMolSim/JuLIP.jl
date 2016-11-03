@@ -95,12 +95,12 @@ end
 println("Checking momenta and velocites")
 p = rand(3,N) |> vecs
 set_momenta!(at, p)
-@test momenta(at) == p
+@test_approx_eq momenta(at) p
 v = p ./ masses(at)
-@test velocities(at) == v
+@test_approx_eq velocities(at) == v
 set_velocities!(at, v/2.0)
-@test velocities(at) == v/2.0
-@test momenta(at) == p/2.0
+@test_approx_eq velocities(at) == v/2.0
+@test_approx_eq momenta(at) == p/2.0
 
 println("Checking chemical_symbols")
 @test chemical_symbols(at) == ["Cu" for i in 1:length(at)]
