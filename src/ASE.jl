@@ -121,6 +121,7 @@ function deepcopy(at::ASEAtoms)
     new_at = ASEAtoms(at.po[:copy]())
     set_constraint!(new_at, constraint(at))
     set_calculator!(new_at, calculator(at))
+    return new_at
 end
 
 # ==========================================
