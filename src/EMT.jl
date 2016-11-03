@@ -23,18 +23,18 @@ in Julia, largely for fun and comparison with Python; the goal is to make this
 so efficient that it can compete with ASAP.
 """
 type EMTCalculator <: Potential
-   pair::Vector{AnalyticPotential}
+   pair::Vector{WrappedPPotential}
    Cpair::Vector{Float64}
-   rho::Vector{AnalyticPotential}
-   embed::Vector{AnalyticPotential}
+   rho::Vector{WrappedPPotential}
+   embed::Vector{WrappedPPotential}
    ind::Vector{Int}
    rc::Float64
 end
 
 EMTCalculator(n::Int) = EMTCalculator(
-         Vector{AnalyticPotential}(n), Vector{Float64}(n),   # pair, Cpair
-         Vector{AnalyticPotential}(n),
-         Vector{AnalyticPotential}(n), Vector{Int}(0), 0.0 )
+         Vector{WrappedPPotential}(n), Vector{Float64}(n),   # pair, Cpair
+         Vector{WrappedPPotential}(n),
+         Vector{WrappedPPotential}(n), Vector{Int}(0), 0.0 )
 
 cutoff(calc::EMTCalculator) = calc.rc + 0.5
 
@@ -99,18 +99,18 @@ function init!(calc::EMTCalculator, at::ASEAtoms)
       Θ = :( 1.0 / (1.0 + exp($acut * (r - $rc) )) )
       # pair potential
       n0, κ, s0 = p["n0"], p["κ"], p["s0"]
-      calc.pair[i] = AnalyticPotential(
+      calc.pair[i] = WrappedPPotential(
                :( $n0 * exp( -$κ * (r / $β - $s0) ) * $Θ ), cutoff=rc+0.5 )
       calc.Cpair[i] = p["Cpair"]
       # radial electron density function
       η2, γ1 = p["η2"], p["γ1"]
-      calc.rho[i] = AnalyticPotential(
+      calc.rho[i] = WrappedPPotential(
                :( $n0 * exp( -$η2 * (r - $(β*s0)) ) * $Θ ), cutoff=rc+0.5 )
       Crho = 1.0 / γ1 / n0    # TODO: get rid of Crho
       # embedding function;  note here that r ≡ ρ̄
       E0, V0, λ = p["E0"], p["V0"], p["λ"]
       DS = :( - log( $(Crho/12.0) * r ) / $(β * η2) )
-      calc.embed[i] = AnalyticPotential(
+      calc.embed[i] = WrappedPPotential(
                :( $E0 * ((1.0 + $λ * $DS) * exp(-$λ * $DS) - 1.0)
                   + 6.0 * $V0 * exp(-$κ * $DS) ) )
    end
