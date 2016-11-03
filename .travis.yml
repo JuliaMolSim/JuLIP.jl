@@ -6,7 +6,7 @@ os:
 before_install:
   - "pip install --user numpy"
   - "pip install --user ase"
-  - "git clone https://github.com/libAtoms/matscipy.git; cd matscipy; pip install --user . ; cd .. ; rm -r matscipy"
+  - "git clone https://github.com/libAtoms/matscipy.git; cd matscipy; pip install --user . ; cd .. ; rm -rf matscipy"
 julia:
   - release
   - nightly
