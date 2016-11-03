@@ -275,6 +275,7 @@ function lj(at::AbstractAtoms)
       E += ϕ(r)
       dE[j] += (dϕ(r)/r) * R
       dE[i] -= (dϕ(r)/r) * R
+      hE[i]
    end
    return E, dE
 end

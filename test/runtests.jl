@@ -11,9 +11,9 @@ julip_tests = [
   #  "testase.jl";
   #  "testanalyticpotential.jl";
   #  "testpotentials.jl";
-  #  "testvarcell.jl";
-  #  "testsolve.jl";
-   "testhessian.jl"
+  "testvarcell.jl";
+  # "testsolve.jl";
+  # "testhessian.jl"
 ]
 
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
