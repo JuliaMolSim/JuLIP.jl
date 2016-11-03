@@ -64,6 +64,14 @@ hess(pp::PairPotential, r::Float64, R::JVecF) = (
 
 function hessian_pos(pp::PairPotential, r, R)
   # TODO: assemble the global hessian here
+  for (i,j,r,R,_) in bonds(at, cutoff(pp))
+          hE(:, :, i, j) = hE(:, :, d1, d2) + geom.volX(n) * hV(:,:,i1,i2);
+          hE(:, :, i, j) = hE(:, :, d1, dn) - geom.volX(n) * hV(:,:,i1,i2);
+          hE(:, :, i, j) = hE(:, :, dn, d2) - geom.volX(n) * hV(:,:,i1,i2);
+          hE(:, :, i, j) = hE(:, :, dn, dn) + geom.volX(n) * hV(:,:,i1,i2);
+      end
+  end
+
 end
 
 
