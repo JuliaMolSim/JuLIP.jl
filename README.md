@@ -1,6 +1,6 @@
 # JuLIP: Julia Library for Interatomic Potentials
 
-<!-- [![Build Status](https://travis-ci.org/cortner/JuLIP.jl.svg?branch=master)](https://travis-ci.org/cortner/JuLIP.jl) -->
+[![Build Status](https://travis-ci.org/libAtoms/JuLIP.jl.svg?branch=master)](https://travis-ci.org/libAtoms/JuLIP.jl)
 
 A package for rapid implementation and testing of new interatomic potentials and
 molecular simulation algorithms. Requires v0.5 of Julia.
@@ -147,7 +147,7 @@ using JuLIP
 using JuLIP.Potentials
 r0 = JuLIP.ASE.rnn("Al")
 A = 4.0;  # stiffness paramter
-pot = AnalyticPotential( :( 6.0 * exp(- $A * (r/$r0 - 1.)) - $A * ($r0/r)^6 ) )
+pot = PairPotential( :( 6.0 * exp(- $A * (r/$r0 - 1.)) - $A * ($r0/r)^6 ) )
 pot = pot * SplineCutoff(2.1*r0, 3.5*r0)   
 # `pot` can now be used as a calculator to do something interesting ...
 ```
