@@ -56,10 +56,10 @@ cutoff(calc::StillingerWeber) = max(cutoff(calc.V2), cutoff(calc.V3))
 StillingerWeber(; ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
                   p = 4, a = 1.8, λ=21.0, γ=1.20 ) =
    StillingerWeber(
-      AnalyticPotential(:( $(0.5 * ϵ * A) * ($B * (r/$σ)^(-$p) - 1.0)
+      PairPotential(:( $(0.5 * ϵ * A) * ($B * (r/$σ)^(-$p) - 1.0)
                                  * exp( 1.0 / (r/$σ - $a) ) ),
                         cutoff = a*σ-1e-2),
-      AnalyticPotential(:( $(sqrt(ϵ) * λ) * exp( $γ / (r/$σ - $a) ) ),
+      PairPotential(:( $(sqrt(ϵ) * λ) * exp( $γ / (r/$σ - $a) ) ),
                         cutoff = a*σ-1e-2)
    )
 
