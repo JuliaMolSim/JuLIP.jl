@@ -423,11 +423,13 @@ pyopenf(filename::AbstractString, mode::AbstractString) = pyeval("open('$(filena
 pyclosef(filehandle) = filehandle[:close]()
 
 function write(filename::AbstractString, at::ASEAtoms, xs::AbstractVector{Dofs}, mode=:write)
-    filehandle = pyopenf(filename, string(mode)[1:1])
-    for x in xs
-        write(filehandle, set_dofs!(at, x))
-    end
-    pyclosef(filehandle)
+   x0 = dofs(at) # save the dofs
+   filehandle = pyopenf(filename, string(mode)[1:1])
+   for x in xs
+     write(filehandle, set_dofs!(at, x))
+   end
+   pyclosef(filehandle)
+   set_dofs!(at, x0)   # revert to original configuration
 end
 
 function write(filename::AbstractString, ats::AbstractVector{ASEAtoms}, mode=:write)
