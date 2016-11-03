@@ -30,7 +30,7 @@ import JuLIP:
       energy, forces, virial,
       momenta, set_momenta!
 
-import Base.length, Base.deleteat!, Base.write         # ✓
+import Base.length, Base.deleteat!, Base.write, Base.deepcopy         # ✓
 
 # from arrayconversions:
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
@@ -112,6 +112,16 @@ pyobject(a::ASEAtoms) = a.po
 
 length(at::ASEAtoms) = length( unsafe_positions(at::ASEAtoms) )
 
+
+"""
+return a deep copy of this ASEAtoms object. Transient data is not copied.
+TODO: deepcopy() should copy the constraints and calculator too.
+"""
+function deepcopy(at::ASEAtoms)
+    new_at = ASEAtoms(at.po[:copy]())
+    set_constraint!(new_at, constraint(at))
+    set_calculator!(new_at, calculator(at))
+end
 
 # ==========================================
 #    some logic for storing permanent data
