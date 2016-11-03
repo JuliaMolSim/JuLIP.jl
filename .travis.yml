@@ -3,6 +3,10 @@ language: julia
 os:
   - linux
   - osx
+install:
+  - "pip install --user numpy"
+  - "pip install --user ase"
+  - "git clone https://github.com/libAtoms/matscipy.git; cd matscipy; pip install --user ."
 julia:
   - release
   - nightly
