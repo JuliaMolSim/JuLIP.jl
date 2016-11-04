@@ -30,7 +30,7 @@ import JuLIP:
       energy, forces, virial,
       momenta, set_momenta!
 
-import Base.length, Base.deleteat!, Base.write         # ✓
+import Base.length, Base.deleteat!, Base.write, Base.deepcopy         # ✓
 
 # from arrayconversions:
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
@@ -112,6 +112,17 @@ pyobject(a::ASEAtoms) = a.po
 
 length(at::ASEAtoms) = length( unsafe_positions(at::ASEAtoms) )
 
+
+"""
+return a deep copy of this ASEAtoms object. Transient data is not copied.
+TODO: deepcopy() should copy the constraints and calculator too.
+"""
+function deepcopy(at::ASEAtoms)
+    new_at = ASEAtoms(at.po[:copy]())
+    set_constraint!(new_at, constraint(at))
+    set_calculator!(new_at, calculator(at))
+    return new_at
+end
 
 # ==========================================
 #    some logic for storing permanent data
@@ -412,11 +423,13 @@ pyopenf(filename::AbstractString, mode::AbstractString) = pyeval("open('$(filena
 pyclosef(filehandle) = filehandle[:close]()
 
 function write(filename::AbstractString, at::ASEAtoms, xs::AbstractVector{Dofs}, mode=:write)
-    filehandle = pyopenf(filename, string(mode)[1:1])
-    for x in xs
-        write(filehandle, set_dofs!(at, x))
-    end
-    pyclosef(filehandle)
+   x0 = dofs(at) # save the dofs
+   filehandle = pyopenf(filename, string(mode)[1:1])
+   for x in xs
+     write(filehandle, set_dofs!(at, x))
+   end
+   pyclosef(filehandle)
+   set_dofs!(at, x0)   # revert to original configuration
 end
 
 function write(filename::AbstractString, ats::AbstractVector{ASEAtoms}, mode=:write)
