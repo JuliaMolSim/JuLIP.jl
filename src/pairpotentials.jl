@@ -62,16 +62,32 @@ hess(pp::PairPotential, r::Float64, R::JVecF) = (
 #         + (@D pp(r))/r * ((@SMatrix eye(3)) - R * R')
 #     )
 
-function hessian_pos(pp::PairPotential, r, R)
-  # TODO: assemble the global hessian here
-  for (i,j,r,R,_) in bonds(at, cutoff(pp))
-          hE(:, :, i, j) = hE(:, :, d1, d2) + geom.volX(n) * hV(:,:,i1,i2);
-          hE(:, :, i, j) = hE(:, :, d1, dn) - geom.volX(n) * hV(:,:,i1,i2);
-          hE(:, :, i, j) = hE(:, :, dn, d2) - geom.volX(n) * hV(:,:,i1,i2);
-          hE(:, :, i, j) = hE(:, :, dn, dn) + geom.volX(n) * hV(:,:,i1,i2);
-      end
-  end
+# function hessian_pos(pp::PairPotential, r, R)
+#   # TODO: assemble the global hessian here
+#   for (i,j,r,R,_) in bonds(at, cutoff(pp))
+#           hE(:, :, i, j) = hE(:, :, d1, d2) + geom.volX(n) * hV(:,:,i1,i2);
+#           hE(:, :, i, j) = hE(:, :, d1, dn) - geom.volX(n) * hV(:,:,i1,i2);
+#           hE(:, :, i, j) = hE(:, :, dn, d2) - geom.volX(n) * hV(:,:,i1,i2);
+#           hE(:, :, i, j) = hE(:, :, dn, dn) + geom.volX(n) * hV(:,:,i1,i2);
+#       end
+#   end
+#
+# end
 
+function hessian_pos(pp::PairPotential, at::AbstractAtoms)
+  nlist = neighbourlist(at, cutoff(pp))
+  I, J, Z = Int[], Int[], JMatF[]
+  for C in (I, J, Z)
+    sizehint!(C, 2*length(nlist))
+  end
+  for (i,j,r,R,_) in bonds(nlist)
+      h = hess(pp, r, R)
+      append!(I, (i, i))
+      append!(J, (i, j))
+      append!(Z, (2*h, -2*h))
+  end
+  hE = sparse(I, J, Z);
+  return hE
 end
 
 

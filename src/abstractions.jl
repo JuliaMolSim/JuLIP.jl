@@ -356,7 +356,7 @@ forces(at::AbstractAtoms) = forces(calculator(at), at)
 hessian with respect to all atom positions
 """
 @protofun hessian_pos(calc::AbstractCalculator, at::AbstractAtoms)
-
+hessian_pos(at::AbstractAtoms) = hessian_pos(calculator(at), at)
 
 """
 * `virial(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
@@ -461,7 +461,6 @@ TODO: write docs
 @protofun hessian(at::AbstractAtoms, cons::AbstractConstraint)
 
 hessian(at::AbstractAtoms, x::Dofs) = hessian(set_dofs!(at, x), constraint(at))
-
 hessian(at::AbstractAtoms) = hessian(at, constraint(at))
 
 
