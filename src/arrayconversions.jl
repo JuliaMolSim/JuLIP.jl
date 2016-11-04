@@ -46,33 +46,42 @@ vecs{T,N}(V::Array{T,N}) = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
 
 "`JMat{T}` : 3 × 3 immutable marix"
 
-typealias JMat SMatrix{3,3}
-typealias JMatF JMat{Float64}
+typealias JMat{T,N} SMatrix{3,3,T,N}
+typealias JMatF SMatrix{3,3,Float64,9}
 typealias JMatI JMat{Int}
 
-Base.zero{T}(::Type{JMat{T}}) = JMat([zero(T) for i = 1:9])
-Base.eye{T}(::Type{JMat{T}}) = JMat(T, eye(3))
+# Base.zero{T}(::Type{JMat{T}}) = JMat([zero(T) for i = 1:9])
+# Base.eye{T}(::Type{JMat{T}}) = JMat(T, eye(3))
 
 "`JMats{T}` : (2-dimensional) Array of 3 × 3 immutable matrices"
 typealias JMats{T} Array{JMat{T}}
 typealias JMatsF JMats{Float64}
 typealias JMatsI JMats{Int}
+#
+# """
+# `mats(V::Matrix)` : convert (as reference) a 3 x 3 x N x N tensor representing
+# N × N matrices (e.g. local hess) in R³ to a list (vector) of fixed-size-array vectors.
+#
+# `mats(V::Vector)` : assumes that V is morally a list of  x N matrix, stored in a long
+# vector
+#
+# `mats(V::Array{T,N})` : If `V` has dimensions 3 x n2 x ... x nN then
+# it gets converted to an n2 x ... x nN array with JVec{T} entries.
+# """
+# mats{T}(V::Array{T}) = reinterpret(JMat{T}, V, tuple(size(V)[3:end]...))
+# mats{T}(V::Vector{T}) = reinterpret(JVec{T}, V, (length(V) ÷ 3,)
+# mats{T,N}(V::Array{T,N}) = reinterpret(JMat{T}, V, tuple(size(V)[3:end]...))
+# mats{T}(V::Array{T}) = vecs(vecs(V))
+# mats{T}(V::Matrix{T}) = reshape(permutedims(V, [1 3 2 4]), 6, 6)
 
-"""
-`mats(V::Matrix)` : convert (as reference) a 3 x 3 x N x N tensor representing
-N × N matrices (e.g. local hess) in R³ to a list (vector) of fixed-size-array vectors.
+export mats
+function mats{T,N}(V::Array{T, N})
+  @assert size(V,1) == size(V,2) == 3
+  @assert ndims(V) > 2
+  return reinterpret(JMat{T}, V, tuple(size(V)[3:end]...))
+end
 
-`mats(V::Vector)` : assumes that V is morally a list of  x N matrix, stored in a long
-vector
 
-`mats(V::Array{T,N})` : If `V` has dimensions 3 x n2 x ... x nN then
-it gets converted to an n2 x ... x nN array with JVec{T} entries.
-"""
-"mats{T}(V::Array{T}) = reinterpret(JMat{T}, V, tuple(size(V)[3:end]...))
-mats{T}(V::Vector{T}) = reinterpret(JVec{T}, V, (length(V) ÷ 3,)
-mats{T,N}(V::Array{T,N}) = reinterpret(JMat{T}, V, tuple(size(V)[3:end]...))"
-mats{T}(V::Array{T}) = vecs(vecs(V))
-mats{T}(V::Matrix{T}) = reshape(permutedims(V, [1 3 2 4]), 6, 6)
 
 """
 `mat(X::JVecs)`: convert (as reference) a list (Vector) of

@@ -23,7 +23,7 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
       JVec, JVecs, mat, vec, JMat, JVecF
 
-import JuLIP: energy, forces, cutoff, virial, site_energies
+import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian, site_energies
 
 export Potential, PairPotential, SitePotential
 
