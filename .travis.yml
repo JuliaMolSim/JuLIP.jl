@@ -3,16 +3,11 @@ language: julia
 os:
   - linux
   - osx
-install:
-  - "pip install --user numpy"
-  - "pip install --user ase"
-  - "git clone https://github.com/libAtoms/matscipy.git; cd matscipy; pip install --user ."
 julia:
   - release
   - nightly
 notifications:
   email: false
-# uncomment the following lines to override the default test script
-#script:
-#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia -e 'Pkg.clone(pwd()); Pkg.build("JuLIP"); Pkg.test("JuLIP"; coverage=true)'
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'ENV["PYTHON"]=""; Pkg.add("PyCall"); Pkg.add("Conda"); using Conda; Conda.add("NumPy"); Conda.add("SciPy"); Conda.add("pip"); pip = joinpath(Conda.BINDIR, "pip"); run(`$pip install ase`); run(`$pip install -e git+https://github.com/libAtoms/matscipy#egg=matscipy`); Pkg.clone(pwd()); Pkg.build("JuLIP"); Pkg.test("JuLIP"; coverage=true)'
