@@ -26,24 +26,25 @@ set_positions!(at, Y)
 
 # test set_momenta!
 Nat = length(at)
-Ifree = rand(collect(1:Nat), Nat * 4 ÷ 5)  # prepare for test below
-P = rand(size(Y |> mat)); P[:, Ifree] = 0.0; P = vecs(P)
+Ifree = rand(collect(1:Nat), Nat * 4 ÷ 5) |> unique |> sort # prepare for test below
+Iclamp = setdiff(1:Nat, Ifree)
+P = rand(size(Y |> mat)); P[:, Iclamp] = 0.0; P = vecs(P)
 set_momenta!(at, P)
 @test P == momenta(at)
+
 
 # test set_dofs, etc
 # this is making an assumptions on the ordering of dofs; since a new
 # implementation of the DOF manager could change this, this test needs to be
 # re-implemented if that happens.
 set_constraint!(at, FixedCell(at, free = Ifree))
-@test dofs(at) == position_dofs(at)
-@test_approx_eq position_dofs(at) mat(Y)[:, Ifree][:]
-# @test_approx_eq momentum_dofs(at) mat(P)[:, Ifree]
+@test dofs(at) == position_dofs(at) == mat(Y)[:, Ifree][:]
+@test momentum_dofs(at) == mat(P)[:, Ifree][:]
 q = position_dofs(at)
 q = rand(length(q))
 set_position_dofs!(at, q)
-# @test_approx_eq q position_dofs(at)
+@test q == position_dofs(at)
 p = momentum_dofs(at)
 p = rand(length(p))
 set_momentum_dofs!(at, p)
-# @test_approx_eq p momentum_dofs(at)
+@test p == momentum_dofs(at)
