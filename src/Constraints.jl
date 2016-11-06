@@ -8,9 +8,10 @@ module Constraints
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          mat, vecs, JVecs, JVecsF, JMatF, JMat,
          set_positions!, set_cell!, virial, defm, set_defm!,
-         forces, unsafe_positions
+         forces, unsafe_positions, momenta, set_momenta!
 
-import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient, energy
+import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient, energy,
+      momentum_dofs, set_momentum_dofs!
 
 
 export FixedCell, VariableCell, ExpVariableCell
