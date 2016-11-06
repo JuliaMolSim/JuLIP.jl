@@ -41,8 +41,8 @@ using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
 # extra ASE functionality:
 import Base.repeat         # ✓
 export ASEAtoms,      # ✓
-      repeat, rnn, chemical_symbols, ASECalculator, extend!,
-      get_info, set_info!, get_array, set_array!, has_array, has_info,
+      repeat, rnn, chemical_symbols, AbstractASECalculator, ASECalculator,
+      extend!, get_info, set_info!, get_array, set_array!, has_array, has_info,
       get_transient, set_transient!, has_transient,
       velocities, set_velocities!, masses, set_masses!, momenta, set_momenta!
 using PyCall
@@ -332,23 +332,31 @@ end
 #    ASE-style aliases
 ######################################################
 
-type ASECalculator <: AbstractCalculator
+"""
+Abstract type for all calculators that interface to ASE
+"""
+abstract AbstractASECalculator <: AbstractCalculator
+
+"""
+Concrete subtype of ASECalculator for classical potentials
+"""
+type ASECalculator <: AbstractASECalculator
    po::PyObject
 end
 
-function set_calculator!(at::ASEAtoms, calc::ASECalculator)
+function set_calculator!(at::ASEAtoms, calc::AbstractASECalculator)
    at.po[:set_calculator](calc.po)
    at.calc = calc
    return at
 end
 
 set_calculator!(at::ASEAtoms, po::PyObject) =
-      set_calculator!(at, ASECalculator(po))
+      set_calculator!(at, AbstractASECalculator(po))
 
-forces(calc::ASECalculator, at::ASEAtoms) = calc.po[:get_forces](at.po)' |> vecs
-energy(calc::ASECalculator, at::ASEAtoms) = calc.po[:get_potential_energy](at.po)
+forces(calc::AbstractASECalculator, at::ASEAtoms) = calc.po[:get_forces](at.po)' |> vecs
+energy(calc::AbstractASECalculator, at::ASEAtoms) = calc.po[:get_potential_energy](at.po)
 
-function virial(calc::ASECalculator, at::ASEAtoms)
+function virial(calc::AbstractASECalculator, at::ASEAtoms)
     s = calc.po[:get_stress](at.po)
     vol = det(defm(at))
     if size(s) == (6,)
@@ -448,6 +456,12 @@ end
 function rnn(species::AbstractString)
    X = unsafe_positions(bulk(species) * 2)
    return minimum( norm(X[n]-X[m]) for n = 1:length(X) for m = n+1:length(X) )
+end
+
+function rnn(at::ASEAtoms)
+  species = chemical_symbols(at)
+  @assert all(species .== species[1])
+  return rnn(species[1])
 end
 
 
