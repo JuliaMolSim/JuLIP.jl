@@ -29,10 +29,20 @@ export AbstractDFTCalculator,
 
 using PyCall
 
-@pyimport ase.units as units
-@pyimport gpaw
-@pyimport gpaw.fd_operators as gpaw_fd_operators
-@pyimport gpaw.io as gpaw_io
+const gpaw_available = try
+    pyimport("gpaw")
+    true
+catch
+    warn("'gpaw' Python module cannot be imported: JuLIP.DFT disabled")
+    false
+end
+
+if gpaw_available
+  @pyimport ase.units as units
+  @pyimport gpaw
+  @pyimport gpaw.fd_operators as gpaw_fd_operators
+  @pyimport gpaw.io as gpaw_io
+end
 
 abstract AbstractDFTCalculator <: AbstractASECalculator
 abstract WaveFunctions
@@ -75,13 +85,28 @@ finegd(g::GPAWCalculator) = finegd(density(g))
 
 """
 Helper function to look up array symbols in a Hamiltonian, Density
-or WaveFunctions: return a PyArray that refers to the same data, not a copy.
+or WaveFunctions. Returns a PyArray reference to Python data.
 """
 Base.getindex(g::GPAWData, s::Symbol) = PyArray(g.po[string(s)])
 
 import Base.zeros
-zeros(g::GPAWGridDescriptor, args...; kwargs...) =
-    pycall(g.po[:zeros], PyArray, args...; kwargs...)
+"""
+Allocate arrays of shape and data type matching a GPAW GridDescriptor
+
+Unless optional kwarg julia_alloc=true, we return a PyArray that
+refers to the data allocated from Python.
+"""
+function zeros(g::GPAWGridDescriptor, args...; kwargs...)
+    kwargs = Dict(kwargs)
+    if :julia_alloc in keys(kwargs) && kwargs[:julia_alloc]
+        delete!(kwargs, :julia_alloc)
+        # make a copy of returned array, i.e. memory belongs to Julia
+        g.po[:zeros](args...; kwargs...)
+    else
+        # allocation done in Python, then wrapped as a PyArray
+        pycall(g.po[:zeros], PyArray, args...; kwargs...)
+    end
+end
 
 zeros(g::GPAWData, args...; kwargs...) = zeros(gd(g), args...; kwargs...)
 
@@ -150,16 +175,15 @@ function kinetic_energy_density(wfs::GPAWWaveFunctions)
     gradient_apply = [ gpaw_fd_operators.Gradient(g.po, v, n=3,
                         dtype=w[:dtype])[:apply] for v in 0:2 ]
     kpts = w[:kpt_u]
-    #taut_sG = zeros(g, w[:nspins]) # FIXME better to alloc from Python?
-    taut_sG = zeros([w[:nspins]; g.po[:N_c]]...) # alloc from Julia
+    taut_sG = zeros(g, w[:nspins], julia_alloc=true)
     dpsit_G = zeros(g, dtype=w[:dtype])
     abs2_dpsit_G = zeros(g, dtype=w[:dtype])
     for kpt in kpts
         # FIXME: may need to load wavefunction from disk
         # psit_nG = kpt[:psit_nG][:__getitem__](pyslice)
 
-        # FIXME should ideally use reference not copy, but slices
-        # don't yet seem to be supported for PyArray
+        # FIXME should ideally use reference not copy here, but
+        # slices don't yet seem to be fully supported for PyArray
         psit_nG = kpt[:psit_nG]
 
         # apply gradient operator to wavefunctions and compute KE density
@@ -170,11 +194,10 @@ function kinetic_energy_density(wfs::GPAWWaveFunctions)
             for v in 1:3
                 gradient_apply[v](psit_G, dpsit_G, kpt[:phase_cd])
                 taut_sG[kpt[:s]+1,:,:,:] .+= 0.5 * f[n] * abs2.(dpsit_G)
-                #axpy!()
             end
         end
     end
-    return taut_sG
+    return taut_sG * units.Hartree
 end
 
 """
@@ -206,7 +229,7 @@ function potential_energy_density(H::GPAWHamiltonian, rho::GPAWDensity)
     Ekin_nl == 0.0 || error("don't know how to partition non-local XC energies")
 
     # accumulate energy density on a real space coarse grid
-    eden_G = zeros(gd(H))
+    eden_G = zeros(gd(H), julia_alloc=true)
 
     # Local pseudopotential energy on fine grid
     vbar_nt_g = H[:vbar_g] .* rho[:nt_g]
@@ -232,7 +255,7 @@ function potential_energy_density(H::GPAWHamiltonian, rho::GPAWDensity)
     vHt_rhot_G = H.po[:restrict](vHt_rhot_g)
     eden_G .+= vHt_rhot_G
 
-    return eden_G
+    return eden_G * units.Hartree
 end
 
 """
@@ -251,7 +274,6 @@ on-site contribution to the site energies
       on-site contributions to total energy for each atom
 """
 function on_site_energies(H::GPAWHamiltonian, rho::GPAWDensity)
-
     natoms = H.po[:atom_partition][:natoms]
     Ekin_a = zeros(natoms)
     Ebar_a = zeros(natoms)
@@ -291,7 +313,7 @@ function on_site_energies(H::GPAWHamiltonian, rho::GPAWDensity)
         Exca_a[a+1] = H.po[:xc][:calculate_paw_correction](setup, D_sp, dH_sp, a=a)
     end
 
-    return Ekin_a + Epot_a + Ebar_a + Exca_a
+    return (Ekin_a + Epot_a + Ebar_a + Exca_a) * units.Hartree
 end
 
 
@@ -319,7 +341,7 @@ where ``X_a(r) = \hat{X}(r - r_a) / \bar{X}(r)``,
 function partition(eden_G::Array{Float64,3},
                    grid::GPAWGridDescriptor,
                    at::AbstractAtoms, loc_func)
-    Xhat_aG = zeros(grid, length(at))
+    Xhat_aG = zeros(grid, length(at), julia_alloc=true)
     X = positions(at)
     r0 = rnn(at)
     for a in 1:length(at)
@@ -336,7 +358,7 @@ function partition(eden_G::Array{Float64,3},
     for a in 1:length(at)
         E_a[a] = grid.po[:integrate](X_aG[a,:,:,:], eden_G)
     end
-    E_a
+    return E_a
 end
 
 end
