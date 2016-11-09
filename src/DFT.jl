@@ -43,6 +43,9 @@ if gpaw_available
   @pyimport gpaw
   @pyimport gpaw.fd_operators as gpaw_fd_operators
   @pyimport gpaw.io as gpaw_io
+
+  # aliases for re-exporting
+  FermiDirac = gpaw.FermiDirac
 end
 
 abstract AbstractDFTCalculator <: AbstractASECalculator
@@ -73,8 +76,6 @@ type GPAWGridDescriptor
 end
 
 GPAWCalculator(;kwargs...) = GPAWCalculator(gpaw.GPAW(;kwargs...))
-
-FermiDirac = gpaw.FermiDirac
 
 wavefunctions(g::GPAWCalculator) = GPAWWaveFunctions(g.po[:wfs])
 hamiltonian(g::GPAWCalculator) = GPAWHamiltonian(g.po[:hamiltonian])
