@@ -113,7 +113,7 @@ export AbstractAtoms,
 import Base: length, A_ldiv_B!, A_mul_B!, cell, gradient
 
 export AbstractCalculator,
-      energy, potential_energy, forces, gradient,
+      energy, potential_energy, forces, gradient, hessian,
       site_energies,
       stress, virial, site_virials
 
