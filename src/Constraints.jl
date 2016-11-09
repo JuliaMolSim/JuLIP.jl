@@ -97,6 +97,18 @@ gradient(at::AbstractAtoms, cons::FixedCell) =
 
 energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
 
+function hessian(at::AbstractAtoms, cons::FixedCell)
+   Hp = hessian_pos(at)
+   I, J, Z = Int[], Int[], Float64[]
+   for col = 1:size(Hp, 2)
+      Icol = find(Hp[:, col])
+      Zcol = Hp[:, Icol]
+      iat = col
+      for (jat, zat) in zip(Icol, Zcol)
+            # TODO 
+      end
+end
+
 
 # ========================================================================
 #          VARIABLE CELL IMPLEMENTATION
