@@ -25,7 +25,8 @@ export AbstractDFTCalculator,
        potential_energy_density,
        energy_density,
        on_site_energies,
-       site_energies
+       site_energies,
+       FermiDirac
 
 using PyCall
 
@@ -72,6 +73,8 @@ type GPAWGridDescriptor
 end
 
 GPAWCalculator(;kwargs...) = GPAWCalculator(gpaw.GPAW(;kwargs...))
+
+FermiDirac = gpaw.FermiDirac
 
 wavefunctions(g::GPAWCalculator) = GPAWWaveFunctions(g.po[:wfs])
 hamiltonian(g::GPAWCalculator) = GPAWHamiltonian(g.po[:hamiltonian])
@@ -157,43 +160,62 @@ end
 """
     kinetic_energy_density(wfs::GPAWWaveFunctions)
 
-Compute kinetic energy density `taut_sG` on coarse grid
+Compute kinetic energy density `taut_sG` on coarse grid, using either
+
+  ``\tau(r) = -0.5 * \sum_{\sigma,k,n} f_{\sigma,k,n} \psi^*_{\sigma,k,n} \nabla^2 \psi_{\sigma,k,n}``
+
+if `gauge == :asymmetric` (default), or
 
     ``\tau(r) = 0.5 * \sum_{\sigma,k,n} f_{\sigma,k,n} | \nabla \psi_{\sigma,k,n}|^2``
 
-# Arguments
-* `wfs::WaveFunctions` - Wavefunctions of converged calculation. Only tested with
-      finite difference mode (FDWaveFunctions).
+if `gauge == :symmetric`.
 
+# Arguments
+* `wfs::WaveFunctions` - Wavefunctions of converged calculation. Only works with
+      finite difference mode (FDWaveFunctions).
+* `gauge::Symbol` - choice of gauge for integration (see above)
 # Returns
 * `taut_sG::Array{Float64,4}`, shape [wfs.nspins] + wfs.gd.N_c
    Kinetic energy density for each spin on coarse grid
 """
-function kinetic_energy_density(wfs::GPAWWaveFunctions)
+function kinetic_energy_density(wfs::GPAWWaveFunctions; gauge=:asymmetric)
     w = wfs.po
     g = gd(wfs)
-    gradient_apply = [ gpaw_fd_operators.Gradient(g.po, v, n=3,
-                        dtype=w[:dtype])[:apply] for v in 0:2 ]
     kpts = w[:kpt_u]
     taut_sG = zeros(g, w[:nspins], julia_alloc=true)
-    dpsit_G = zeros(g, dtype=w[:dtype])
-    abs2_dpsit_G = zeros(g, dtype=w[:dtype])
+
+    if gauge == :symmetric
+        gradient_apply = [ gpaw_fd_operators.Gradient(g.po, v, n=3,
+                            dtype=w[:dtype])[:apply] for v in 0:2 ]
+        dpsit_G = zeros(g, dtype=w[:dtype])
+        abs2_dpsit_G = zeros(g, dtype=w[:dtype])
+    elseif gauge == :asymmetric
+        kin_apply = w[:kin][:apply]
+        del2psit_G = zeros(gd(wfs), dtype=w[:dtype], julia_alloc=true)
+        kin_G = zeros(gd(wfs), dtype=w[:dtype], julia_alloc=true)
+    else
+        error("unknown gauge choice $gauge")
+    end
+
     for kpt in kpts
-        # FIXME: may need to load wavefunction from disk
-        # psit_nG = kpt[:psit_nG][:__getitem__](pyslice)
-
-        # FIXME should ideally use reference not copy here, but
-        # slices don't yet seem to be fully supported for PyArray
         psit_nG = kpt[:psit_nG]
-
-        # apply gradient operator to wavefunctions and compute KE density
-        # \tau(r) = 0.5 * \sum_{\sigma,k,n} f_{\sigma,k,n} | \nabla \psi_{\sigma,k,n}|^2
         f = kpt[:f_n]
         for n in eachindex(f)
             psit_G = psit_nG[n,:,:,:]
-            for v in 1:3
-                gradient_apply[v](psit_G, dpsit_G, kpt[:phase_cd])
-                taut_sG[kpt[:s]+1,:,:,:] .+= 0.5 * f[n] * abs2.(dpsit_G)
+
+            if gauge == :symmetric
+                # \tau(r) = 0.5 * \sum_{\sigma,k,n} f_{\sigma,k,n}
+                #   | \nabla \psi_{\sigma,k,n}|^2
+                for v in 1:3
+                    gradient_apply[v](psit_G, dpsit_G, kpt[:phase_cd])
+                    taut_sG[kpt[:s]+1,:,:,:] .+= 0.5 * f[n] * abs2.(dpsit_G)
+                end
+            elseif gauge == :asymmetric
+                # \tau(r) = -0.5 * \sum_{\sigma,k,n} f_{\sigma,k,n}
+                #     psi^*_{\sigma,k,n} \nabla^2 \psi_{\sigma,k,n}
+                kin_apply(psit_nG[n,:,:,:], del2psit_G, kpt[:phase_cd])
+                copy!(kin_G, conj.(psit_nG[n,:,:,:]) .* del2psit_G)
+                taut_sG[kpt[:s]+1,:,:,:] .+= f[n] * kin_G
             end
         end
     end
