@@ -11,7 +11,10 @@ using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          set_positions!, set_cell!, virial, defm, set_defm!,
          forces, unsafe_positions
 
-import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy
+# temporary hack - we may need to rethink this
+using JuLIP.Potentials: hessian_pos
+
+import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy, hessian
 
 
 export FixedCell, VariableCell, ExpVariableCell
@@ -98,15 +101,21 @@ gradient(at::AbstractAtoms, cons::FixedCell) =
 energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
 
 function hessian(at::AbstractAtoms, cons::FixedCell)
-   Hp = hessian_pos(at)
+   Hpos = hessian_pos(at)
+   @show Hpos[1,1]
    I, J, Z = Int[], Int[], Float64[]
-   for col = 1:size(Hp, 2)
-      Icol = find(Hp[:, col])
-      Zcol = Hp[:, Icol]
-      iat = col
-      for (jat, zat) in zip(Icol, Zcol)
-            # TODO 
+   for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
+   Nat = length(at)
+   @assert Nat == size(Hpos, 2)
+   # TODO: this findnz creates an extra copy of all data, which we should avoid
+   for (iat, jat, zat) in zip(findnz(Hpos)...)
+      for a = 1:3, b = 1:3
+         push!(I, 3 * (iat-1) + a)
+         push!(J, 3 * (jat-1) + b)
+         push!(Z, zat[a,b])
       end
+   end
+   return project!( cons, sparse(I, J, Z, 3*Nat, 3*Nat) )
 end
 
 
