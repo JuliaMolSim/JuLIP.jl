@@ -29,12 +29,12 @@ println("-------------------------------------------------")
 println("same test but large and with Exp preconditioner")
 println("-------------------------------------------------")
 
-at = bulk("Al", cubic=true) * (20,20,2)
-at = set_pbc!(at, true)
-at = rattle!(at, 0.02)
-set_calculator!(at, calc)
-set_constraint!(at, FixedCell(at))
-minimise!(at, precond = Exp(at))
+#at = bulk("Al", cubic=true) * (20,20,2)
+#at = set_pbc!(at, true)
+#at = rattle!(at, 0.02)
+#set_calculator!(at, calc)
+#set_constraint!(at, FixedCell(at))
+#minimise!(at, precond = Exp(at))
 
 
 println("-------------------------------------------------")
