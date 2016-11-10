@@ -10,11 +10,11 @@ julip_tests = [
    "testaux.jl";
    "testase.jl";
    "testdft.jl";
-   # "testanalyticpotential.jl";
-   # "testpotentials.jl";
-   # "testvarcell.jl";
-   # "testexpvarcell.jl";
-   # "testsolve.jl";
+   "testanalyticpotential.jl";
+   "testpotentials.jl";
+   "testvarcell.jl";
+   "testexpvarcell.jl";
+   "testsolve.jl";
 ]
 
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
