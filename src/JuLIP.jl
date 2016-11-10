@@ -41,12 +41,12 @@ catch
                `imolecule` is not correctly installed.""")
 end
 
+# interatomic potentials prototypes and some example implementations
+include("Potentials.jl")
+
 # submodule JuLIP.Constraints
 include("Constraints.jl")
 @reexport using JuLIP.Constraints
-
-# interatomic potentials prototypes and some example implementations
-include("Potentials.jl")
 
 # basic preconditioning capabilities
 include("preconditioners.jl")
