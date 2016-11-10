@@ -7,9 +7,13 @@ Provides Julia wrappers for DFT codes, principally GPAW at present
 """
 module DFT
 
-import JuLIP: AbstractCalculator, AbstractAtoms, positions, energy, site_energies
+using JuLIP: AbstractCalculator, AbstractAtoms, positions, energy
+using JuLIP.ASE: AbstractASECalculator, ASEAtoms, rnn
 
-import JuLIP.ASE: AbstractASECalculator, ASEAtoms, rnn
+# functions to be overloaded
+import Base.zeros
+import Base.getindex
+import JuLIP.site_energies
 
 export AbstractDFTCalculator,
        GPAWCalculator,
@@ -19,14 +23,15 @@ export AbstractDFTCalculator,
        wavefunctions,
        hamiltonian,
        density,
-       gd,
-       finegd,
+       griddescriptor,
+       finegriddescriptor,
        kinetic_energy_density,
        potential_energy_density,
        energy_density,
        on_site_energies,
        site_energies,
-       FermiDirac
+       FermiDirac,
+       gpaw_available
 
 using PyCall
 
@@ -39,13 +44,13 @@ catch
 end
 
 if gpaw_available
-  @pyimport ase.units as units
-  @pyimport gpaw
-  @pyimport gpaw.fd_operators as gpaw_fd_operators
-  @pyimport gpaw.io as gpaw_io
+    @pyimport ase.units as units
+    @pyimport gpaw
+    @pyimport gpaw.fd_operators as gpaw_fd_operators
+    @pyimport gpaw.io as gpaw_io
 
-  # aliases for re-exporting
-  FermiDirac = gpaw.FermiDirac
+    # aliases for re-exporting
+    FermiDirac = gpaw.FermiDirac
 end
 
 abstract AbstractDFTCalculator <: AbstractASECalculator
@@ -81,47 +86,44 @@ wavefunctions(g::GPAWCalculator) = GPAWWaveFunctions(g.po[:wfs])
 hamiltonian(g::GPAWCalculator) = GPAWHamiltonian(g.po[:hamiltonian])
 density(g::GPAWCalculator) = GPAWDensity(g.po[:density])
 
-gd(g::GPAWData) = GPAWGridDescriptor(g.po[:gd])
-gd(g::GPAWCalculator) = gd(density(g))
+griddescriptor(g::GPAWData) = GPAWGridDescriptor(g.po[:gd])
+griddescriptor(g::GPAWCalculator) = griddescriptor(density(g))
 
-finegd(g::GPAWData) = GPAWGridDescriptor(g.po[:finegd])
-finegd(g::GPAWCalculator) = finegd(density(g))
+finegriddescriptor(g::GPAWData) = GPAWGridDescriptor(g.po[:finegd])
+finegriddescriptor(g::GPAWCalculator) = finegriddescriptor(density(g))
 
 """
 Helper function to look up array symbols in a Hamiltonian, Density
 or WaveFunctions. Returns a PyArray reference to Python data.
 """
-Base.getindex(g::GPAWData, s::Symbol) = PyArray(g.po[string(s)])
+getindex(g::GPAWData, s::Symbol) = PyArray(g.po[string(s)])
 
-import Base.zeros
 """
 Allocate arrays of shape and data type matching a GPAW GridDescriptor
 
-Unless optional kwarg julia_alloc=true, we return a PyArray that
+Unless optional kwarg julia_alloc==true, we return a PyArray that
 refers to the data allocated from Python.
 """
-function zeros(g::GPAWGridDescriptor, args...; kwargs...)
-    kwargs = Dict(kwargs)
-    if :julia_alloc in keys(kwargs) && kwargs[:julia_alloc]
-        delete!(kwargs, :julia_alloc)
+function zeros(g::GPAWGridDescriptor, args...; julia_alloc=false, kwargs...)
+    if julia_alloc
         # make a copy of returned array, i.e. memory belongs to Julia
-        g.po[:zeros](args...; kwargs...)
+        return g.po[:zeros](args...; kwargs...)
     else
         # allocation done in Python, then wrapped as a PyArray
-        pycall(g.po[:zeros], PyArray, args...; kwargs...)
+        return pycall(g.po[:zeros], PyArray, args...; kwargs...)
     end
 end
 
-zeros(g::GPAWData, args...; kwargs...) = zeros(gd(g), args...; kwargs...)
+zeros(g::GPAWData, args...; kwargs...) = zeros(griddescriptor(g), args...; kwargs...)
 
 function kinetic_energy_density(calc::AbstractCalculator, at::AbstractAtoms)
     energy(calc, at) # force a recalc if necessary
-    kinetic_energy_density(wavefunctions(calc))
+    return kinetic_energy_density(wavefunctions(calc))
 end
 
 function potential_energy_density(calc::AbstractDFTCalculator, at::AbstractAtoms)
     energy(calc, at) # force a recalc if necessary
-    potential_energy_density(hamiltonian(calc), density(calc))
+    return potential_energy_density(hamiltonian(calc), density(calc))
 end
 
 """
@@ -134,14 +136,14 @@ energy_density(calc::AbstractDFTCalculator, at::AbstractAtoms) =
 
 function on_site_energies(calc::AbstractDFTCalculator, at::AbstractAtoms)
     energy(calc, at) # force a recalc if necessary
-    on_site_energies(hamiltonian(calc), density(calc))
+    return on_site_energies(hamiltonian(calc), density(calc))
 end
 
 function site_energies(calc::AbstractDFTCalculator, at::AbstractAtoms, loc_func)
     E_a = zeros(length(at))
-    E_a += partition(energy_density(calc, at), gd(calc), at, loc_func)
+    E_a += partition(energy_density(calc, at), griddescriptor(calc), at, loc_func)
     E_a += on_site_energies(calc, at)
-    E_a
+    return E_a
 end
 
 """
@@ -149,13 +151,12 @@ Compute DFT site energies using default localisation function
 
     ``\hat{X}(r) = exp(0.5*(r_cut - r0) / (|r| - r_cut))``
 
-with `r0 = rnn(at)` and `r_cut = 2.5*r0`.
+with `r0 = rnn(at)` and `r_cut = 2.5*r0` by default.
 """
-function site_energies(calc::AbstractDFTCalculator, at::AbstractAtoms)
-    r0 = rnn(at)
-    r_cut = 2.5*r0
-    site_energies(calc, at,
-                  r -> exp(0.5*(r_cut - r0) / (r - r_cut)))
+function site_energies(calc::AbstractDFTCalculator, at::AbstractAtoms;
+                      r0=rnn(at), r_cut=2.5*r0)
+    return site_energies(calc, at,
+                         r -> exp(0.5*(r_cut - r0) / (r - r_cut)))
 end
 
 """
@@ -181,7 +182,7 @@ if `gauge == :symmetric`.
 """
 function kinetic_energy_density(wfs::GPAWWaveFunctions; gauge=:asymmetric)
     w = wfs.po
-    g = gd(wfs)
+    g = griddescriptor(wfs)
     kpts = w[:kpt_u]
     taut_sG = zeros(g, w[:nspins], julia_alloc=true)
 
@@ -192,8 +193,8 @@ function kinetic_energy_density(wfs::GPAWWaveFunctions; gauge=:asymmetric)
         abs2_dpsit_G = zeros(g, dtype=w[:dtype])
     elseif gauge == :asymmetric
         kin_apply = w[:kin][:apply]
-        del2psit_G = zeros(gd(wfs), dtype=w[:dtype], julia_alloc=true)
-        kin_G = zeros(gd(wfs), dtype=w[:dtype], julia_alloc=true)
+        del2psit_G = zeros(griddescriptor(wfs), dtype=w[:dtype], julia_alloc=true)
+        kin_G = zeros(griddescriptor(wfs), dtype=w[:dtype], julia_alloc=true)
     else
         error("unknown gauge choice $gauge")
     end
@@ -233,9 +234,9 @@ Compute potential energy density on coarse grid
 Total energy is ``E = \int tau(r) + e(r) dr + \sum_a E_a``.
 
 # Arguments
-  * `H::GPAWHamiltonian``
+  * `H::GPAWHamiltonian`
         Hamiltonian containing results of converged calculation
-  * `rho::GPAWDensity``
+  * `rho::GPAWDensity`
         Density containing results of converged calculation
   * `wfs::GPAWWaveFunctions`
         Wavefunctions of converged calculation. Only tested with
@@ -252,7 +253,7 @@ function potential_energy_density(H::GPAWHamiltonian, rho::GPAWDensity)
     Ekin_nl == 0.0 || error("don't know how to partition non-local XC energies")
 
     # accumulate energy density on a real space coarse grid
-    eden_G = zeros(gd(H), julia_alloc=true)
+    eden_G = zeros(griddescriptor(H), julia_alloc=true)
 
     # Local pseudopotential energy on fine grid
     vbar_nt_g = H[:vbar_g] .* rho[:nt_g]
@@ -267,8 +268,8 @@ function potential_energy_density(H::GPAWHamiltonian, rho::GPAWDensity)
     end
 
     # Evaluate Exchange-Correlation energy on fine grid
-    exc_g = zeros(finegd(H))
-    H.po[:xc][:calculate](finegd(H).po,
+    exc_g = zeros(finegriddescriptor(H))
+    H.po[:xc][:calculate](finegriddescriptor(H).po,
                           rho[:nt_sg], vt_sg, exc_g)
     exc_G = H.po[:restrict](exc_g)
     eden_G .+= exc_G
