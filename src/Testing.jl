@@ -70,12 +70,13 @@ function fdtest_hessian(F::Function, dF::Function, x; verbose=true)
    @printf("---------|----------- \n")
    @printf("    h    | error \n")
    @printf("---------|----------- \n")
-   for p = 2:11
+   for p = 4:11
       h = 0.1^p
       for n = 1:length(x)
          x[n] += h
          dFh[:, n] = (F(x) - F0) / h
          x[n] -= h
+         @show n, norm(dFh[:,n]-dF0[:,n], Inf)
       end
       push!(errors, vecnorm(dFh - dF0, Inf))
       @printf(" %1.1e | %4.2e  \n", h, errors[end])
