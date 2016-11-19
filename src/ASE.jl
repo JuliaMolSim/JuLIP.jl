@@ -36,7 +36,7 @@ import Base.length, Base.deleteat!, Base.write, Base.deepcopy         # ✓
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
       AbstractCalculator, NullCalculator, defm, maxdist, SVec,
-      Dofs, set_dofs!
+      Dofs, dofs, set_dofs!
 
 # extra ASE functionality:
 import Base.repeat         # ✓
