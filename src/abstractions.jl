@@ -102,7 +102,6 @@ end
 # function defined primarily on AbstractAtoms
 export AbstractAtoms,
       positions, get_positions, set_positions!, unsafe_positions,
-      momenta, get_momenta, set_momenta!, unsafe_momenta,
       get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       set_data!, get_data, has_data,
       set_calculator!, calculator, get_calculator!,
@@ -121,10 +120,7 @@ export AbstractCalculator,
 export AbstractNeighbourList,
        sites, bonds
 
-export AbstractConstraint, NullConstraint,
-         position_dofs, set_position_dofs!,
-         momentum_dofs, set_momentum_dofs!,
-         dofs, set_dofs!
+export AbstractConstraint, NullConstraint, dofs, set_dofs!
 
 export Preconditioner, preconditioner
 
@@ -149,20 +145,6 @@ get_positions = positions
 @protofun set_positions!(::AbstractAtoms, ::JVecs)
 
 set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
-
-"Return copy of momenta of all atoms as a `3 x N` array."
-@protofun momenta(::AbstractAtoms)
-
-"alias for `momenta`"
-get_momenta = momenta
-
-"return a reference to momenta"
-@protofun unsafe_momenta(::AbstractAtoms)
-
-"Set momenta of all atoms as a `3 x N` array."
-@protofun set_momenta!(::AbstractAtoms, ::JVecs)
-
-set_momenta!(at::AbstractAtoms, p::Matrix) = set_momenta!(at, vecs(p))
 
 "get computational cell (the rows are the lattice vectors)"
 @protofun cell(::AbstractAtoms)
@@ -211,8 +193,14 @@ Base.setindex!(at::AbstractAtoms, value,
                name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
 # `positions` is a special version of `get_data`; others are
-# `momenta` see above, `velocities`, `masses`, ...others?...
+# `momenta`, `velocities`, `masses`, ...others?...
 
+"return momenta as a `JVecsF`"
+@protofun momenta(::AbstractAtoms)
+"alias for `momenta`"
+get_momenta(at::AbstractAtoms) = momenta(at)
+"set momenta array"
+@protofun set_momenta!(::AbstractAtoms, ::JVecsF)
 
 
 
@@ -403,48 +391,26 @@ stress(at::AbstractAtoms) = stress(calculator(at), at)
 type NullConstraint <: AbstractConstraint end
 
 """
-`position_dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
-`position_dofs(at::AbstractAtoms) -> Dofs`
+`dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
 
 Take an atoms object `at` and return a Dof-vector that fully describes the
 state given the constraint `cons`
 """
-@protofun position_dofs(at::AbstractAtoms, cons::AbstractConstraint)
-position_dofs(at::AbstractAtoms) = position_dofs(at, constraint(at))
+# function dofs end
+@protofun dofs(at::AbstractAtoms, cons::AbstractConstraint)
+
+dofs(at::AbstractAtoms) = dofs(at, constraint(at))
+
 
 """
-* `set_position_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) -> at`
-* `set_position_dofs!(at::AbstractAtoms, x::Dofs) -> at`
+* `set_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) -> at`
+* `set_dofs!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
 
 change configuration stored in `at` according to `cons` and `x`.
 """
-@protofun set_position_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs)
-set_position_dofs!(at::AbstractAtoms, x::Dofs) =
-         set_position_dofs!(at, constraint(at), x)
+@protofun set_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs)
 
-"""
-`momentum_dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
-`momentum_dofs(at::AbstractAtoms) -> Dofs`
-
-Take an atoms object `at` and return a Dof-vector that fully describes the
-state given the constraint `cons`
-"""
-@protofun momentum_dofs(at::AbstractAtoms, cons::AbstractConstraint)
-momentum_dofs(at::AbstractAtoms) = momentum_dofs(at, constraint(at))
-
-"""
-* `set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, p::Dofs) -> at`
-* `set_momentum_dofs!(at::AbstractAtoms, p::Dofs) -> at`
-
-change configuration stored in `at` according to `cons` and `p`.
-"""
-@protofun set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, q::Dofs)
-set_momentum_dofs!(at::AbstractAtoms, q::Dofs) = set_momentum_dofs!(at, constraint(at), q)
-
-"`dofs` : alias for `position_dofs`"
-dofs(args...) = position_dofs(args...)
-"alias for `set_position_dofs!`"
-set_dofs!(args...) = set_position_dofs!(args...)
+set_dofs!(at::AbstractAtoms, x::Dofs) = set_dofs!(at, constraint(at), x)
 
 
 """
