@@ -36,15 +36,15 @@ import Base.length, Base.deleteat!, Base.write, Base.deepcopy         # ✓
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
       AbstractCalculator, NullCalculator, defm, maxdist, SVec,
-      Dofs, dofs, set_dofs!
+      Dofs, set_dofs!
 
 # extra ASE functionality:
 import Base.repeat         # ✓
 export ASEAtoms,      # ✓
-      repeat, rnn, chemical_symbols, AbstractASECalculator, ASECalculator,
-      extend!, get_info, set_info!, get_array, set_array!, has_array, has_info,
+      repeat, rnn, chemical_symbols, ASECalculator, extend!,
+      get_info, set_info!, get_array, set_array!, has_array, has_info,
       get_transient, set_transient!, has_transient,
-      velocities, set_velocities!, masses, set_masses!
+      velocities, set_velocities!, masses, set_masses!, momenta, set_momenta!
 using PyCall
 
 @pyimport ase.io as ase_io
@@ -332,31 +332,23 @@ end
 #    ASE-style aliases
 ######################################################
 
-"""
-Abstract type for all calculators that interface to ASE
-"""
-abstract AbstractASECalculator <: AbstractCalculator
-
-"""
-Concrete subtype of ASECalculator for classical potentials
-"""
-type ASECalculator <: AbstractASECalculator
+type ASECalculator <: AbstractCalculator
    po::PyObject
 end
 
-function set_calculator!(at::ASEAtoms, calc::AbstractASECalculator)
+function set_calculator!(at::ASEAtoms, calc::ASECalculator)
    at.po[:set_calculator](calc.po)
    at.calc = calc
    return at
 end
 
 set_calculator!(at::ASEAtoms, po::PyObject) =
-      set_calculator!(at, AbstractASECalculator(po))
+      set_calculator!(at, ASECalculator(po))
 
-forces(calc::AbstractASECalculator, at::ASEAtoms) = calc.po[:get_forces](at.po)' |> vecs
-energy(calc::AbstractASECalculator, at::ASEAtoms) = calc.po[:get_potential_energy](at.po)
+forces(calc::ASECalculator, at::ASEAtoms) = calc.po[:get_forces](at.po)' |> vecs
+energy(calc::ASECalculator, at::ASEAtoms) = calc.po[:get_potential_energy](at.po)
 
-function virial(calc::AbstractASECalculator, at::ASEAtoms)
+function virial(calc::ASECalculator, at::ASEAtoms)
     s = calc.po[:get_stress](at.po)
     vol = det(defm(at))
     if size(s) == (6,)
@@ -456,12 +448,6 @@ end
 function rnn(species::AbstractString)
    X = unsafe_positions(bulk(species) * 2)
    return minimum( norm(X[n]-X[m]) for n = 1:length(X) for m = n+1:length(X) )
-end
-
-function rnn(at::ASEAtoms)
-  species = chemical_symbols(at)
-  @assert all(species .== species[1])
-  return rnn(species[1])
 end
 
 
