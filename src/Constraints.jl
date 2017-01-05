@@ -247,6 +247,9 @@ project!(at::AbstractAtoms, cons::VariableCell) = at
 #                   =  L(U', S exp(-U)') : V
 #                   =  L(U, S exp(-U)) : V     (provided U = U')
 
+
+
+# define expm for StaticArrays since it is not provided (anymre?)
 import StaticArrays
 Base.LinAlg.expm{N,T}(A::StaticArrays.SMatrix{N,N,T}) =
    StaticArrays.SMatrix{N,N,T}(expm(Array(A)))
