@@ -6,7 +6,7 @@ using JuLIP.ASE.MatSciPy: NeighbourList
 
 export ZeroPairPotential, PairSitePotential,
          LennardJones, lennardjones,
-         Morse, morse
+         Morse, morse, grad, hess
 
 function site_energies(pp::PairPotential, at::AbstractAtoms)
    Es = zeros(length(at))
@@ -36,7 +36,9 @@ function forces(pp::PairPotential, at::AbstractAtoms)
    for (i,j,r,R,_) in bonds(at, cutoff(pp))
       # TODO: this should be equivalent, but for some reason using @GRAD is much slower!
       # dE[j] -= 2 * (@GRAD pp(r, R))    # ∇ϕ(|R|) = (ϕ'(r)/r) R
-      dE[j] -= 2 * grad(pp, r, R)
+      # dE[j] -= 2 * grad(pp, r, R)
+      dE[i] += grad(pp, r, R)
+      dE[j] -= grad(pp, r, R)
    end
    return dE
 end
@@ -80,9 +82,12 @@ function hessian_pos(pp::PairPotential, at::AbstractAtoms)
   for C in (I, J, Z); sizehint!(C, 2*length(nlist)); end
   for (i,j,r,R,_) in bonds(nlist)
       h = hess(pp, r, R)
-      append!(I, (i, i))
-      append!(J, (i, j))
-      append!(Z, (2*h, -2*h))
+      # append!(I, (i, i))
+      # append!(J, (i, j))
+      # append!(Z, (2*h, -2*h))
+      append!(I, (i, i, j, j))
+      append!(J, (i, j, i, j))
+      append!(Z, (h, -h, -h, h))
   end
   hE = sparse(I, J, Z, length(at), length(at))
   return hE
