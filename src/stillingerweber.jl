@@ -24,13 +24,26 @@ export StillingerWeber
 
 import JuLIP.Potentials: evaluate, evaluate_d, @pot, @D
 
-bondangle(S1, S2) = 0.5 * (dot(S1, S2) + 1.0/3.0)^2
+"""
+`bondangle(S1, S2) -> (dot(S1, S2) + 1.0/3.0)^2`
 
+* not this assumes that `S1, S2` are normalised
+* see `bondangle_d` for the derivative
+"""
+bondangle(S1, S2) = (dot(S1, S2) + 1.0/3.0)^2
+
+"""
+`b := bondangle(S1, S2)` then
+
+`bondangle_d(S1, S2, r1, r2) -> b, db1, db2`
+
+where `dbi` is the derivative of `b` w.r.t. `Ri` where `Si= Ri/ri`.
+"""
 function bondangle_d(S1, S2, r1, r2)
    d = dot(S1, S2)
    b1 = (1.0/r1) * S2 - (d/r1) * S1
    b2 = (1.0/r2) * S1 - (d/r2) * S2
-   return 0.5*(d+1./3.)^2, (d+1./3.)*b1, (d+1./3.)*b2
+   return (d+1./3.)^2, 2.0*(d+1./3.)*b1, 2.0*(d+1./3.)*b2
 end
 
 
@@ -59,7 +72,7 @@ StillingerWeber(; ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
       PairPotential(:( $(0.5 * ϵ * A) * ($B * (r/$σ)^(-$p) - 1.0)
                                  * exp( 1.0 / (r/$σ - $a) ) ),
                         cutoff = a*σ-1e-2),
-      PairPotential(:( $(sqrt(ϵ) * λ) * exp( $γ / (r/$σ - $a) ) ),
+      PairPotential(:( $(sqrt(ϵ * λ)) * exp( $γ / (r/$σ - $a) ) ),
                         cutoff = a*σ-1e-2)
    )
 
