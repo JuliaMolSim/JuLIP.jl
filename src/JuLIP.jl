@@ -20,6 +20,7 @@ include("utils.jl")
 
 # implementation of some key functionality via ASE
 include("ASE.jl")
+@reexport using JuLIP.ASE
 
 # interface to DFT codes
 include("DFT.jl")
