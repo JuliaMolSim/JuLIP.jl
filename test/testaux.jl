@@ -12,7 +12,7 @@ Y[1] = -1.0
 # the positions test is also a test for the py-reference thing
 
 # check the positions-as-ref thing
-at = Atoms("Al") * (2,3,2)
+at = bulk("Al") * (2,3,2)
 X = unsafe_positions(at)
 X[1] = JVec(rand(3))
 @test X == positions(at)
