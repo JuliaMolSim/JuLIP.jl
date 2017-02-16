@@ -110,7 +110,7 @@ ASEAtoms(s::AbstractString) = ASEAtoms(ase_atoms.Atoms(s))
 pyobject(a::ASEAtoms) = a.po
 
 
-length(at::ASEAtoms) = length( unsafe_positions(at::ASEAtoms) )
+length(at::ASEAtoms) = length( positions(at::ASEAtoms) )
 
 
 """
@@ -127,7 +127,14 @@ end
 # ==========================================
 #    some logic for storing permanent data
 
-positions(at::ASEAtoms) = at.po[:get_positions]()' |> vecs
+function positions(at::ASEAtoms)
+    a = PyArray(at.po["positions"])
+    if a.c_contig
+      return copy(pyarrayref(at.po["positions"])) |> vecs
+    else
+      return transpose(at.po[:get_positions]()) |> vecs
+    end
+end
 
 """
 return a reference to the positions array stored in `at.po[:positions]`,
