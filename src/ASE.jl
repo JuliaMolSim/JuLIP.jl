@@ -127,7 +127,7 @@ end
 # ==========================================
 #    some logic for storing permanent data
 
-positions(at::ASEAtoms) = copy( pyarrayref(at.po["positions"]) ) |> vecs
+positions(at::ASEAtoms) = at.po[:get_positions]()' |> vecs
 
 """
 return a reference to the positions array stored in `at.po[:positions]`,
