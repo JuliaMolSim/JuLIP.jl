@@ -24,6 +24,7 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       JVec, JVecs, mat, vec, JMat, JVecF
 
 import JuLIP: energy, forces, cutoff, virial, site_energies
+import StaticArrays: @SMatrix
 
 export Potential, PairPotential, SitePotential
 
@@ -123,8 +124,48 @@ end
 ZeroSitePotential
 
 evaluate(p::ZeroSitePotential, r, R) = 0.0
-evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)
+evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)   # TODO: is this a bug?
 cutoff(::ZeroSitePotential) = 0.0
 
+
+
+"""
+`fd_hessian(V, R, h) -> H`
+
+If `length(R) = N` and `length(R[i]) = d` then `H` is an N × N `Matrix{SMatrix}` with
+each element a d × d static array.
+"""
+function fd_hessian(V, R, h)
+   d = length(R[1])
+   N = length(R)
+   H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
+   return fd_hessian!(H, V, R)
+end
+
+"""
+`fd_hessian!(H, V, R, h) -> H`
+
+Fill `H` with the hessian entries; cf `fd_hessian`.
+"""
+function fd_hessian!{D,T}(H, V, R::Vector{SVec{D,T}}, h)
+   N = length(R)
+   # convert R into a long vector and H into a big matrix (same part of memory!)
+   Rvec = mat(R)[:]
+   Hmat = reinterpret(T, H, (N*D, N*D))
+   # now re-define ∇V as a function of a long vector (rather than a vector of SVecs)
+   dV(r) = ((@D V)(r |> vecs) |> mat)[:]
+   # compute the hessian as a big matrix
+   for i = 1:N*D
+      Rvec[i] +=h
+      dVp = dV(Rvec)
+      Rvec[i] -= 2*h
+      dVm = dV(Rvec)
+      Hmat[:, i] = (dVp - dVm) / (2 * h)
+      Rvec[i] += h
+   end
+   Hmat = 0.5 * (Hmat + Hmat')
+   # no need to convert back since H and Hmat point to the same block of memory
+   return H
+end
 
 end
