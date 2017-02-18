@@ -21,7 +21,7 @@ module Potentials
 
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
-      JVec, JVecs, mat, vec, JMat, JVecF
+      JVec, JVecs, mat, vec, JMat, JVecF, SVec, vecs, SMat
 
 import JuLIP: energy, forces, cutoff, virial, site_energies
 import StaticArrays: @SMatrix
@@ -139,7 +139,7 @@ function fd_hessian(V, R, h)
    d = length(R[1])
    N = length(R)
    H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
-   return fd_hessian!(H, V, R)
+   return fd_hessian!(H, V, R, h)
 end
 
 """
@@ -151,9 +151,9 @@ function fd_hessian!{D,T}(H, V, R::Vector{SVec{D,T}}, h)
    N = length(R)
    # convert R into a long vector and H into a big matrix (same part of memory!)
    Rvec = mat(R)[:]
-   Hmat = reinterpret(T, H, (N*D, N*D))
+   Hmat = zeros(N*D, N*D)   # reinterpret(T, H, (N*D, N*D))
    # now re-define ∇V as a function of a long vector (rather than a vector of SVecs)
-   dV(r) = ((@D V)(r |> vecs) |> mat)[:]
+   dV(r) = (evaluate_d(V, r |> vecs) |> mat)[:]
    # compute the hessian as a big matrix
    for i = 1:N*D
       Rvec[i] +=h
@@ -164,7 +164,12 @@ function fd_hessian!{D,T}(H, V, R::Vector{SVec{D,T}}, h)
       Rvec[i] += h
    end
    Hmat = 0.5 * (Hmat + Hmat')
-   # no need to convert back since H and Hmat point to the same block of memory
+   # convert to a block-matrix
+   for i = 1:N, j = 1:N
+      Ii = (i-1) * D + (1:D)
+      Ij = (j-1) * D + (1:D)
+      H[i, j] = SMat{D,D}(Hmat[Ii, Ij])
+   end
    return H
 end
 
