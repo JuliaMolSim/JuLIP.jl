@@ -122,13 +122,12 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
    x = dofs(at)
    x += rattle * rand(length(x))
    # call the actual FD test
-   fdtest( x -> energy(at, x),
-           x -> gradient(at, x),
-           x )
+   result = fdtest( x -> energy(at, x), x -> gradient(at, x), x )
    # restore original atom positions
    set_positions!(at, X0)
    set_calculator!(at, calc0)
    set_constraint!(at, cons0)
+   return result
 end
 
 
