@@ -102,11 +102,6 @@ fdtest(V::PairPotential, r::AbstractVector; kwargs...) =
 
 function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
                 verbose=true, rattle=0.01)
-   if isa(rattle, Bool)
-      warning("Deprecation: Testing.fdtest: rattle should be a float")
-      rattle ? rattle = 0.01 : rattle = 0.0
-   end
-
    X0 = copy(positions(at))
    calc0 = calculator(at)
    cons0 = constraint(at)
