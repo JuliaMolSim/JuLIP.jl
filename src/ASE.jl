@@ -45,7 +45,7 @@ export ASEAtoms,      # ✓
       extend!, get_info, set_info!, get_array, set_array!, has_array, has_info,
       get_transient, set_transient!, has_transient,
       velocities, set_velocities!, masses, set_masses!
-      
+
 using PyCall
 
 @pyimport ase.io as ase_io
@@ -304,7 +304,8 @@ import Base.*
 export bulk, graphene_nanoribbon, nanotube, molecule
 
 @doc ase_build.bulk[:__doc__] ->
-bulk(args...; kwargs...) = ASEAtoms(ase_build.bulk(args...; kwargs...))
+bulk(args...; pbc=true, kwargs...) =
+   set_pbc!(ASEAtoms(ase_build.bulk(args...; kwargs...)), pbc)
 
 @doc ase_build.graphene_nanoribbon[:__doc__] ->
 graphene_nanoribbon(args...; kwargs...) =
