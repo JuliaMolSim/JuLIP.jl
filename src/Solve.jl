@@ -4,14 +4,14 @@
 Contains a few geometry optimisation routines, for now see
 the help for these:
 
-* `minimise`
+* `minimise!`
 """
 module Solve
 
 import Optim
 import LineSearches
 
-using Optim: DifferentiableFunction, optimize, ConjugateGradient, LBFGS
+using Optim: OnceDifferentiable, optimize, ConjugateGradient, LBFGS
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
             dofs, energy, gradient, set_dofs!, set_constraint!
@@ -40,7 +40,7 @@ function minimise!( at::AbstractAtoms;
                   verbose = 1 )
 
    # create an objective function
-   objective = DifferentiableFunction( x->energy(at, x),
+   objective = OnceDifferentiable( x->energy(at, x),
                                        (x,g)->copy!(g, gradient(at, x)) )
    # call Optim.jl
    # TODO: use verb flag to determine whether detailed output is wanted
@@ -72,8 +72,6 @@ end
 
 # saddle search
 # include("saddlesearch.jl")
-
-
 
 
 end
