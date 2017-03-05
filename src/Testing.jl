@@ -19,13 +19,11 @@ using JuLIP.Constraints: FixedCell
 export fdtest
 
 """
-generic finite-difference test for scalar F
+first-order finite-difference test for scalar F
 
 * `fdtest(F::Function, dF::Function, x)`
-
 * `fdtest(V::PairPotential, r::Vector{Float64})`
-
-TODO: complete documentation
+* `fdtest(calc::AbstractCalculator, at::AbstractAtoms)`
 """
 function fdtest(F::Function, dF::Function, x; verbose=true)
    errors = Float64[]

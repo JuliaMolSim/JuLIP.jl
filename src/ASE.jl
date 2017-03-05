@@ -122,6 +122,7 @@ function deepcopy(at::ASEAtoms)
     new_at = ASEAtoms(at.po[:copy]())
     set_constraint!(new_at, constraint(at))
     set_calculator!(new_at, calculator(at))
+    new_at.transient = deepcopy(at.transient)
     return new_at
 end
 
@@ -157,6 +158,11 @@ function set_positions!(a::ASEAtoms, p::JVecsF)
 end
 
 set_pbc!(at::ASEAtoms, val::Bool) = set_pbc!(at, (val,val,val))
+
+function set_pbc!(at::ASEAtoms, val::AbstractVector{Bool})
+   @assert length(val) == 3
+   return set_pbc!(at, tuple(val...))
+end
 
 function set_pbc!(a::ASEAtoms, val::NTuple{3,Bool})
    a.po[:pbc] = val
