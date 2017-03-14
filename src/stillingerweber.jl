@@ -61,6 +61,16 @@ from [Stillinger/Weber, PRB 1985].
 The `StillingerWeber` type can also by "abused" to generate arbitrary
 bond-angle potentials of the form
    ∑_{i,j} V2(rij) + ∑_{i,j,k} V3(rij) V3(rik) (cos Θijk + 1/3)^2
+
+Constructor admits the following key-word parameters:
+`ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
+                  p = 4, a = 1.8, λ=21.0, γ=1.20`
+
+which enter the potential as follows:
+```
+V2(r) = 0.5 * ϵ * A * (B * (r/σ)^(-p) - 1.0) * exp(1.0 / (r/σ - a))
+V3(r) = sqrt(ϵ * λ) * exp(γ / (r/σ - a))
+```
 """
 StillingerWeber
 
