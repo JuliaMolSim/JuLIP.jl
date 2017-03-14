@@ -69,7 +69,9 @@ function forces(pot::SitePotential, at::AbstractAtoms)
    frc = zerovecs(length(at))
    for (i, j, r, R, _) in sites(at, cutoff(pot))
       dpot = @D pot(r, R)
-      frc[j] -= dpot
+      for a = 1:length(j)
+         frc[j[a]] -= dpot[a]
+      end
       frc[i] += sum(dpot)
    end
    return frc

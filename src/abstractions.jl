@@ -176,10 +176,14 @@ get_cell = cell
 "deformation matrix; `defm(at) = cell(at)'`"
 defm(at::AbstractAtoms) = JMat(cell(at)')
 
-"set the deformation matrix"
+"""
+`set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false) -> at`
+
+set the deformation matrix
+"""
 function set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false)
    if updatepositions
-      A = JMat(F * inv(defm(at)))
+      A = JMatF(F * inv(defm(at)))
       X = [A * x for x in unsafe_positions(at)]
       set_positions!(at, X)
    end
