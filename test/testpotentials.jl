@@ -109,3 +109,17 @@ for (calc, at) in calculators
    println("--------------------------------")
    fdtest(calc, at, verbose=true)
 end
+
+
+# ========== Test correct implementation of site_energy ============
+
+println("Testing `site_energy` ...")
+at = bulk("Si", pbc=true, cubic=true) * 3
+sw = StillingerWeber()
+atsm = bulk("Si", pbc = true)
+@test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm) / 2 ) < 1e-10
+
+# finite-difference test
+f(x) = JuLIP.Potentials.site_energy(sw, set_dofs!(at, x), 1)
+df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1))[:]
+@test fdtest(f, df, dofs(at); verbose=true)
