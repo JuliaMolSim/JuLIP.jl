@@ -21,12 +21,14 @@ module Potentials
 
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
-      JVec, JVecs, mat, vec, JMat, JVecF, SVec, vecs, SMat
+      JVec, JVecs, mat, vec, JMat, JVecF, SVec, vecs, SMat,
+      positions
 
 import JuLIP: energy, forces, cutoff, virial, site_energies
 import StaticArrays: @SMatrix
 
-export Potential, PairPotential, SitePotential
+export Potential, PairPotential, SitePotential,
+     site_energy, site_energy_d
 
 """
 `Potential`: generic abstract supertype for all potential-like things
@@ -63,6 +65,7 @@ site_energies(pot::SitePotential, at::AbstractAtoms) =
 energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(site_energies(pot, at))
 
 evaluate(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate(pot, norm.(R), R)
+
 evaluate_d(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate_d(pot, norm.(R), R)
 
 function forces(pot::SitePotential, at::AbstractAtoms)
@@ -82,6 +85,29 @@ site_virial(dV, R) = - sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
 virial(V::SitePotential, at::AbstractAtoms) =
       sum(  site_virial((@D V(r, R)), R)
             for (_₁, _₂, r, R, _₃) in sites(at, cutoff(V))  )
+
+
+
+function site_energy(V::SitePotential, at::AbstractAtoms, i0::Int)
+   @assert 1 <= i0 <= length(at)
+   for (i, j, r, R, S) in sites(at, cutoff(V))
+      if i == i0
+         return V(R)
+      end
+   end
+end
+
+function site_energy_d(V::SitePotential, at::AbstractAtoms, i0::Int)
+   @assert 1 <= i0 <= length(at)
+   for (i, j, r, R, S) in sites(at, cutoff(V))
+      if i == i0
+         F = zeros(JVecF, length(at))
+         F[j] = @D V(R)
+         return F
+      end
+   end
+end
+
 
 
 include("analyticpotential.jl")
