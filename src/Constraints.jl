@@ -337,9 +337,9 @@ function gradient(at::AbstractAtoms, cons::ExpVariableCell)
    T = dexpm_3x3(U, - virial(at) * expm(-U))
    # add the forces acting on the upper diagonal of U to the lower diagonal
    # this way we ensure that T : V = U2dofs(T) : U2dofs(V)
-   T[(2,3,6)] += T[(4,7,8)]
+   T[[2,3,6]] += T[[4,7,8]]
    # add the pressure component
-   T[(1,5,9)] += cons.pressure * exp(trace(U)) * U[(1,5,9)]
+   T[[1,5,9]] += cons.pressure * exp(trace(U)) * U[[1,5,9]]
    return [ mat(G)[cons.ifree]; U2dofs(T) ]
 end
 

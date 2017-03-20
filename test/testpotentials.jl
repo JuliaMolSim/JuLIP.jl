@@ -50,7 +50,7 @@ println("--------------------------------------------------")
 println(" E_ase - E_jl = ", energy(at) - energy(at2))
 println(" |Frc_ase - Frc_jl = ", maxnorm(forces(at) - forces(at2)))
 println("--------------------------------------------------")
-@test abs(energy(at) - energy(at2)) < 1e-12
+@test abs(energy(at) - energy(at2)) < 1e-10
 
 # [4] Stillinger-Weber model
 at3 = set_pbc!( bulk("Si", cubic=true) * 2, (false, true, false) )
@@ -117,9 +117,11 @@ println("Testing `site_energy` ...")
 at = bulk("Si", pbc=true, cubic=true) * 3
 sw = StillingerWeber()
 atsm = bulk("Si", pbc = true)
+println(" ... passed site_energy identity, now testing derivative ...")
 @test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm) / 2 ) < 1e-10
 
 # finite-difference test
+set_constraint!(at, FixedCell(at))
 f(x) = JuLIP.Potentials.site_energy(sw, set_dofs!(at, x), 1)
-df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1))[:]
+df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1) |> mat)[:]
 @test fdtest(f, df, dofs(at); verbose=true)
