@@ -50,18 +50,19 @@ function minimise!( at::AbstractAtoms;
       else
          optimiser = Optim.ConjugateGradient( P = precond,
                            precondprep = (P, x) -> update!(P, at, x),
-                           linesearch = LineSearches.interpbacktrack! )
+                           linesearch = LineSearches.bt2!)
       end
    elseif method == :lbfgs
       optimiser = Optim.LBFGS( P = precond, extrapolate=true,
                         precondprep = (P, x) -> update!(P, at, x),
-                        linesearch = LineSearches.interpbacktrack! )
+                        linesearch = LineSearches.bt2! )
    else
       error("JulIP.Solve.minimise!: unkonwn `method` option")
    end
 
    results = optimize( objective, dofs(at), optimiser,
                         Optim.Options(f_tol = ftol, g_tol = gtol, show_trace = (verbose > 1)) )
+   set_dofs!(at, Optim.minimizer(results))
    # analyse the results
    if verbose > 0
       println(results)

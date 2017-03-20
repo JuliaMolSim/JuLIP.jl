@@ -81,7 +81,8 @@ function show(at::AbstractAtoms; bonds=:babel, box=:auto,
    nlist = neighbourlist(at, bondlength)
    # we are assuming that nlist is the Matscipy nlist
    ij = unique(sort([nlist.i nlist.j], 2), 1) - 1
-   bondlist = [Dict("atoms" => [ij[n,1];ij[n,2]], "order" => 1) for n = 1:Base.size(ij, 1)]
+   bondlist = [Dict("atoms" => [ij[n,1];ij[n,2]], "order" => 1)
+               for n = 1:Base.size(ij, 1)]
    molecule_data = Dict("atoms" => atoms, "bonds" => bondlist)
 
    # write to a temporary file

@@ -47,13 +47,15 @@ type AMGPrecon{T} <: Preconditioner
    tol::Float64
    updatefreq::Int
    skippedupdates::Int
+   stab::Float64
 end
 
-function AMGPrecon(p, at::AbstractAtoms; updatedist=0.3, tol=1e-7, updatefreq=10)
+function AMGPrecon(p, at::AbstractAtoms;
+         updatedist=0.3, tol=1e-7, updatefreq=10, stab=0.01)
    # make sure we don't use this in a context it is not intended for!
    @assert isa(constraint(at), FixedCell)
    P = AMGPrecon(p, RugeStubenSolver(speye(2)), copy(positions(at)),
-                     updatedist, tol, updatefreq, 0)
+                     updatedist, tol, updatefreq, 0, stab)
    return force_update!(P, at)
 end
 
@@ -72,7 +74,9 @@ function force_update!(P::AMGPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
-   A = project!( constraint(at), matrix(P.p, at) )
+   Pmat = matrix(P.p, at)
+   Pmat + P.stab * speye(size(Pmat, 1))
+   A = project!( constraint(at), Pmat )
    # and the AMG solver
    P.amg = RugeStubenSolver(A, tol=P.tol)
    # remember the atom positions
@@ -142,13 +146,11 @@ Keyword arguments:
       phase materials. J. Chem. Phys., 144, 2016.
 """
 function Exp(at::AbstractAtoms;
-             A=3.0, r0=nothing, cutoff_mult=2.2, tol=1e-7, updatefreq=10)
-   if r0 == nothing
-      r0 = estimate_rnn(at)
-   end
+             A=3.0, r0=estimate_rnn(at), cutoff_mult=2.2,
+             tol=1e-7, updatefreq=10)
    rcut = r0 * cutoff_mult
-   exp_shit = exp( - A*(rcut/r0 - 1.0) )
-   pot = PairPotential( :(exp( - $A * (r/$r0 - 1.0)) - $exp_shit),
+   exp_shift = exp( - A*(rcut/r0 - 1.0) )
+   pot = PairPotential( :(exp( - $A * (r/$r0 - 1.0)) - $exp_shift),
                             cutoff = rcut )
    return AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
 end
