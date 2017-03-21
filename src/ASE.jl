@@ -180,6 +180,11 @@ function deleteat!(at::ASEAtoms, n::Integer)
    return at
 end
 
+function deleteat!(at::ASEAtoms, nn)
+   deleteat!(at, collect(nn) - 1)
+   return at
+end
+
 
 # ==========================================
 #    some logic for storing transient data
