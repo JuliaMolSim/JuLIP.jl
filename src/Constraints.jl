@@ -14,7 +14,7 @@ import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient, 
       momentum_dofs, set_momentum_dofs!
 
 
-export FixedCell, VariableCell, ExpVariableCell
+export FixedCell, VariableCell, ExpVariableCell, FixedCell2D
 
 
 function zeros_free{T}(n::Integer, x::Vector{T}, free::Vector{Int})
@@ -94,7 +94,7 @@ set_momentum_dofs!(at::AbstractAtoms, cons::FixedCell, p::Dofs) =
 
 project!(at::AbstractAtoms, cons::FixedCell) = at
 
-# TODO: this is a temporaruy hack, and I think we need to
+# TODO: this is a temporary hack, and I think we need to
 #       figure out how to do this for more general constraints
 #       maybe not too terrible
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
@@ -103,6 +103,23 @@ gradient(at::AbstractAtoms, cons::FixedCell) =
                scale!(mat(forces(at))[cons.ifree], -1.0)
 
 energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
+
+
+# =================
+#   FixedCell2D
+# =================
+
+"""
+preliminary implementation of a Constraint, restricting a
+simulation to 2D in-plane motion
+"""
+function FixedCell2D(at::AbstractAtoms; free = Int[])
+   mask = fill(false, (3, length(at)))
+   mask[:, free] = true
+   mask[3, :] = false
+   return FixedCell(at, mask = mask)
+end
+
 
 
 # ========================================================================
