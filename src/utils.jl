@@ -21,16 +21,28 @@ r_dot(a, b) = r_sum(a[:] .* b[:])
 
 
 """
-`rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0)
+`rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0, respect_constraint = true)
   -> at`
 
 randomly perturbs the atom positions
 
 * `r`: magnitude of perturbation
 * `rnn` : nearest-neighbour distance
+* `respect_constraint`: set false to also perturb the constrained atom positions
 """
-function rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0)
-   X = positions(at) |> mat
-   X += r * rnn * 2.0/sqrt(3) * (rand(size(X)) - 0.5)
-   return set_positions!(at, X)
+function rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0, respect_constraint = true)
+   # if there is no constraint, then revert to respect_constraint = false
+   if constraint(at) isa NullConstraint
+      respect_constraint = false
+   end
+   if respect_constraint
+      x = dofs(at)
+      x += r * rnn * 2.0/sqrt(3) * (rand(length(x)) - 0.5)
+      set_dofs!(at, x)
+   else
+      X = positions(at) |> mat
+      X += r * rnn * 2.0/sqrt(3) * (rand(size(X)) - 0.5)
+      set_positions!(at, X)
+   end
+   return at
 end
