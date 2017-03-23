@@ -32,7 +32,7 @@ randomly perturbs the atom positions
 """
 function rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0, respect_constraint = true)
    # if there is no constraint, then revert to respect_constraint = false
-   if constraint(at) isa NullConstraint
+   if isa(constraint(at), NullConstraint)
       respect_constraint = false
    end
    if respect_constraint
