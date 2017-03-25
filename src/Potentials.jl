@@ -22,7 +22,7 @@ module Potentials
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
       JVec, JVecs, mat, vec, JMat, JVecF, SVec, vecs, SMat,
-      positions
+      positions, set_positions!
 
 import JuLIP: energy, forces, cutoff, virial, site_energies
 import StaticArrays: @SMatrix
@@ -163,7 +163,7 @@ cutoff(::ZeroSitePotential) = 0.0
 If `length(R) = N` and `length(R[i]) = d` then `H` is an N × N `Matrix{SMatrix}` with
 each element a d × d static array.
 """
-function fd_hessian(V, R, h)
+function fd_hessian{D,T}(V::SitePotential, R::Vector{SVec{D,T}}, h)
    d = length(R[1])
    N = length(R)
    H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
@@ -175,7 +175,7 @@ end
 
 Fill `H` with the hessian entries; cf `fd_hessian`.
 """
-function fd_hessian!{D,T}(H, V, R::Vector{SVec{D,T}}, h)
+function fd_hessian!{D,T}(H, V::SitePotential, R::Vector{SVec{D,T}}, h)
    N = length(R)
    # convert R into a long vector and H into a big matrix (same part of memory!)
    Rvec = mat(R)[:]
@@ -200,5 +200,47 @@ function fd_hessian!{D,T}(H, V, R::Vector{SVec{D,T}}, h)
    end
    return H
 end
+
+function fd_hessian(calc::AbstractCalculator, at::AbstractAtoms, h)
+   d = 3
+   N = length(at)
+   H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
+   return fd_hessian!(H, calc, at, h)
+end
+
+
+"""
+`fd_hessian!{D,T}(H, calc, at, h) -> H`
+
+Fill `H` with the hessian entries; cf `fd_hessian`.
+"""
+function fd_hessian!(H, calc::AbstractCalculator, at::AbstractAtoms, h)
+   D = 3
+   N = length(at)
+   X = positions(at) |> mat
+   x = X[:]
+   # convert R into a long vector and H into a big matrix (same part of memory!)
+   Hmat = zeros(N*D, N*D)
+   # now re-define ∇V as a function of a long vector (rather than a vector of SVecs)
+   dE(x_) = (site_energy_d(calc, set_positions!(at, reshape(x_, D, N)), 1) |> mat)[:]
+   # compute the hessian as a big matrix
+   for i = 1:N*D
+      x[i] += h
+      dEp = dE(x)
+      x[i] -= 2*h
+      dEm = dE(x)
+      Hmat[:, i] = (dEp - dEm) / (2 * h)
+      x[i] += h
+   end
+   Hmat = 0.5 * (Hmat + Hmat')
+   # convert to a block-matrix
+   for i = 1:N, j = 1:N
+      Ii = (i-1) * D + (1:D)
+      Ij = (j-1) * D + (1:D)
+      H[i, j] = SMat{D,D}(Hmat[Ii, Ij])
+   end
+   return H
+end
+
 
 end

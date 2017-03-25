@@ -14,7 +14,8 @@ import LineSearches
 using Optim: OnceDifferentiable, optimize, ConjugateGradient, LBFGS
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
-            dofs, energy, gradient, set_dofs!, set_constraint!, site_energies, Dofs
+            dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
+            Dofs, calculator
 
 using JuLIP.Potentials: SitePotential
 
