@@ -337,9 +337,11 @@ nanotube(args...; kwargs...) =
 
 include("MatSciPy.jl")
 
-function neighbourlist(at::ASEAtoms, cutoff::Float64)::MatSciPy.NeighbourList
+function neighbourlist(at::ASEAtoms, cutoff::Float64;
+                        recompute=false)::MatSciPy.NeighbourList
+   # TODO: also recompute if rcut is different !!!!!
    # if no previous neighbourlist is available, compute a new one
-   if !has_transient(at, :nlist)
+   if !has_transient(at, :nlist) || recompute
       # this nlist will be destroyed as soon as positions change
       set_transient!(at, :nlist, MatSciPy.NeighbourList(at, cutoff))
    end
