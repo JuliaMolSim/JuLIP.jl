@@ -5,7 +5,7 @@
 # TODO: explore allowing arbitrary order of splines?
 #
 
-using Dierckx: derivative, Spline1D
+using Dierckx: Spline1D
 # https://github.com/kbarbary/Dierckx.jl
 
 function spline_interpolate(x, y; order=3)
@@ -23,13 +23,19 @@ end
 @pot type SplinePairPotential <: PairPotential
    spl::Spline1D
    rcut::Float64
+   wrk::
 end
 
 cutoff(V::SplinePairPotential) = V.rcut
 
 evaluate(V::SplinePairPotential, r, R) = V.spl(r)
 
-evaluate(V::SplinePairPotential, r, R) = V.spl(r)
+_deriv(V::SplinePairPotential, r, nu) =
+   Dierckx.__derivative(V.spl.t, V.spl.c, V.spl.k, r, nu, V.spl.bc, V.wrk)
+
+evaluate_d(V::SplinePairPotential, r, R) = _deriv(V, r, 1)
+
+evaluate_dd(V::SplinePairPotential, r, R) = _deriv(V, r, 2)
 
 
 """
@@ -41,33 +47,24 @@ then something will surely break.
 """
 SplinePairPotential
 
-function SplinePairPotential(xdat, ydat, xknots::AbstractVector;
-                             fixcutoff = true, kwargs...)
-   xknots = collect(xknots)
+
+function SplinePairPotential(xdat, ydat; s = 1e-2, fixcutoff=true, order=3,
+                             w = (1.0 + ydat).^(-2))
+   @assert order == 3
+   # TODO: explore whether it is worthwhile using weights in this construction?
+   spl = Spline1D(xdat, ydat; bc = "zero", s = s, k = order, w = w)
+   # set the last few spline data-points to 0 to get a guaranteed
+   # smooth transition to 0 at the cutoff.
    if fixcutoff
-      # add the cutoff to the knots
-      rcut = maximum(xdat)
-      push!(xknots, rcut)
-      # add two extra points to ensure the potential becomes zero near the cutoff
-      append!(xknots, [rcut + 1e-2, rcut + 2e-2])
-      # add data points to ensure the fit is correct between rcut and rcut+2e-2
-      append!(xdat, [rcut + j*1e-3 for j = 1:30])
-      append!(ydat, zeros(30))
+      spl.c[end-order+1:end] = 0.0
    end
-   # construct the spline
-   spl = Spline1D(xdat, ydat, xknots; bc = "zero", kwargs...)
-   return SplinePairPotential(spl, maximum(xknots))
+   return SplinePairPotential(spl, maximum(splt.t))
 end
 
 
-# function SplinePairPotential(xdat, ydat, nknots::Integer; kwargs...)
-# end
+SplinePairPotential(fname::AbstractString; kwargs...) =
+   SplinePairPotential(load_ppfile(fname)...; kwargs...)
 
-
-function SplinePairPotential(fname::AbstractString, nknots::Integer; kwargs...)
-   xdat, ydat = load_ppfile(fname)
-
-end
 
 
 function load_ppfile(fname::AbstractString)
