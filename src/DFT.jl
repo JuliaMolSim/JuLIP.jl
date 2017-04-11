@@ -7,7 +7,7 @@ Provides Julia wrappers for DFT codes, principally GPAW at present
 """
 module DFT
 
-using JuLIP: AbstractCalculator, AbstractAtoms, positions, energy
+using JuLIP: AbstractCalculator, AbstractAtoms, positions, energy, julipwarn
 using JuLIP.ASE: AbstractASECalculator, ASEAtoms, rnn
 
 # functions to be overloaded
@@ -39,7 +39,7 @@ const gpaw_available = try
     pyimport("gpaw")
     true
 catch
-    warn("'gpaw' Python module cannot be imported: JuLIP.DFT disabled")
+    julipwarn("'gpaw' Python module cannot be imported: JuLIP.DFT disabled")
     false
 end
 

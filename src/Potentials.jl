@@ -128,14 +128,14 @@ include("pairpotentials.jl")
 # * SimpleExponential
 
 
-try
-   include("adsite.jl")
-   # * FDPotential : Site potential using ForwardDiff
-   # * RDPotential : Site potential using ReverseDiffPrototype
-catch
-   # warn("""adsite.jl could not be included; most likely some AD package is missing;
-   #    at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
-end
+# try
+#    include("adsite.jl")
+#    # * FDPotential : Site potential using ForwardDiff
+#    # * RDPotential : Site potential using ReverseDiffPrototype
+# catch
+#    warn("""adsite.jl could not be included; most likely some AD package is missing;
+#       at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
+# end
 
 include("EMT.jl")
 # * EMTCalculator
@@ -147,9 +147,9 @@ try
    include("splines.jl")
    include("eam.jl")
 catch
-   warn("""the spline library could not be imported, which means that
-           no spine based potentials will be available. To make them
-           available, install `Pkg.add("Dierckx")`.
+   warn("""the spline library could not be imported. To make EAM
+           available, install `Pkg.add("Dierckx")` and then
+           `Pkg.checkout("Dierckx")`.
            """)
 end
 

@@ -40,7 +40,7 @@ try
    # some visualisation options
    include("Visualise.jl")
 catch
-   warn("""JuLIP.Visualise did not import correctly, probably because
+   JuLIP.julipwarn("""JuLIP.Visualise did not import correctly, probably because
                `imolecule` is not correctly installed.""")
 end
 

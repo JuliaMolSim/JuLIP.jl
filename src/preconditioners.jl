@@ -10,7 +10,7 @@ using JuLIP.ASE: chemical_symbols, rnn
 try
    using PyAMG: RugeStubenSolver
 catch
-   warn("failed to load `PyAMG`")
+   JuLIP.julipwarn("failed to load `PyAMG`")
 end
 
 import JuLIP: update!

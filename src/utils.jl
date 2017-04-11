@@ -46,3 +46,17 @@ function rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0, respect_constraint = 
    end
    return at
 end
+
+
+"""
+use this instead of `warn`, then warnings can be turned off by setting
+`Main.JULIPWARN=false`
+"""
+function julipwarn(s)
+   if isdefined(Main, :JULIPWARN)
+      if Main.JULIPWARN == false
+         return false
+      end
+   end
+   warn(s)
+end
