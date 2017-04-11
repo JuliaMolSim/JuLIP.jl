@@ -23,9 +23,9 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
       JVec, JVecs, mat, vec, JMat, JVecF, SVec, vecs, SMat,
       positions, set_positions!
+using StaticArrays: @SMatrix
 
 import JuLIP: energy, forces, cutoff, virial, site_energies
-import StaticArrays: @SMatrix
 
 export Potential, PairPotential, SitePotential,
      site_energy, site_energy_d
@@ -87,6 +87,7 @@ virial(V::SitePotential, at::AbstractAtoms) =
             for (_₁, _₂, r, R, _₃) in sites(at, cutoff(V))  )
 
 
+# TODO: site_energy and site_energy_d are not tested properly
 
 function site_energy(V::SitePotential, at::AbstractAtoms, i0::Int)
    @assert 1 <= i0 <= length(at)
@@ -126,14 +127,15 @@ include("pairpotentials.jl")
 # * MorsePotential
 # * SimpleExponential
 
-try
-   include("adsite.jl")
-   # * FDPotential : Site potential using ForwardDiff
-   # * RDPotential : Site potential using ReverseDiffPrototype
-catch
-   # warn("""adsite.jl could not be included; most likely some AD package is missing;
-   #    at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
-end
+
+# try
+#    include("adsite.jl")
+#    # * FDPotential : Site potential using ForwardDiff
+#    # * RDPotential : Site potential using ReverseDiffPrototype
+# catch
+#    warn("""adsite.jl could not be included; most likely some AD package is missing;
+#       at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
+# end
 
 include("EMT.jl")
 # * EMTCalculator
@@ -141,11 +143,20 @@ include("EMT.jl")
 include("stillingerweber.jl")
 # * type StillingerWeber
 
+try
+   include("splines.jl")
+   include("eam.jl")
+catch
+   warn("""the spline library could not be imported. To make EAM
+           available, install `Pkg.add("Dierckx")` and then
+           `Pkg.checkout("Dierckx")`.
+           """)
+end
 
 
 export ZeroSitePotential
 
-@pot type ZeroSitePotential <: Potential
+@pot type ZeroSitePotential <: SitePotential
 end
 
 "a site potential that just returns zero"

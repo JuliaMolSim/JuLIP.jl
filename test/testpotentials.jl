@@ -58,6 +58,7 @@ sw = StillingerWeber()
 set_calculator!(at3, sw)
 push!(calculators, (sw, at3))
 
+# ================================================================
 # # [5] a simple FDPotential
 # @pot type FDPot <: FDPotential end
 # fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
@@ -80,6 +81,8 @@ push!(calculators, (sw, at3))
 # JuLIP.cutoff(::RDPot_r) = 4.0
 # at7 = set_pbc!(bulk("Si") * (3,3,1), false)
 # push!(calculators, (RDPot_r(), at7))
+# ================================================================
+
 
 # [8] PairSitePotential
 at8 = set_pbc!( bulk("Al", cubic=true), false ) * 2
@@ -94,6 +97,13 @@ println(" E_pp - E_psp = ", energy(pp, at8) - energy(psp, at8))
 println(" |Frc_pp - Frc_psp = ", maxnorm(forces(pp, at8) - forces(psp, at8)))
 println("--------------------------------------------------")
 @test abs(energy(pp, at8) - energy(psp, at8)) < 1e-12
+
+
+# [9] EAM Potential
+at9 = set_pbc!( bulk("Fe", cubic = true), false ) * 2
+dir = Pkg.dir("JuLIP") * "/data/"
+eam = Potentials.EAM(dir * "pfe.plt", dir * "ffe.plt", dir * "F_fe.plt")
+push!(calculators, (eam, at9))
 
 
 
