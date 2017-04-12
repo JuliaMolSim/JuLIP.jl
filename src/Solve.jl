@@ -56,14 +56,12 @@ function minimise!( at::AbstractAtoms;
       Es0 = site_energies(at)
       objective = OnceDifferentiable(
          x -> Ediff(at, Es0, x),
-         (x, g) -> copy!(g, gradient(at, x)),
-         dofs(at)
+         (x, g) -> copy!(g, gradient(at, x))
       )
    else
       objective = OnceDifferentiable(
          x->energy(at, x),
-         (x,g)->copy!(g, gradient(at, x)),
-         dofs(at)
+         (x,g)->copy!(g, gradient(at, x))
       )
    end
    # call Optim.jl
