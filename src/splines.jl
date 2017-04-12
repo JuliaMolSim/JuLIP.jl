@@ -47,6 +47,7 @@ evaluate(V::SplinePairPotential, r) = V.spl(r)
 
 _deriv(V::SplinePairPotential, r, nu) =
    Dierckx.__derivative(V.spl.t, V.spl.c, V.spl.k, r, nu, V.spl.bc, V.wrk)
+   # Dierckx.derivative(V.spl, r, nu)
 
 evaluate_d(V::SplinePairPotential, r, R) = _deriv(V, r, 1)
 evaluate_d(V::SplinePairPotential, r) = _deriv(V, r, 1)

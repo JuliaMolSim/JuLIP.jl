@@ -105,18 +105,35 @@ gradient(at::AbstractAtoms, cons::FixedCell) =
 energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
 
 
-# =================
-#   FixedCell2D
-# =================
+# ===================
+#   In-Plane Motion
+# ===================
+
+FixedCell2D(at::AbstractAtoms; kwargs...) = InPlaneFixedCell(at; kwargs...)
 
 """
 preliminary implementation of a Constraint, restricting a
 simulation to 2D in-plane motion
 """
-function FixedCell2D(at::AbstractAtoms; free = Int[])
+function InPlaneFixedCell(at::AbstractAtoms; free = Int[])
    mask = fill(false, (3, length(at)))
    mask[:, free] = true
    mask[3, :] = false
+   return FixedCell(at, mask = mask)
+end
+
+# =====================
+#   Anti-Plane Motion
+# =====================
+
+"""
+preliminary implementation of a Constraint, restricting a
+simulation to 2D in-plane motion
+"""
+function AntiPlaneFixedCell(at::AbstractAtoms; free = Int[])
+   mask = fill(false, (3, length(at)))
+   mask[:, free] = true
+   mask[1:2, :] = false
    return FixedCell(at, mask = mask)
 end
 
