@@ -85,11 +85,11 @@ type ASEAtoms <: AbstractAtoms
    po::PyObject       # ase.Atoms instance
    calc::AbstractCalculator
    cons::AbstractConstraint
-   transient::Dict{Symbol, TransientData}
+   transient::Dict{Any, TransientData}
 end
 
 ASEAtoms(po::PyObject) = ASEAtoms(po, NullCalculator(), NullConstraint(),
-                                 Dict{Symbol, TransientData}())
+                                 Dict{Any, TransientData}())
 
 function set_calculator!(at::ASEAtoms, calc::AbstractCalculator)
    at.calc = calc
@@ -111,7 +111,7 @@ ASEAtoms(s::AbstractString) = ASEAtoms(ase_atoms.Atoms(s))
 pyobject(a::ASEAtoms) = a.po
 
 
-length(at::ASEAtoms) = length( positions(at::ASEAtoms) )
+length(at::ASEAtoms) = at.po["positions"]["shape"][1]
 
 
 """
@@ -129,20 +129,29 @@ end
 # ==========================================
 #    some logic for storing permanent data
 
-function positions(at::ASEAtoms)
-    a = PyArray(at.po["positions"])
-    if a.c_contig
-      return copy(pyarrayref(at.po["positions"])) |> vecs
-    else
-      return transpose(at.po[:get_positions]()) |> vecs
-    end
-end
+# temporarily reverted to the old `positions` implementation
+# due to a bug in TightBinding.jl
+
+positions(at::ASEAtoms) = Matrix{Float64}(at.po[:positions])' |> vecs
+
+# function positions(at::ASEAtoms)
+#     a = PyArray(at.po["positions"])
+#     if a.c_contig
+#       return copy(pyarrayref(at.po["positions"])) |> vecs
+#     else
+#       return transpose(at.po[:get_positions]()) |> vecs
+#     end
+# end
+
 
 """
 return a reference to the positions array stored in `at.po[:positions]`,
 manipulating this array will change the stored positions, hence use with care.
 Normally, `unsafe_positions` should only be used when it is certain that the
 data will only be *read* but not manipulated.
+
+Note also the `unsafe_positions` will not check the storage order (row-major
+   or columns-major) of the positions array in Python
 """
 unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
 
@@ -177,6 +186,7 @@ set_cell!(a::ASEAtoms, p::Matrix) = (a.po[:set_cell](p); a)
 
 function deleteat!(at::ASEAtoms, n::Integer)
    at.po[:__delitem__](n-1) # delete in the actual array
+   update_transient_data!(at, Inf)
    return at
 end
 
@@ -225,8 +235,37 @@ function set_info!(a::ASEAtoms, name, value::Any)
 end
 
 # Julia transient data
+"""
+`has_transient(a::ASEAtoms, name)`:
+checks whether a transient datum with key `name` exists;
+see also `set_transient!`.
+"""
 has_transient(a::ASEAtoms, name) = haskey(a.transient, name)
+
+"""
+`get_transient(a::ASEAtoms, name)`: retrieves a transient datum;
+see also `set_transient!`.
+"""
 get_transient(a::ASEAtoms, name) = (a.transient[name]).data
+
+"""
+```
+set_transient!(a::ASEAtoms, name, value, max_change=0.0)
+```
+Sets an arbitrary datum `value` under an arbitrary
+key `name` in a special dictionary. The entry is paired with an
+updatemeasure `chg`. Whenever atom positions change by a distance
+`d`, the counter is incremented `chg += d`. When `chg > max_change`,
+the entry is deleted from the dictionary.
+
+The most common use of this functionality will be with `max_change = 0.0`;
+in this case the entry will be deleted whenever atom positions
+change.
+
+Two examples where `max_change > 0`:
+ * neighbourlist with buffer
+ * Preconditioner is updated only when atom positions change significantly
+"""
 function set_transient!(a::ASEAtoms, name, value, max_change=0.0)
    if has_array(a, name) || has_info(a, name)
       error("""cannot set_transient!(..., $(name), ...)" since this key already
