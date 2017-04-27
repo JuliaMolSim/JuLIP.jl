@@ -111,7 +111,7 @@ ASEAtoms(s::AbstractString) = ASEAtoms(ase_atoms.Atoms(s))
 pyobject(a::ASEAtoms) = a.po
 
 
-length(at::ASEAtoms) = at.po["positions"]["shape"][1]
+length(at::ASEAtoms) = Int(at.po["positions"]["shape"][1])
 
 
 """
