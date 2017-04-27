@@ -95,9 +95,12 @@ WrappedPPotential
 
 
 
-evaluate(p::AnalyticPairPotential, r) = p.f(r)
-evaluate_d(p::AnalyticPairPotential, r) = p.f_d(r)
-evaluate_dd(p::AnalyticPairPotential, r) = p.f_dd(r)
+evaluate(p::AnalyticPairPotential, r::Number) = p.f(r)
+# evaluate(p::AnalyticPairPotential, r::AbstractVector) = [p.f(s) for s in r]
+evaluate_d(p::AnalyticPairPotential, r::Number) = p.f_d(r)
+# evaluate_d(p::AnalyticPairPotential, r::AbstractVector) = [p.f_d(s) for s in r]
+evaluate_dd(p::AnalyticPairPotential, r::Number) = p.f_dd(r)
+# evaluate_dd(p::AnalyticPairPotential, r::AbstractVector) = [p.f_dd(s) for s in r]
 Base.print(io::Base.IO, p::AnalyticPairPotential) = print(io, p.id)
 cutoff(p::AnalyticPairPotential) = p.cutoff
 

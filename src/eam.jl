@@ -10,16 +10,18 @@ end
 
 cutoff(V::EAM) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
-evaluate(V::EAM, r, R) = V.F( sum(V.ρ(r)) ) + 0.5 * sum(V.ϕ(r))
+evaluate(V::EAM, r, R) = V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
 
+# TODO: this creates a lot of unnecessary overhead; probaby better to
+#       define vectorised versions of pair potentials
 function evaluate_d(V::EAM, r, R)
-   r = collect(r)
-   dϕ = @D V.ϕ(r, R)
-   ρ̄ = sum(V.ρ(r))
+   # r = collect(r)
+   # dϕ = [@D V.ϕ(s) for s in r]
+   ρ̄ = sum(V.ρ(s) for s in r)
    dF = @D V.F(ρ̄)
-   dρ = @D V.ρ(r, R)
-   #          (0.5 * ϕ' + F' * ρ') * ∇r
-   return [ ((0.5 * dϕ[n] + dF * dρ[n])/r[n]) * R[n]  for n = 1:length(r) ]
+   # dρ = [@D V.ρ(s) for s in r]
+   #          (0.5 * ϕ'         + F'  *  ρ') * ∇r     (where ∇r = R/r)
+   return [ ((0.5 * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S  for (s, S) in zip(r, R) ]
 end
 
 
