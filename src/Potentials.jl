@@ -28,7 +28,7 @@ using StaticArrays: @SMatrix
 import JuLIP: energy, forces, cutoff, virial, site_energies
 
 export Potential, PairPotential, SitePotential,
-     site_energy, site_energy_d
+     site_energy, site_energy_d, partial_energy, partial_energy_d
 
 """
 `Potential`: generic abstract supertype for all potential-like things
@@ -87,27 +87,41 @@ virial(V::SitePotential, at::AbstractAtoms) =
             for (_₁, _₂, r, R, _₃) in sites(at, cutoff(V))  )
 
 
-# TODO: site_energy and site_energy_d are not tested properly
+# TODO: partial_energy and partial_energy_d are not tested properly
 
-function site_energy(V::SitePotential, at::AbstractAtoms, i0::Int)
-   @assert 1 <= i0 <= length(at)
+function partial_energy(V::SitePotential, at::AbstractAtoms, Idom)
+   E = 0.0
    for (i, j, r, R, S) in sites(at, cutoff(V))
-      if i == i0
-         return V(R)
+      if i ∈ Idom
+         E += V(r, R)
       end
    end
+   return E
 end
 
-function site_energy_d(V::SitePotential, at::AbstractAtoms, i0::Int)
-   @assert 1 <= i0 <= length(at)
+function partial_energy_d(V::SitePotential, at::AbstractAtoms, Idom)
+   F = zeros(JVecF, length(at))
    for (i, j, r, R, S) in sites(at, cutoff(V))
-      if i == i0
-         F = zeros(JVecF, length(at))
-         F[j] = @D V(R)
-         return F
+      if i ∈ Idom
+         dV = @D V(R)
+         F[j] += dV
+         F[i] -= sum(dV)
       end
    end
+   return F
 end
+
+partial_energy(V::PairPotential, at::AbstractAtoms, Idom) =
+      partial_energy(PairSitePotential(V), at, Idom)
+partial_energy_d(V::PairPotential, at::AbstractAtoms, Idom) =
+      partial_energy_d(PairSitePotential(V), at, Idom)
+
+site_energy(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
+      partial_energy(V, at, [i0])
+site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
+      partial_energy_d(V, at, [i0])
+
+
 
 
 
