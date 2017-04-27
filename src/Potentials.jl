@@ -143,6 +143,7 @@ include("EMT.jl")
 include("stillingerweber.jl")
 # * type StillingerWeber
 
+const JULIP_SPLINES = true
 try
    include("splines.jl")
    include("eam.jl")
@@ -151,6 +152,7 @@ catch
            available, install `Pkg.add("Dierckx")` and then
            `Pkg.checkout("Dierckx")`.
            """)
+  JULIP_SPLINES = false
 end
 
 
