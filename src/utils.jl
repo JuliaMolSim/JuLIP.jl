@@ -1,5 +1,6 @@
 
-export rattle!, r_sum, r_dot
+export rattle!, r_sum, r_dot,
+      swapxy!, swapxz!, swapyz!
 
 
 ############################################################
@@ -59,4 +60,26 @@ function julipwarn(s)
       end
    end
    warn(s)
+end
+
+
+function swapxy!(at::AbstractAtoms)
+   X = positions(at) |> mat
+   X[[2,1],:] = X[[1,2],:]
+   set_positions!(at, X)
+   return at
+end
+
+function swapxz!(at::AbstractAtoms)
+   X = positions(at) |> mat
+   X[[3,1],:] = X[[1,3],:]
+   set_positions!(at, X)
+   return at
+end
+
+function swapyz!(at::AbstractAtoms)
+   X = positions(at) |> mat
+   X[[3,2],:] = X[[2,3],:]
+   set_positions!(at, X)
+   return at
 end
