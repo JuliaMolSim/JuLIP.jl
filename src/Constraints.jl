@@ -79,7 +79,7 @@ function analyze_mask(at, free, clamp, mask)
    return sort(find(mask[:]))
 end
 
-FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
+FixedCell(at::AbstractAtoms; clamp = nothing, free=nothing, mask=nothing) =
    FixedCell(analyze_mask(at, free, clamp, mask))
 
 position_dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
@@ -109,13 +109,17 @@ energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
 #   In-Plane Motion
 # ===================
 
+
 FixedCell2D(at::AbstractAtoms; kwargs...) = InPlaneFixedCell(at; kwargs...)
 
 """
 preliminary implementation of a Constraint, restricting a
 simulation to 2D in-plane motion
 """
-function InPlaneFixedCell(at::AbstractAtoms; free = Int[])
+function InPlaneFixedCell(at::AbstractAtoms; clamp = Int[], free = nothing)
+   if free == nothing
+      free = setdiff(1:length(at), clamp)
+   end
    mask = fill(false, (3, length(at)))
    mask[:, free] = true
    mask[3, :] = false

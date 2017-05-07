@@ -2,7 +2,8 @@
 module Preconditioners
 
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
-               constraint, bonds, cutoff, positions
+            constraint, bonds, cutoff, positions, defm, JVecF, forces, mat,
+            set_positions!
 using JuLIP.Potentials: PairPotential, AnalyticPotential
 using JuLIP.Constraints: project!, FixedCell
 using JuLIP.ASE: chemical_symbols, rnn
@@ -161,7 +162,8 @@ function matrix(p::PairPotential, at::AbstractAtoms)
    for (i, j, r, _, _) in bonds(at, cutoff(p))
       # the next 2 lines add an identity block for each atom
       # TODO: should experiment with other matrices, e.g., R ⊗ R
-      ii = atind2lininds(i); jj = atind2lininds(j)
+      ii = atind2lininds(i)
+      jj = atind2lininds(j)
       z = p(r)
       for (a, b) in zip(ii, jj)
          append!(I, [a; a; b; b])
@@ -194,18 +196,59 @@ Keyword arguments:
 """
 function Exp(at::AbstractAtoms;
              A=3.0, r0=estimate_rnn(at), cutoff_mult=2.2,
-             tol=1e-7, updatefreq=10, solver = :amg)
+             tol=1e-7, updatefreq=10, solver = :amg, energyscale = 1.0)
+   e0 = energyscale == :auto ? 1.0 : energyscale
    rcut = r0 * cutoff_mult
-   exp_shift = exp( - A*(rcut/r0 - 1.0) )
-   pot = PairPotential( :(exp( - $A * (r/$r0 - 1.0)) - $exp_shift),
+   exp_shift = e0 * exp( - A*(rcut/r0 - 1.0) )
+   pot = PairPotential( :($e0 * exp( - $A * (r/$r0 - 1.0)) - $exp_shift),
                             cutoff = rcut )
    if solver == :amg
-      return AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
+      P = AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
    elseif solver == :direct
-      return DirectPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
+      P = DirectPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
+   else
+      error("unknown kwarg solver = $(solver)")
    end
-   error("unknown kwarg solver = $(solver)")
+
+   if energyscale == :auto
+      e0 = estimate_energyscale(at, P)
+      P = Exp(at, A=A, r0=r0, cutoff_mult=cutoff_mult, tol=tol,
+               updatefreq=updatefreq, solver=solver, energyscale=e0)
+   end
+
+   return P
 end
+
+# want μ * <P v, v> ~ <∇E(x+hv) - ∇E(x), v> / h
+function estimate_energyscale(at, P)
+   # get the P-matrix at current configuration
+   A = matrix(P.p, at)
+   # determine direction in which the cell is maximal
+   F = Matrix(defm(at))
+   X0 = positions(at)
+   _, i = findmax( norm(F[:, j]) for j = 1:3 )
+   Fi = JVecF(F[:, i])
+   # an associated perturbation
+   V = [sin(2*pi * dot(Fi, x)/dot(Fi,Fi)) * Fi for x in X0]
+   # compute gradient at current positions
+   f0 = forces(at) |> mat
+   # compute gradient at perturbed positions
+   h = 1e-3
+   set_positions!(at, X0 + h * V)
+   f1 = forces(at) |> mat
+   # return the estimated value for the energyscale
+   V = mat(V)
+   μ = - vecdot((f1 - f0)/h, V) / dot(A * V[:], V[:])
+   if μ < 0.1 || μ > 100.0
+      warn("""
+      e0 = $(μ) in `estimate_energyscale`; this is likely due to a poor \
+      starting guess in an optimisation, probably best to set the
+      energyscale manually
+      """)
+   end
+   return μ
+end
+
 
 
 end # end module Preconditioners
