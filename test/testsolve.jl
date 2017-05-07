@@ -15,7 +15,7 @@ X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 set_constraint!(at, FixedCell(at))
-minimise!(at)
+minimise!(at, precond=:id)
 X1 = positions(at) |> mat
 X0 .-= X0[:, 1]
 X1 .-= X1[:, 1]
@@ -29,12 +29,12 @@ println("-------------------------------------------------")
 println("same test but large and with Exp preconditioner")
 println("-------------------------------------------------")
 
-#at = bulk("Al", cubic=true) * (20,20,2)
-#at = set_pbc!(at, true)
-#at = rattle!(at, 0.02)
-#set_calculator!(at, calc)
-#set_constraint!(at, FixedCell(at))
-#minimise!(at, precond = Exp(at))
+at = bulk("Al", cubic=true) * (20,20,2)
+at = set_pbc!(at, true)
+at = rattle!(at, 0.02)
+set_calculator!(at, calc)
+set_constraint!(at, FixedCell(at))
+minimise!(at, precond = :exp, method = :lbfgs, robust_energy_difference = true)
 
 
 println("-------------------------------------------------")
@@ -44,3 +44,4 @@ calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
 at = set_pbc!(bulk("Al", cubic=true), true)
 set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at))
+minimise!(at)

@@ -15,16 +15,20 @@ using Optim: OnceDifferentiable, optimize, ConjugateGradient, LBFGS
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
             dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
-            Dofs, calculator
+            Dofs, calculator, constraint, AbstractCalculator
 
 using JuLIP.Potentials: SitePotential
+using JuLIP.Preconditioners: Exp
+using JuLIP.Constraints: FixedCell
 
 
 export minimise!
 
 
+include("backtracking.jl")
 
-Ediff(V::SitePotential, at::AbstractAtoms, Es0::Vector{Float64}) =
+
+Ediff(V::AbstractCalculator, at::AbstractAtoms, Es0::Vector{Float64}) =
    sum_kbn(site_energies(V, at) - Es0)
 
 Ediff(at::AbstractAtoms, Es0::Vector{Float64}, x::Dofs) =
@@ -37,17 +41,28 @@ Ediff(at::AbstractAtoms, Es0::Vector{Float64}, x::Dofs) =
 `at` must have a calculator and a constraint attached.
 
 ## Keyword arguments:
-* `precond = Identity()` : preconditioner
+* `precond = :auto` : preconditioner; more below
 * `grtol = 1e-6` : gradient tolerance (max-norm)
 * `ftol = 1e-32` : objective tolerance
 * `Optimiser = :auto`, `:auto` should always work, at least on the master
    branch of `Optim`; `:lbfgs` needs the `extraplbfgs2` branch, which is not
    yet merged. Other options might be introduced in the future.
 * `verbose = 1`: 0 : no output, 1 : final, 2 : iteration and final
+
+## Preconditioner
+
+`precond` may be a valid preconditioner, e.g.,
+`Identity()` or `Exp(at)`, or one of the following symbols
+
+* `:auto` : the code will make the best choice it can with the avilable
+   information
+* `:exp` : will use `Exp(at)`
+* `:id` : will use `Identity()`
 """
 function minimise!( at::AbstractAtoms;
-                  precond = Identity(), gtol=1e-6, ftol=1e-32,
+                  precond = :auto,
                   method = :auto,
+                  gtol=1e-5, ftol=1e-32,
                   verbose = 1,
                   robust_energy_difference = false )
 
@@ -64,8 +79,30 @@ function minimise!( at::AbstractAtoms;
          (x,g)->copy!(g, gradient(at, x))
       )
    end
-   # call Optim.jl
-   # TODO: use verb flag to determine whether detailed output is wanted
+
+   # create a preconditioner
+   if isa(precond, Symbol)
+      if precond == :auto
+         if isa(constraint(at), FixedCell)
+            precond = :exp
+         else
+            precond = :id
+         end
+      end
+      if precond == :exp
+         if method == :lbfgs
+            precond = Exp(at, energyscale = :auto)
+         else
+            precond = Exp(at)
+         end
+      elseif precond == :id
+         precond = Identity()
+      else
+         error("unknown symbol for precond")
+      end
+   end
+
+   # choose the optimisation method Optim.jl
    if method == :auto
       if isa(precond, Identity)
          optimiser = Optim.ConjugateGradient()
@@ -83,7 +120,8 @@ function minimise!( at::AbstractAtoms;
    end
 
    results = optimize( objective, dofs(at), optimiser,
-                        Optim.Options(f_tol = ftol, g_tol = gtol, show_trace = (verbose > 1)) )
+                        Optim.Options( f_tol = ftol, g_tol = gtol,
+                                       show_trace = (verbose > 1)) )
    set_dofs!(at, Optim.minimizer(results))
    # analyse the results
    if verbose > 0
@@ -92,9 +130,6 @@ function minimise!( at::AbstractAtoms;
    return results
 end
 
-
-# saddle search
-# include("saddlesearch.jl")
 
 
 end
