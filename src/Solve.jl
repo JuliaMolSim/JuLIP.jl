@@ -12,6 +12,7 @@ import Optim
 import LineSearches
 
 using Optim: OnceDifferentiable, optimize, ConjugateGradient, LBFGS
+using LineSearches: BackTracking
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
             dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
@@ -24,8 +25,6 @@ using JuLIP.Constraints: FixedCell
 
 export minimise!
 
-
-include("backtracking.jl")
 
 
 Ediff(V::AbstractCalculator, at::AbstractAtoms, Es0::Vector{Float64}) =
@@ -69,16 +68,11 @@ function minimise!( at::AbstractAtoms;
    # create an objective function
    if robust_energy_difference
       Es0 = site_energies(at)
-      objective = OnceDifferentiable(
-         x -> Ediff(at, Es0, x),
-         (x, g) -> copy!(g, gradient(at, x))
-      )
+      obj_f = x -> Ediff(at, Es0, x)
    else
-      objective = OnceDifferentiable(
-         x->energy(at, x),
-         (x,g)->copy!(g, gradient(at, x))
-      )
+      obj_f = x->energy(at, x)
    end
+   obj_g! = (g, x) -> copy!(g, gradient(at, x))
 
    # create a preconditioner
    if isa(precond, Symbol)
@@ -107,6 +101,7 @@ function minimise!( at::AbstractAtoms;
       if isa(precond, Identity)
          optimiser = Optim.ConjugateGradient()
       else
+         error("this minimise! setting has not yet been fixed")
          optimiser = Optim.ConjugateGradient( P = precond,
                            precondprep = (P, x) -> update!(P, at, x),
                            linesearch = LineSearches.bt2!)
@@ -114,12 +109,12 @@ function minimise!( at::AbstractAtoms;
    elseif method == :lbfgs
       optimiser = Optim.LBFGS( P = precond, extrapolate=true,
                         precondprep = (P, x) -> update!(P, at, x),
-                        linesearch = LineSearches.bt2! )
+                        linesearch = BackTracking(order=2) )
    else
-      error("JulIP.Solve.minimise!: unkonwn `method` option")
+      error("JulIP.Solve.minimise!: unknown `method` option")
    end
 
-   results = optimize( objective, dofs(at), optimiser,
+   results = optimize( obj_f, obj_g!, dofs(at), optimiser,
                         Optim.Options( f_tol = ftol, g_tol = gtol,
                                        show_trace = (verbose > 1)) )
    set_dofs!(at, Optim.minimizer(results))
