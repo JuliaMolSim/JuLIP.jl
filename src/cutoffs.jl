@@ -112,7 +112,7 @@ end
 "Second order derivative of `fcut`; see documentation of `fcut`."
 function fcut_dd(r, r0, r1)
   s = 1-(r-r0) / (r1-r0)
-  return ( - (120*s.^3 - 180 * s.^2 + 60 * s) / (r1-r0)^2
+  return ( (120*s.^3 - 180 * s.^2 + 60 * s) / (r1-r0)^2
             .*(0 .< s .< 1))
 end
 

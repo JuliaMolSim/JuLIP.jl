@@ -102,7 +102,6 @@ energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
 
 function hessian(at::AbstractAtoms, cons::FixedCell)
    Hpos = hessian_pos(at)
-   @show Hpos[1,1]
    I, J, Z = Int[], Int[], Float64[]
    for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
    Nat = length(at)
