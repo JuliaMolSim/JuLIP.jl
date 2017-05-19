@@ -12,7 +12,7 @@ import Optim
 import LineSearches
 
 using Optim: OnceDifferentiable, optimize, ConjugateGradient, LBFGS
-using LineSearches: BackTracking
+# using LineSearches: BackTracking
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
             dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
@@ -101,15 +101,14 @@ function minimise!( at::AbstractAtoms;
       if isa(precond, Identity)
          optimiser = Optim.ConjugateGradient()
       else
-         error("this minimise! setting has not yet been fixed")
          optimiser = Optim.ConjugateGradient( P = precond,
                            precondprep = (P, x) -> update!(P, at, x),
-                           linesearch = LineSearches.bt2!)
+                           linesearch = LineSearches.bt2! )    # LineSearches.BackTracking(order=2)
       end
    elseif method == :lbfgs
       optimiser = Optim.LBFGS( P = precond, extrapolate=true,
                         precondprep = (P, x) -> update!(P, at, x),
-                        linesearch = BackTracking(order=2) )
+                        linesearch = LineSearches.bt3! )        # BackTracking(order=2)
    else
       error("JulIP.Solve.minimise!: unknown `method` option")
    end

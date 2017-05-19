@@ -15,7 +15,7 @@ X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 set_constraint!(at, FixedCell(at))
-minimise!(at, precond=:id)
+minimise!(at, precond=:id, verbose=2)
 X1 = positions(at) |> mat
 X0 .-= X0[:, 1]
 X1 .-= X1[:, 1]
@@ -34,7 +34,7 @@ at = set_pbc!(at, true)
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 set_constraint!(at, FixedCell(at))
-minimise!(at, precond = :exp, method = :lbfgs, robust_energy_difference = true)
+minimise!(at, precond = :exp, method = :lbfgs, robust_energy_difference = true, verbose=2)
 
 
 println("-------------------------------------------------")
@@ -43,5 +43,5 @@ println("-------------------------------------------------")
 calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
 at = set_pbc!(bulk("Al", cubic=true), true)
 set_calculator!(at, calc)
-set_constraint!(at, VariableCell(at))
+set_constraint!(at, VariableCell(at), verbose = 2)
 minimise!(at)
