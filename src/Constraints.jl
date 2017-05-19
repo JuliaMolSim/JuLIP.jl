@@ -17,7 +17,7 @@ using JuLIP.Potentials: hessian_pos
 import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy, hessian
 
 
-export FixedCell, VariableCell, ExpVariableCell
+export FixedCell, VariableCell, ExpVariableCell, FixedCell2D
 
 
 function zeros_free{T}(n::Integer, x::Vector{T}, free::Vector{Int})
@@ -80,7 +80,7 @@ function analyze_mask(at, free, clamp, mask)
    return find(mask[:])
 end
 
-FixedCell(at::AbstractAtoms; free=nothing, clamp=nothing, mask=nothing) =
+FixedCell(at::AbstractAtoms; clamp = nothing, free=nothing, mask=nothing) =
    FixedCell(analyze_mask(at, free, clamp, mask))
 
 dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
@@ -90,7 +90,7 @@ set_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
 
 project!(at::AbstractAtoms, cons::FixedCell) = at
 
-# TODO: this is a temporaruy hack, and I think we need to
+# TODO: this is a temporary hack, and I think we need to
 #       figure out how to do this for more general constraints
 #       maybe not too terrible
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
@@ -117,6 +117,44 @@ function hessian(at::AbstractAtoms, cons::FixedCell)
    end
    return project!( cons, sparse(I, J, Z, 3*Nat, 3*Nat) )
 end
+
+
+# ===================
+#   In-Plane Motion
+# ===================
+
+
+FixedCell2D(at::AbstractAtoms; kwargs...) = InPlaneFixedCell(at; kwargs...)
+
+"""
+preliminary implementation of a Constraint, restricting a
+simulation to 2D in-plane motion
+"""
+function InPlaneFixedCell(at::AbstractAtoms; clamp = Int[], free = nothing)
+   if free == nothing
+      free = setdiff(1:length(at), clamp)
+   end
+   mask = fill(false, (3, length(at)))
+   mask[:, free] = true
+   mask[3, :] = false
+   return FixedCell(at, mask = mask)
+end
+
+# =====================
+#   Anti-Plane Motion
+# =====================
+
+"""
+preliminary implementation of a Constraint, restricting a
+simulation to 2D in-plane motion
+"""
+function AntiPlaneFixedCell(at::AbstractAtoms; free = Int[])
+   mask = fill(false, (3, length(at)))
+   mask[:, free] = true
+   mask[1:2, :] = false
+   return FixedCell(at, mask = mask)
+end
+
 
 
 # ========================================================================
@@ -351,9 +389,9 @@ function gradient(at::AbstractAtoms, cons::ExpVariableCell)
    T = dexpm_3x3(U, - virial(at) * expm(-U))
    # add the forces acting on the upper diagonal of U to the lower diagonal
    # this way we ensure that T : V = U2dofs(T) : U2dofs(V)
-   T[(2,3,6)] += T[(4,7,8)]
+   T[[2,3,6]] += T[[4,7,8]]
    # add the pressure component
-   T[(1,5,9)] += cons.pressure * exp(trace(U)) * U[(1,5,9)]
+   T[[1,5,9]] += cons.pressure * exp(trace(U)) * U[[1,5,9]]
    return [ mat(G)[cons.ifree]; U2dofs(T) ]
 end
 

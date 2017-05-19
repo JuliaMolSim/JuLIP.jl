@@ -21,11 +21,14 @@ module Potentials
 
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       bonds, sites,
-      JVec, JVecs, mat, vec, JMat, JVecF
+      JVec, JVecs, mat, vec, JMat, JVecF, SVec, vecs, SMat,
+      positions, set_positions!
+using StaticArrays: @SMatrix
 
 import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian, site_energies
 
-export Potential, PairPotential, SitePotential
+export Potential, PairPotential, SitePotential,
+     site_energy, site_energy_d, partial_energy, partial_energy_d
 
 """
 `Potential`: generic abstract supertype for all potential-like things
@@ -62,13 +65,16 @@ site_energies(pot::SitePotential, at::AbstractAtoms) =
 energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(site_energies(pot, at))
 
 evaluate(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate(pot, norm.(R), R)
+
 evaluate_d(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate_d(pot, norm.(R), R)
 
 function forces(pot::SitePotential, at::AbstractAtoms)
    frc = zerovecs(length(at))
    for (i, j, r, R, _) in sites(at, cutoff(pot))
       dpot = @D pot(r, R)
-      frc[j] -= dpot
+      for a = 1:length(j)
+         frc[j[a]] -= dpot[a]
+      end
       frc[i] += sum(dpot)
    end
    return frc
@@ -79,6 +85,44 @@ site_virial(dV, R) = - sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
 virial(V::SitePotential, at::AbstractAtoms) =
       sum(  site_virial((@D V(r, R)), R)
             for (_₁, _₂, r, R, _₃) in sites(at, cutoff(V))  )
+
+
+# TODO: partial_energy and partial_energy_d are not tested properly
+
+function partial_energy(V::SitePotential, at::AbstractAtoms, Idom)
+   E = 0.0
+   for (i, j, r, R, S) in sites(at, cutoff(V))
+      if i ∈ Idom
+         E += V(r, R)
+      end
+   end
+   return E
+end
+
+function partial_energy_d(V::SitePotential, at::AbstractAtoms, Idom)
+   F = zeros(JVecF, length(at))
+   for (i, j, r, R, S) in sites(at, cutoff(V))
+      if i ∈ Idom
+         dV = @D V(R)
+         F[j] += dV
+         F[i] -= sum(dV)
+      end
+   end
+   return F
+end
+
+partial_energy(V::PairPotential, at::AbstractAtoms, Idom) =
+      partial_energy(PairSitePotential(V), at, Idom)
+partial_energy_d(V::PairPotential, at::AbstractAtoms, Idom) =
+      partial_energy_d(PairSitePotential(V), at, Idom)
+
+site_energy(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
+      partial_energy(V, at, [i0])
+site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
+      partial_energy_d(V, at, [i0])
+
+
+
 
 
 include("analyticpotential.jl")
@@ -97,14 +141,15 @@ include("pairpotentials.jl")
 # * MorsePotential
 # * SimpleExponential
 
-try
-   include("adsite.jl")
-   # * FDPotential : Site potential using ForwardDiff
-   # * RDPotential : Site potential using ReverseDiffPrototype
-catch
-   # warn("""adsite.jl could not be included; most likely some AD package is missing;
-   #    at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
-end
+
+# try
+#    include("adsite.jl")
+#    # * FDPotential : Site potential using ForwardDiff
+#    # * RDPotential : Site potential using ReverseDiffPrototype
+# catch
+#    warn("""adsite.jl could not be included; most likely some AD package is missing;
+#       at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
+# end
 
 include("EMT.jl")
 # * EMTCalculator
@@ -112,19 +157,117 @@ include("EMT.jl")
 include("stillingerweber.jl")
 # * type StillingerWeber
 
+const JULIP_SPLINES = true
+try
+   include("splines.jl")
+   include("eam.jl")
+catch
+   warn("""the spline library could not be imported. To make EAM
+           available, install `Pkg.add("Dierckx")` and then
+           `Pkg.checkout("Dierckx")`.
+           """)
+  JULIP_SPLINES = false
+end
 
 
 export ZeroSitePotential
 
-@pot type ZeroSitePotential <: Potential
+@pot type ZeroSitePotential <: SitePotential
 end
 
 "a site potential that just returns zero"
 ZeroSitePotential
 
 evaluate(p::ZeroSitePotential, r, R) = 0.0
-evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)
+evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)   # TODO: is this a bug?
 cutoff(::ZeroSitePotential) = 0.0
+
+
+
+"""
+`fd_hessian(V, R, h) -> H`
+
+If `length(R) = N` and `length(R[i]) = d` then `H` is an N × N `Matrix{SMatrix}` with
+each element a d × d static array.
+"""
+function fd_hessian{D,T}(V::SitePotential, R::Vector{SVec{D,T}}, h)
+   d = length(R[1])
+   N = length(R)
+   H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
+   return fd_hessian!(H, V, R, h)
+end
+
+"""
+`fd_hessian!(H, V, R, h) -> H`
+
+Fill `H` with the hessian entries; cf `fd_hessian`.
+"""
+function fd_hessian!{D,T}(H, V::SitePotential, R::Vector{SVec{D,T}}, h)
+   N = length(R)
+   # convert R into a long vector and H into a big matrix (same part of memory!)
+   Rvec = mat(R)[:]
+   Hmat = zeros(N*D, N*D)   # reinterpret(T, H, (N*D, N*D))
+   # now re-define ∇V as a function of a long vector (rather than a vector of SVecs)
+   dV(r) = (evaluate_d(V, r |> vecs) |> mat)[:]
+   # compute the hessian as a big matrix
+   for i = 1:N*D
+      Rvec[i] +=h
+      dVp = dV(Rvec)
+      Rvec[i] -= 2*h
+      dVm = dV(Rvec)
+      Hmat[:, i] = (dVp - dVm) / (2 * h)
+      Rvec[i] += h
+   end
+   Hmat = 0.5 * (Hmat + Hmat')
+   # convert to a block-matrix
+   for i = 1:N, j = 1:N
+      Ii = (i-1) * D + (1:D)
+      Ij = (j-1) * D + (1:D)
+      H[i, j] = SMat{D,D}(Hmat[Ii, Ij])
+   end
+   return H
+end
+
+function fd_hessian(calc::AbstractCalculator, at::AbstractAtoms, h)
+   d = 3
+   N = length(at)
+   H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
+   return fd_hessian!(H, calc, at, h)
+end
+
+
+"""
+`fd_hessian!{D,T}(H, calc, at, h) -> H`
+
+Fill `H` with the hessian entries; cf `fd_hessian`.
+"""
+function fd_hessian!(H, calc::AbstractCalculator, at::AbstractAtoms, h)
+   D = 3
+   N = length(at)
+   X = positions(at) |> mat
+   x = X[:]
+   # convert R into a long vector and H into a big matrix (same part of memory!)
+   Hmat = zeros(N*D, N*D)
+   # now re-define ∇V as a function of a long vector (rather than a vector of SVecs)
+   dE(x_) = (site_energy_d(calc, set_positions!(at, reshape(x_, D, N)), 1) |> mat)[:]
+   # compute the hessian as a big matrix
+   for i = 1:N*D
+      x[i] += h
+      dEp = dE(x)
+      x[i] -= 2*h
+      dEm = dE(x)
+      Hmat[:, i] = (dEp - dEm) / (2 * h)
+      x[i] += h
+   end
+   Hmat = 0.5 * (Hmat + Hmat')
+   # convert to a block-matrix
+   for i = 1:N, j = 1:N
+      Ii = (i-1) * D + (1:D)
+      Ij = (j-1) * D + (1:D)
+      H[i, j] = SMat{D,D}(Hmat[Ii, Ij])
+   end
+   return H
+end
 
 
 end

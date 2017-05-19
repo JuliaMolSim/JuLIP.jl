@@ -19,13 +19,11 @@ using JuLIP.Constraints: FixedCell
 export fdtest, fdtest_hessian
 
 """
-generic finite-difference test for scalar F
+first-order finite-difference test for scalar F
 
 * `fdtest(F::Function, dF::Function, x)`
-
 * `fdtest(V::PairPotential, r::Vector{Float64})`
-
-TODO: complete documentation
+* `fdtest(calc::AbstractCalculator, at::AbstractAtoms)`
 """
 function fdtest(F::Function, dF::Function, x; verbose=true)
    errors = Float64[]
@@ -137,11 +135,6 @@ fdtest(V::PairPotential, r::AbstractVector; kwargs...) =
 
 function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
                 verbose=true, rattle=0.01)
-   if isa(rattle, Bool)
-      warning("Deprecation: Testing.fdtest: rattle should be a float")
-      rattle ? rattle = 0.01 : rattle = 0.0
-   end
-
    X0 = copy(positions(at))
    calc0 = calculator(at)
    cons0 = constraint(at)
@@ -157,13 +150,12 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
    x = dofs(at)
    x += rattle * rand(length(x))
    # call the actual FD test
-   fdtest( x -> energy(at, x),
-           x -> gradient(at, x),
-           x )
+   result = fdtest( x -> energy(at, x), x -> gradient(at, x), x )
    # restore original atom positions
    set_positions!(at, X0)
    set_calculator!(at, calc0)
    set_constraint!(at, cons0)
+   return result
 end
 
 

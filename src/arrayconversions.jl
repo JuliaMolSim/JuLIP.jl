@@ -123,4 +123,7 @@ maxnorm{T}(x::JVecs{T}) = maximum( norm.(x) )
 
 # The next function is conversion of python arrays  _by reference_
 pyarrayref(a::PyObject; own=false) = pyarrayref(PyArray(a); own=own)
-pyarrayref(a::PyArray; own=false) = unsafe_wrap(Array, a.data, reverse(a.dims), own)
+function pyarrayref(a::PyArray; own=false)
+    a.c_contig || error("Python array is not C-contiguous, cannot use unsafe_wrap()")
+    return unsafe_wrap(Array, a.data, reverse(a.dims), own)
+end
