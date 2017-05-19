@@ -145,6 +145,8 @@ import Base.*
 *(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
 evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
 evaluate_d(p::ProdPot, r) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
+evaluate_dd(p::ProdPot, r) = (p.p1(r) * (@DD p.p2(r)) +
+              2 * (@D p.p1(r)) * (@D p.p2(r)) + (@DD p.p1(r)) * p.p2(r))
 cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
 function Base.print(io::Base.IO, p::ProdPot)
    print(io, p.p1)
