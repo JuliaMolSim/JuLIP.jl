@@ -96,22 +96,37 @@ function minimise!( at::AbstractAtoms;
       end
    end
 
-   # choose the optimisation method Optim.jl
-   if method == :auto
-      if isa(precond, Identity)
-         optimiser = Optim.ConjugateGradient()
-      else
-         optimiser = Optim.ConjugateGradient( P = precond,
-                           precondprep = (P, x) -> update!(P, at, x),
-                           linesearch = LineSearches.bt2! )    # LineSearches.BackTracking(order=2)
-      end
-   elseif method == :lbfgs
-      optimiser = Optim.LBFGS( P = precond, extrapolate=true,
-                        precondprep = (P, x) -> update!(P, at, x),
-                        linesearch = LineSearches.bt3! )        # BackTracking(order=2)
-   else
-      error("JulIP.Solve.minimise!: unknown `method` option")
-   end
+   # # choose the optimisation method Optim.jl
+   # if method == :auto
+   #    if isa(precond, Identity)
+   #       optimiser = Optim.ConjugateGradient()
+   #    else
+   #       optimiser = Optim.ConjugateGradient( P = precond,
+   #                         precondprep = (P, x) -> update!(P, at, x),
+   #                         linesearch = LineSearches.bt2! )    # LineSearches.BackTracking(order=2)
+   #    end
+   # elseif method == :lbfgs
+   #    optimiser = Optim.LBFGS( P = precond, extrapolate=true,
+   #                      precondprep = (P, x) -> update!(P, at, x),
+   #                      linesearch = LineSearches.bt3! )        # BackTracking(order=2)
+   # else
+   #    error("JulIP.Solve.minimise!: unknown `method` option")
+   # end
+
+   optimiser = Optim.ConjugateGradient()
+   obj_f = x->energy(at, x)
+   obj_g! = (g, x) -> copy!(g, gradient(at, x))
+
+   # x0 = dofs(at)
+   # g = zeros(x0)
+   # println("obj_f and obj_g!")
+   # @time obj_f(x0)
+   # @time obj_f(x0)
+   # @time obj_f(x0)
+   # @time obj_g!(g, x0)
+   # @time obj_g!(g, x0)
+   # @time obj_g!(g, x0)
+   # quit()
 
    results = optimize( obj_f, obj_g!, dofs(at), optimiser,
                         Optim.Options( f_tol = ftol, g_tol = gtol,

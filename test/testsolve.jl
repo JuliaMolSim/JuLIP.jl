@@ -10,11 +10,20 @@ println("-----------------------------------------------------------------")
 println("Testing `minimise!` with equilibration with LJ calculator to lattice")
 println("-----------------------------------------------------------------")
 calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = bulk("Al", cubic=true) * 3
+at = bulk("Al", cubic=true) * 10
 X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 set_constraint!(at, FixedCell(at))
+
+# println("energy and gradient")
+# @time energy(at)
+# @time energy(at)
+# @time energy(at)
+# @time gradient(at)
+# @time gradient(at)
+# @time gradient(at)
+
 minimise!(at, precond=:id, verbose=2)
 X1 = positions(at) |> mat
 X0 .-= X0[:, 1]
@@ -23,6 +32,8 @@ F = X1 / X0
 println("check that the optimiser really converged to a lattice")
 @show vecnorm(F'*F - eye(3), Inf)
 @show vecnorm(F*X0 - X1, Inf)
+
+quit()
 
 
 println("-------------------------------------------------")
