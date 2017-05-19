@@ -14,6 +14,7 @@ julip_tests = [
    # "testpotentials.jl";
    # "testvarcell.jl";
    # "testexpvarcell.jl";
+   "testhessian.jl"
    "testsolve.jl";
 ]
 

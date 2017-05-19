@@ -16,7 +16,7 @@ using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, grad, @D
 using JuLIP.Constraints: FixedCell
 
 
-export fdtest
+export fdtest, fdtest_hessian
 
 """
 first-order finite-difference test for scalar F
@@ -56,6 +56,41 @@ function fdtest(F::Function, dF::Function, x; verbose=true)
       return false
    end
 end
+
+
+function fdtest_hessian(F::Function, dF::Function, x; verbose=true)
+   errors = Float64[]
+   F0 = F(x)
+   dF0 = dF(x)
+   dFh = copy(full(dF0))
+   @assert size(dFh) == (length(F0), length(x))
+   # loop through finite-difference step-lengths
+   @printf("---------|----------- \n")
+   @printf("    h    | error \n")
+   @printf("---------|----------- \n")
+   for p = 2:11
+      h = 0.1^p
+      for n = 1:length(x)
+         x[n] += h
+         dFh[:, n] = (F(x) - F0) / h
+         x[n] -= h
+      end
+      push!(errors, vecnorm(dFh - dF0, Inf))
+      @printf(" %1.1e | %4.2e  \n", h, errors[end])
+   end
+   @printf("---------|----------- \n")
+   if minimum(errors) <= 1e-3 * maximum(errors)
+      println("passed")
+      return true
+   else
+      warn("""It seems the finite-difference test has failed, which indicates
+            that there is an inconsistency between the function and gradient
+            evaluation. Please double-check this manually / visually. (It is
+            also possible that the function being tested is poorly scaled.)""")
+      return false
+   end
+end
+
 
 "finite-difference test for a function V : ℝ → ℝ"
 function fdtest_R2R(F::Function, dF::Function, x::Vector{Float64};

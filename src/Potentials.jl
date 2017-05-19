@@ -25,7 +25,7 @@ using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
       positions, set_positions!
 using StaticArrays: @SMatrix
 
-import JuLIP: energy, forces, cutoff, virial, site_energies
+import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian, site_energies
 
 export Potential, PairPotential, SitePotential,
      site_energy, site_energy_d, partial_energy, partial_energy_d

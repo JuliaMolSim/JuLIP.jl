@@ -1,3 +1,4 @@
+
 """
 `module Constraints`
 
@@ -8,10 +9,12 @@ module Constraints
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          mat, vecs, JVecs, JVecsF, JMatF, JMat,
          set_positions!, set_cell!, virial, defm, set_defm!,
-         forces, unsafe_positions, momenta, set_momenta!
+         forces, unsafe_positions
 
-import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient, energy,
-      momentum_dofs, set_momentum_dofs!
+# temporary hack - we may need to rethink this
+using JuLIP.Potentials: hessian_pos
+
+import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy, hessian
 
 
 export FixedCell, VariableCell, ExpVariableCell, FixedCell2D
@@ -38,10 +41,8 @@ positions{TI<:Integer}(at::AbstractAtoms, ifree::AbstractVector{TI}, dofs::Dofs)
 # ========================================================================
 
 """
-`FixedCell`: the cell shape is fixed; clamp constraints can be placed on
-individual atoms, see keyword arguments below.
-
-Momenta for clamped atoms (or atom components) are set to zero.
+`FixedCell`: no constraints are placed on the motion of atoms, but the
+cell shape is fixed
 
 Constructor:
 ```julia
@@ -76,21 +77,16 @@ function analyze_mask(at, free, clamp, mask)
       fill!(mask, false)
       mask[:, free] = true
    end
-   return sort(find(mask[:]))
+   return find(mask[:])
 end
 
 FixedCell(at::AbstractAtoms; clamp = nothing, free=nothing, mask=nothing) =
    FixedCell(analyze_mask(at, free, clamp, mask))
 
-position_dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
+dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
 
-set_position_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
+set_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
       set_positions!(at, positions(at, cons.ifree, x))
-
-momentum_dofs(at::AbstractAtoms, cons::FixedCell) = mat(momenta(at))[cons.ifree]
-
-set_momentum_dofs!(at::AbstractAtoms, cons::FixedCell, p::Dofs) =
-      set_momenta!(at, zeros_free(3 * length(at), p, cons.ifree) |> vecs)
 
 project!(at::AbstractAtoms, cons::FixedCell) = at
 
@@ -103,6 +99,23 @@ gradient(at::AbstractAtoms, cons::FixedCell) =
                scale!(mat(forces(at))[cons.ifree], -1.0)
 
 energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
+
+function hessian(at::AbstractAtoms, cons::FixedCell)
+   Hpos = hessian_pos(at)
+   I, J, Z = Int[], Int[], Float64[]
+   for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
+   Nat = length(at)
+   @assert Nat == size(Hpos, 2)
+   # TODO: this findnz creates an extra copy of all data, which we should avoid
+   for (iat, jat, zat) in zip(findnz(Hpos)...)
+      for a = 1:3, b = 1:3
+         push!(I, 3 * (iat-1) + a)
+         push!(J, 3 * (jat-1) + b)
+         push!(Z, zat[a,b])
+      end
+   end
+   return project!( cons, sparse(I, J, Z, 3*Nat, 3*Nat) )
+end
 
 
 # ===================
@@ -202,7 +215,7 @@ end
 #   F -> F
 #   X[n] = F * F^{-1} X0[n]
 
-function position_dofs(at::AbstractAtoms, cons::VariableCell)
+function dofs(at::AbstractAtoms, cons::VariableCell)
    X = positions(at)
    F = defm(at)
    A = cons.F0 * inv(F)
@@ -214,7 +227,7 @@ end
 posdofs(x) = x[1:end-9]
 celldofs(x) = x[end-8:end]
 
-function set_position_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
+function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
    F = JMatF(celldofs(x))
    A = F * inv(cons.F0)
    Y = copy(cons.X0)
@@ -335,7 +348,7 @@ expcelldofs(x) = x[end-5:end]
 U2dofs(U) = U[(1,2,3,5,6,9)]
 dofs2U(x) = JMat(expcelldofs(x)[(1,2,3,2,4,5,3,5,6)])
 
-function position_dofs(at::AbstractAtoms, cons::ExpVariableCell)
+function dofs(at::AbstractAtoms, cons::ExpVariableCell)
    X = positions(at)
    U, _ = logm_defm(at, cons)
    # tranform the positions back to the reference cell (F0)
@@ -345,7 +358,7 @@ function position_dofs(at::AbstractAtoms, cons::ExpVariableCell)
 end
 
 
-function set_position_dofs!(at::AbstractAtoms, cons::ExpVariableCell, x::Dofs)
+function set_dofs!(at::AbstractAtoms, cons::ExpVariableCell, x::Dofs)
    U = dofs2U(x)
    expU = expm(U)
    F = expU * cons.F0
