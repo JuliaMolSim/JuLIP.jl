@@ -1,5 +1,6 @@
 
-export rattle!, r_sum, r_dot
+export rattle!, r_sum, r_dot,
+      swapxy!, swapxz!, swapyz!
 
 
 ############################################################
@@ -21,16 +22,64 @@ r_dot(a, b) = r_sum(a[:] .* b[:])
 
 
 """
-`rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0)
+`rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0, respect_constraint = true)
   -> at`
 
 randomly perturbs the atom positions
 
 * `r`: magnitude of perturbation
 * `rnn` : nearest-neighbour distance
+* `respect_constraint`: set false to also perturb the constrained atom positions
 """
-function rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0)
+function rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0, respect_constraint = true)
+   # if there is no constraint, then revert to respect_constraint = false
+   if isa(constraint(at), NullConstraint)
+      respect_constraint = false
+   end
+   if respect_constraint
+      x = dofs(at)
+      x += r * rnn * 2.0/sqrt(3) * (rand(length(x)) - 0.5)
+      set_dofs!(at, x)
+   else
+      X = positions(at) |> mat
+      X += r * rnn * 2.0/sqrt(3) * (rand(size(X)) - 0.5)
+      set_positions!(at, X)
+   end
+   return at
+end
+
+
+"""
+use this instead of `warn`, then warnings can be turned off by setting
+`Main.JULIPWARN=false`
+"""
+function julipwarn(s)
+   if isdefined(Main, :JULIPWARN)
+      if Main.JULIPWARN == false
+         return false
+      end
+   end
+   warn(s)
+end
+
+
+function swapxy!(at::AbstractAtoms)
    X = positions(at) |> mat
-   X += r * rnn * 2.0/sqrt(3) * (rand(size(X)) - 0.5)
-   return set_positions!(at, X)
+   X[[2,1],:] = X[[1,2],:]
+   set_positions!(at, X)
+   return at
+end
+
+function swapxz!(at::AbstractAtoms)
+   X = positions(at) |> mat
+   X[[3,1],:] = X[[1,3],:]
+   set_positions!(at, X)
+   return at
+end
+
+function swapyz!(at::AbstractAtoms)
+   X = positions(at) |> mat
+   X[[3,2],:] = X[[2,3],:]
+   set_positions!(at, X)
+   return at
 end

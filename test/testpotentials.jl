@@ -50,7 +50,7 @@ println("--------------------------------------------------")
 println(" E_ase - E_jl = ", energy(at) - energy(at2))
 println(" |Frc_ase - Frc_jl = ", maxnorm(forces(at) - forces(at2)))
 println("--------------------------------------------------")
-@test abs(energy(at) - energy(at2)) < 1e-12
+@test abs(energy(at) - energy(at2)) < 1e-10
 
 # [4] Stillinger-Weber model
 at3 = set_pbc!( bulk("Si", cubic=true) * 2, (false, true, false) )
@@ -58,6 +58,7 @@ sw = StillingerWeber()
 set_calculator!(at3, sw)
 push!(calculators, (sw, at3))
 
+# ================================================================
 # # [5] a simple FDPotential
 # @pot type FDPot <: FDPotential end
 # fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
@@ -80,6 +81,8 @@ push!(calculators, (sw, at3))
 # JuLIP.cutoff(::RDPot_r) = 4.0
 # at7 = set_pbc!(bulk("Si") * (3,3,1), false)
 # push!(calculators, (RDPot_r(), at7))
+# ================================================================
+
 
 # [8] PairSitePotential
 at8 = set_pbc!( bulk("Al", cubic=true), false ) * 2
@@ -96,6 +99,14 @@ println("--------------------------------------------------")
 @test abs(energy(pp, at8) - energy(psp, at8)) < 1e-12
 
 
+if JuLIP.Potentials.JULIP_SPLINES
+   # [9] EAM Potential
+   at9 = set_pbc!( bulk("Fe", cubic = true), false ) * 2
+   dir = Pkg.dir("JuLIP") * "/data/"
+   eam = Potentials.EAM(dir * "pfe.plt", dir * "ffe.plt", dir * "F_fe.plt")
+   push!(calculators, (eam, at9))
+end 
+
 
 # ========== Run the finite-difference tests for all calculators ============
 
@@ -109,3 +120,19 @@ for (calc, at) in calculators
    println("--------------------------------")
    fdtest(calc, at, verbose=true)
 end
+
+
+# ========== Test correct implementation of site_energy ============
+
+println("Testing `site_energy` ...")
+at = bulk("Si", pbc=true, cubic=true) * 3
+sw = StillingerWeber()
+atsm = bulk("Si", pbc = true)
+println(" ... passed site_energy identity, now testing derivative ...")
+@test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm) / 2 ) < 1e-10
+
+# finite-difference test
+set_constraint!(at, FixedCell(at))
+f(x) = JuLIP.Potentials.site_energy(sw, set_dofs!(at, x), 1)
+df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1) |> mat)[:]
+@test fdtest(f, df, dofs(at); verbose=true)

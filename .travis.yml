@@ -1,12 +1,21 @@
 # Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
+
 os:
   - linux
   - osx
+
 julia:
   - 0.5
+
+addons:
+  apt:
+    packages:
+    - gfortran
+
 notifications:
   email: false
+
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'ENV["PYTHON"]=""; Pkg.add("PyCall"); Pkg.add("Conda"); using Conda; Conda.add("NumPy"); Conda.add("SciPy"); Conda.add("pip"); pip = joinpath(Conda.BINDIR, "pip"); run(`$pip install ase`); run(`$pip install -e git+https://github.com/libAtoms/matscipy#egg=matscipy`); Pkg.clone(pwd()); Pkg.build("JuLIP"); Pkg.test("JuLIP"; coverage=true)'
+  - julia -e 'ENV["PYTHON"]=""; Pkg.add("PyCall"); Pkg.add("Conda"); using Conda; Conda.add("NumPy"); Conda.add("SciPy"); Conda.add("pip"); pip = joinpath(Conda.BINDIR, "pip"); run(`$pip install ase`); run(`$pip install -e git+https://github.com/libAtoms/matscipy#egg=matscipy`); Pkg.clone(pwd()); Pkg.build("JuLIP"); Pkg.checkout("Dierckx"); Pkg.test("JuLIP"; coverage=true)'

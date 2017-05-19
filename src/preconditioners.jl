@@ -2,11 +2,17 @@
 module Preconditioners
 
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
-               constraint, bonds, cutoff, positions
+            constraint, bonds, cutoff, positions, defm, JVecF, forces, mat,
+            set_positions!
 using JuLIP.Potentials: PairPotential, AnalyticPotential
 using JuLIP.Constraints: project!, FixedCell
 using JuLIP.ASE: chemical_symbols, rnn
-using PyAMG: RugeStubenSolver
+
+try
+   using PyAMG: RugeStubenSolver
+catch
+   JuLIP.julipwarn("failed to load `PyAMG`")
+end
 
 import JuLIP: update!
 import Base: A_ldiv_B!, A_mul_B!
@@ -18,6 +24,8 @@ import Base: A_ldiv_B!, A_mul_B!
 # TODO: allow direct solver as an alternative;
 #       in this case we should to a cholesky factorisation
 #       on `force_update!`
+
+abstract PairPrecon <: Preconditioner
 
 """
 `AMGPrecon{T}`: a preconditioner using AMG as the main solver
@@ -39,7 +47,7 @@ AMGPrecon(p::Any, at::AbstractAtoms; updatedist=0.3, tol=1e-7)
 from the nearest-neighbour distance in `at`
 * should also have automatic updates every 10 or so iterations
 """
-type AMGPrecon{T} <: Preconditioner
+type AMGPrecon{T} <: PairPrecon
    p::T
    amg::RugeStubenSolver
    oldX::JVecsF
@@ -47,13 +55,36 @@ type AMGPrecon{T} <: Preconditioner
    tol::Float64
    updatefreq::Int
    skippedupdates::Int
+   stab::Float64
 end
 
-function AMGPrecon(p, at::AbstractAtoms; updatedist=0.3, tol=1e-7, updatefreq=10)
+
+type DirectPrecon{T} <: PairPrecon
+   p::T
+   A::SparseMatrixCSC
+   oldX::JVecsF
+   updatedist::Float64
+   tol::Float64
+   updatefreq::Int
+   skippedupdates::Int
+   stab::Float64
+end
+
+function AMGPrecon(p, at::AbstractAtoms;
+         updatedist=0.3, tol=1e-7, updatefreq=10, stab=0.01)
    # make sure we don't use this in a context it is not intended for!
    @assert isa(constraint(at), FixedCell)
    P = AMGPrecon(p, RugeStubenSolver(speye(2)), copy(positions(at)),
-                     updatedist, tol, updatefreq, 0)
+                     updatedist, tol, updatefreq, 0, stab)
+   return force_update!(P, at)
+end
+
+function DirectPrecon(p, at::AbstractAtoms;
+         updatedist=0.3, tol=1e-7, updatefreq=10, stab=0.01)
+   # make sure we don't use this in a context it is not intended for!
+   @assert isa(constraint(at), FixedCell)
+   P = DirectPrecon(p, speye(2), copy(positions(at)),
+                     updatedist, tol, updatefreq, 0, stab)
    return force_update!(P, at)
 end
 
@@ -61,20 +92,41 @@ end
 A_ldiv_B!(out::Dofs, P::AMGPrecon, x::Dofs) = A_ldiv_B!(out, P.amg, x)
 A_mul_B!(out::Dofs, P::AMGPrecon, f::Dofs) = A_mul_B!(out, P.amg, f)
 
-need_update(P::AMGPrecon, at::AbstractAtoms) =
+A_ldiv_B!(out::Dofs, P::DirectPrecon, x::Dofs) = A_ldiv_B!(out, P.A, x)
+A_mul_B!(out::Dofs, P::DirectPrecon, f::Dofs) = A_mul_B!(out, P.A, f)
+
+
+need_update(P::PairPrecon, at::AbstractAtoms) =
    (P.skippedupdates > P.updatefreq) ||
    (maxdist(positions(at), P.oldX) >= P.updatedist)
 
-update!(P::AMGPrecon, at::AbstractAtoms) =
+update!(P::PairPrecon, at::AbstractAtoms) =
    need_update(P, at) ? force_update!(P, at) : (P.skippedupdates += 1; P)
+
 
 function force_update!(P::AMGPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
-   A = project!( constraint(at), matrix(P.p, at) )
+   Pmat = matrix(P.p, at)
+   Pmat + P.stab * speye(size(Pmat, 1))
+   A = project!( constraint(at), Pmat )
    # and the AMG solver
    P.amg = RugeStubenSolver(A, tol=P.tol)
+   # remember the atom positions
+   copy!(P.oldX, positions(at))
+   # and remember that we just did a full update
+   P.skippedupdates = 0
+   return P
+end
+
+function force_update!(P::DirectPrecon, at::AbstractAtoms)
+   # perform updates of the potential p (if needed; usually not)
+   P.p = update_inner!(P.p, at)
+   # construct the preconditioner matrix ...
+   Pmat = matrix(P.p, at)
+   Pmat + P.stab * speye(size(Pmat, 1))
+   P.A = project!( constraint(at), Pmat )
    # remember the atom positions
    copy!(P.oldX, positions(at))
    # and remember that we just did a full update
@@ -110,7 +162,8 @@ function matrix(p::PairPotential, at::AbstractAtoms)
    for (i, j, r, _, _) in bonds(at, cutoff(p))
       # the next 2 lines add an identity block for each atom
       # TODO: should experiment with other matrices, e.g., R ⊗ R
-      ii = atind2lininds(i); jj = atind2lininds(j)
+      ii = atind2lininds(i)
+      jj = atind2lininds(j)
       z = p(r)
       for (a, b) in zip(ii, jj)
          append!(I, [a; a; b; b])
@@ -142,16 +195,60 @@ Keyword arguments:
       phase materials. J. Chem. Phys., 144, 2016.
 """
 function Exp(at::AbstractAtoms;
-             A=3.0, r0=nothing, cutoff_mult=2.2, tol=1e-7, updatefreq=10)
-   if r0 == nothing
-      r0 = estimate_rnn(at)
-   end
+             A=3.0, r0=estimate_rnn(at), cutoff_mult=2.2,
+             tol=1e-7, updatefreq=10, solver = :amg, energyscale = 1.0)
+   e0 = energyscale == :auto ? 1.0 : energyscale
    rcut = r0 * cutoff_mult
-   exp_shit = exp( - A*(rcut/r0 - 1.0) )
-   pot = PairPotential( :(exp( - $A * (r/$r0 - 1.0)) - $exp_shit),
+   exp_shift = e0 * exp( - A*(rcut/r0 - 1.0) )
+   pot = PairPotential( :($e0 * exp( - $A * (r/$r0 - 1.0)) - $exp_shift),
                             cutoff = rcut )
-   return AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
+   if solver == :amg
+      P = AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
+   elseif solver == :direct
+      P = DirectPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
+   else
+      error("unknown kwarg solver = $(solver)")
+   end
+
+   if energyscale == :auto
+      e0 = estimate_energyscale(at, P)
+      P = Exp(at, A=A, r0=r0, cutoff_mult=cutoff_mult, tol=tol,
+               updatefreq=updatefreq, solver=solver, energyscale=e0)
+   end
+
+   return P
 end
+
+# want μ * <P v, v> ~ <∇E(x+hv) - ∇E(x), v> / h
+function estimate_energyscale(at, P)
+   # get the P-matrix at current configuration
+   A = matrix(P.p, at)
+   # determine direction in which the cell is maximal
+   F = Matrix(defm(at))
+   X0 = positions(at)
+   _, i = findmax( norm(F[:, j]) for j = 1:3 )
+   Fi = JVecF(F[:, i])
+   # an associated perturbation
+   V = [sin(2*pi * dot(Fi, x)/dot(Fi,Fi)) * Fi for x in X0]
+   # compute gradient at current positions
+   f0 = forces(at) |> mat
+   # compute gradient at perturbed positions
+   h = 1e-3
+   set_positions!(at, X0 + h * V)
+   f1 = forces(at) |> mat
+   # return the estimated value for the energyscale
+   V = mat(V)
+   μ = - vecdot((f1 - f0)/h, V) / dot(A * V[:], V[:])
+   if μ < 0.1 || μ > 100.0
+      warn("""
+      e0 = $(μ) in `estimate_energyscale`; this is likely due to a poor \
+      starting guess in an optimisation, probably best to set the
+      energyscale manually
+      """)
+   end
+   return μ
+end
+
 
 
 end # end module Preconditioners

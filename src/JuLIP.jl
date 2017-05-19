@@ -20,6 +20,7 @@ include("utils.jl")
 
 # implementation of some key functionality via ASE
 include("ASE.jl")
+@reexport using JuLIP.ASE
 
 
 # define the default atoms object
@@ -37,7 +38,7 @@ try
    # some visualisation options
    include("Visualise.jl")
 catch
-   warn("""JuLIP.Visualise did not import correctly, probably because
+   JuLIP.julipwarn("""JuLIP.Visualise did not import correctly, probably because
                `imolecule` is not correctly installed.""")
 end
 
