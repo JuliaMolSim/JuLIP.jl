@@ -9,14 +9,15 @@ verbose=true
 julip_tests = [
    "testaux.jl";
    "testase.jl";
-   # "testdft.jl";
-   "testanalyticpotential.jl";
-   "testpotentials.jl";
-   "testvarcell.jl";
-   "testexpvarcell.jl";
-   "testhessian.jl";
-   "testsolve.jl";
+   "testdft.jl";
+   # "testanalyticpotential.jl";
+   # "testpotentials.jl";
+   # "testvarcell.jl";
+   # "testhessian.jl";
+   # "testsolve.jl";
 ]
+
+# "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 println("  Starting JuLIP Tests")

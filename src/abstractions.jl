@@ -400,7 +400,7 @@ stress(at::AbstractAtoms) = stress(calculator(at), at)
 
 
 #######################################################################
-#  Constraints
+#  Constraints and DoF Handling
 #######################################################################
 
 type NullConstraint <: AbstractConstraint end
@@ -415,42 +415,27 @@ state given the constraint `cons`
 """
 @protofun position_dofs(at::AbstractAtoms, cons::AbstractConstraint)
 position_dofs(at::AbstractAtoms) = position_dofs(at, constraint(at))
-# function dofs end
-@protofun dofs(at::AbstractAtoms, cons::AbstractConstraint)
+
+"""
+`dofs` is an alias for `positions_dofs`
+"""
+dofs(args...) = position_dofs(args...)
 
 """
 * `set_position_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) -> at`
 * `set_position_dofs!(at::AbstractAtoms, x::Dofs) -> at`
-
-change configuration stored in `at` according to `cons` and `x`.
-"""
-@protofun set_position_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs)
-set_position_dofs!(at::AbstractAtoms, x::Dofs) =
-         set_position_dofs!(at, constraint(at), x)
-dofs(at::AbstractAtoms) = dofs(at, constraint(at))
-
-
-"""
 * `set_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) -> at`
 * `set_dofs!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
 
 change configuration stored in `at` according to `cons` and `x`.
-
-* `set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, p::Dofs) -> at`
-* `set_momentum_dofs!(at::AbstractAtoms, p::Dofs) -> at`
-
-change configuration stored in `at` according to `cons` and `p`.
 """
-@protofun set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, q::Dofs)
-set_momentum_dofs!(at::AbstractAtoms, q::Dofs) = set_momentum_dofs!(at, constraint(at), q)
-@protofun set_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs)
-
-"`dofs` : alias for `position_dofs`"
-dofs(args...) = position_dofs(args...)
-"alias for `set_position_dofs!`"
+@protofun set_position_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs)
+set_position_dofs!(at::AbstractAtoms, x::Dofs) = set_position_dofs!(at, constraint(at), x)
+"""
+`set_dofs!` is an alias for `set_position_dofs!`
+"""
 set_dofs!(args...) = set_position_dofs!(args...)
 
-set_dofs!(at::AbstractAtoms, x::Dofs) = set_dofs!(at, constraint(at), x)
 
 """
 `momentum_dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
@@ -462,6 +447,15 @@ momenta (given the constraint `cons`)
 @protofun momentum_dofs(at::AbstractAtoms, cons::AbstractConstraint)
 momentum_dofs(at::AbstractAtoms) = momentum_dofs(at, constraint(at))
 
+
+"""
+* `set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, p::Dofs) -> at`
+* `set_momentum_dofs!(at::AbstractAtoms, p::Dofs) -> at`
+
+change configuration stored in `at` according to `cons` and `p`.
+"""
+@protofun set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, q::Dofs)
+set_momentum_dofs!(at::AbstractAtoms, q::Dofs) = set_momentum_dofs!(at, constraint(at), q)
 
 """
 * `project!(at::AbstractAtoms, cons::AbstractConstraint) -> at`

@@ -392,7 +392,10 @@ end
 #    ASE-style aliases
 ######################################################
 
-type ASECalculator <: AbstractCalculator
+abstract AbstractASECalculator
+
+
+type ASECalculator <: AbstractASECalculator
    po::PyObject
 end
 
