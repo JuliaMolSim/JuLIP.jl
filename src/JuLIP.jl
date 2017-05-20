@@ -22,6 +22,8 @@ include("utils.jl")
 include("ASE.jl")
 @reexport using JuLIP.ASE
 
+# interface to DFT codes
+include("DFT.jl")
 
 # define the default atoms object
 """
@@ -55,9 +57,6 @@ include("preconditioners.jl")
 # some solvers
 include("Solve.jl")
 @reexport using JuLIP.Solve
-
-# DFT via GPAW
-include("DFT.jl")
 
 # codes to facilitate testing
 include("Testing.jl")
