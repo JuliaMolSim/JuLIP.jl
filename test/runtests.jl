@@ -10,11 +10,11 @@ julip_tests = [
    "testaux.jl";
    "testase.jl";
    "testdft.jl";
-   # "testanalyticpotential.jl";
-   # "testpotentials.jl";
-   # "testvarcell.jl";
-   # "testhessian.jl";
-   # "testsolve.jl";
+   "testanalyticpotential.jl";
+   "testpotentials.jl";
+   "testvarcell.jl";
+   "testhessian.jl";
+   "testsolve.jl";
 ]
 
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
@@ -22,7 +22,6 @@ julip_tests = [
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 println("  Starting JuLIP Tests")
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
-
 
 for test in julip_tests
    include(test)
