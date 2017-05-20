@@ -44,8 +44,7 @@ export ASEAtoms,      # ✓
       repeat, rnn, chemical_symbols, ASECalculator, extend!,
       get_info, set_info!, get_array, set_array!, has_array, has_info,
       get_transient, set_transient!, has_transient,
-      velocities, set_velocities!, masses, set_masses!, momenta, set_momenta!
-
+      velocities, set_velocities!, masses, set_masses!
 using PyCall
 
 @pyimport ase.io as ase_io

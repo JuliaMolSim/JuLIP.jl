@@ -58,7 +58,7 @@ Ediff(at::AbstractAtoms, Es0::Vector{Float64}, x::Dofs) =
 * `:exp` : will use `Exp(at)`
 * `:id` : will use `Identity()`
 """
-function minimise!( at::AbstractAtoms;
+function minimise!(at::AbstractAtoms;
                   precond = :auto,
                   method = :auto,
                   gtol=1e-5, ftol=1e-32,
@@ -72,7 +72,7 @@ function minimise!( at::AbstractAtoms;
    else
       obj_f = x->energy(at, x)
    end
-   obj_g! = (g, x) -> copy!(g, gradient(at, x))
+   obj_g! = (x, g) -> copy!(g, gradient(at, x))    # switch to (g, x) for Optim 0.8+
 
    # create a preconditioner
    if isa(precond, Symbol)
@@ -96,37 +96,22 @@ function minimise!( at::AbstractAtoms;
       end
    end
 
-   # # choose the optimisation method Optim.jl
-   # if method == :auto
-   #    if isa(precond, Identity)
-   #       optimiser = Optim.ConjugateGradient()
-   #    else
-   #       optimiser = Optim.ConjugateGradient( P = precond,
-   #                         precondprep = (P, x) -> update!(P, at, x),
-   #                         linesearch = LineSearches.bt2! )    # LineSearches.BackTracking(order=2)
-   #    end
-   # elseif method == :lbfgs
-   #    optimiser = Optim.LBFGS( P = precond, extrapolate=true,
-   #                      precondprep = (P, x) -> update!(P, at, x),
-   #                      linesearch = LineSearches.bt3! )        # BackTracking(order=2)
-   # else
-   #    error("JulIP.Solve.minimise!: unknown `method` option")
-   # end
-
-   optimiser = Optim.ConjugateGradient()
-   obj_f = x->energy(at, x)
-   obj_g! = (g, x) -> copy!(g, gradient(at, x))
-
-   # x0 = dofs(at)
-   # g = zeros(x0)
-   # println("obj_f and obj_g!")
-   # @time obj_f(x0)
-   # @time obj_f(x0)
-   # @time obj_f(x0)
-   # @time obj_g!(g, x0)
-   # @time obj_g!(g, x0)
-   # @time obj_g!(g, x0)
-   # quit()
+   # choose the optimisation method Optim.jl
+   if method == :auto
+      if isa(precond, Identity)
+         optimiser = Optim.ConjugateGradient()
+      else
+         optimiser = Optim.ConjugateGradient( P = precond,
+                           precondprep = (P, x) -> update!(P, at, x),
+                           linesearch = LineSearches.bt2! )    # LineSearches.BackTracking(order=2)
+      end
+   elseif method == :lbfgs
+      optimiser = Optim.LBFGS( P = precond, extrapolate=true,
+                        precondprep = (P, x) -> update!(P, at, x),
+                        linesearch = LineSearches.bt3! )        # BackTracking(order=2)
+   else
+      error("JulIP.Solve.minimise!: unknown `method` option")
+   end
 
    results = optimize( obj_f, obj_g!, dofs(at), optimiser,
                         Optim.Options( f_tol = ftol, g_tol = gtol,
