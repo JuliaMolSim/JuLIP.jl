@@ -56,6 +56,9 @@ include("preconditioners.jl")
 include("Solve.jl")
 @reexport using JuLIP.Solve
 
+# DFT via GPAW
+include("DFT.jl")
+
 # codes to facilitate testing
 include("Testing.jl")
 
