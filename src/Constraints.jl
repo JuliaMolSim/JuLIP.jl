@@ -9,11 +9,13 @@ module Constraints
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          mat, vecs, JVecs, JVecsF, JMatF, JMat,
          set_positions!, set_cell!, virial, defm, set_defm!,
-         forces, unsafe_positions
+         forces, unsafe_positions, momenta, set_momenta!
 
 # temporary hack - we may need to rethink this
 using JuLIP.Potentials: hessian_pos
 
+import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient, energy,
+      momentum_dofs, set_momentum_dofs!
 import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy, hessian
 
 
@@ -83,10 +85,16 @@ end
 FixedCell(at::AbstractAtoms; clamp = nothing, free=nothing, mask=nothing) =
    FixedCell(analyze_mask(at, free, clamp, mask))
 
-dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
+position_dofs(at::AbstractAtoms, cons::FixedCell) = mat(positions(at))[cons.ifree]
 
-set_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
+set_position_dofs!(at::AbstractAtoms, cons::FixedCell, x::Dofs) =
       set_positions!(at, positions(at, cons.ifree, x))
+
+momentum_dofs(at::AbstractAtoms, cons::FixedCell) = mat(momenta(at))[cons.ifree]
+
+set_momentum_dofs!(at::AbstractAtoms, cons::FixedCell, p::Dofs) =
+      set_momenta!(at, zeros_free(3 * length(at), p, cons.ifree) |> vecs)
+
 
 project!(at::AbstractAtoms, cons::FixedCell) = at
 
@@ -215,7 +223,7 @@ end
 #   F -> F
 #   X[n] = F * F^{-1} X0[n]
 
-function dofs(at::AbstractAtoms, cons::VariableCell)
+function position_dofs(at::AbstractAtoms, cons::VariableCell)
    X = positions(at)
    F = defm(at)
    A = cons.F0 * inv(F)
@@ -227,7 +235,7 @@ end
 posdofs(x) = x[1:end-9]
 celldofs(x) = x[end-8:end]
 
-function set_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
+function set_position_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
    F = JMatF(celldofs(x))
    A = F * inv(cons.F0)
    Y = copy(cons.X0)
@@ -348,7 +356,7 @@ expcelldofs(x) = x[end-5:end]
 U2dofs(U) = U[(1,2,3,5,6,9)]
 dofs2U(x) = JMat(expcelldofs(x)[(1,2,3,2,4,5,3,5,6)])
 
-function dofs(at::AbstractAtoms, cons::ExpVariableCell)
+function position_dofs(at::AbstractAtoms, cons::ExpVariableCell)
    X = positions(at)
    U, _ = logm_defm(at, cons)
    # tranform the positions back to the reference cell (F0)
@@ -358,7 +366,7 @@ function dofs(at::AbstractAtoms, cons::ExpVariableCell)
 end
 
 
-function set_dofs!(at::AbstractAtoms, cons::ExpVariableCell, x::Dofs)
+function set_position_dofs!(at::AbstractAtoms, cons::ExpVariableCell, x::Dofs)
    U = dofs2U(x)
    expU = expm(U)
    F = expU * cons.F0
