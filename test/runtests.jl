@@ -1,10 +1,7 @@
 
-using JuLIP
-using Base.Test
-using JuLIP.Testing
-
 
 verbose=true
+
 
 julip_tests = [
    "testaux.jl";
@@ -16,14 +13,19 @@ julip_tests = [
    "testhessian.jl";
    "testsolve.jl";
 ]
-
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 println("  Starting JuLIP Tests")
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 
-if haskey(ENC, "CI")
+
+@everywhere using JuLIP
+@everywhere using Base.Test
+@everywhere using JuLIP.Testing
+
+
+if haskey(ENV, "CI")
    @show ENV["CI"]
 end
 
