@@ -102,7 +102,7 @@ println("--------------------------------------------------")
 if JuLIP.Potentials.JULIP_SPLINES
    # [9] EAM Potential
    at9 = set_pbc!( bulk("Fe", cubic = true), false ) * 2
-   dir = Pkg.dir("JuLIP") * "/data/"
+   dir = joinpath(dirname(@__FILE__), "..", "data")
    eam = Potentials.EAM(dir * "pfe.plt", dir * "ffe.plt", dir * "F_fe.plt")
    push!(calculators, (eam, at9))
 end 
