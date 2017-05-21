@@ -21,11 +21,13 @@ using JuLIP
 using Base.Test
 using JuLIP.Testing
 
-for (testfile, testid) in julip_tests
-   println("=======================")
-   println("Testset $(testid)")
-   println("=======================")
-   @testset "$(testid)" begin include(testfile); end
+@testset "JuLIP" begin
+   for (testfile, testid) in julip_tests
+      println("=======================")
+      println("Testset $(testid)")
+      println("=======================")
+      @testset "$(testid)" begin include(testfile); end
+   end
 end
 
 
