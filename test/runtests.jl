@@ -23,6 +23,11 @@ println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡�
 println("  Starting JuLIP Tests")
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 
-for test in julip_tests
-   include(test)
+if haskey(ENC, "CI")
+   @show ENV["CI"]
 end
+
+
+# for test in julip_tests
+#    include(test)
+# end
