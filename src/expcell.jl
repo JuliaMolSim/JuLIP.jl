@@ -14,10 +14,11 @@
 
 
 # define expm for StaticArrays since it is not provided (anymre?)
-import StaticArrays
-Base.LinAlg.expm{N,T}(A::StaticArrays.SMatrix{N,N,T}) =
-   StaticArrays.SMatrix{N,N,T}(expm(Array(A)))
 
+import StaticArrays
+
+_expm{N,T}(A::StaticArrays.SMatrix{N,N,T}) =
+   StaticArrays.SMatrix{N,N,T}(expm(Array(A)))
 
 type ExpVariableCell <: AbstractConstraint
    ifree::Vector{Int}
@@ -48,9 +49,9 @@ function logm_defm(at::AbstractAtoms, cons::ExpVariableCell)
    U = logm(expU |> Array) |> JMat
    U = real(0.5 * (U + U'))
    # check that expm(U) * F0 ≈ F (if not, then something has gone horribly wrong)
-   if vecnorm(F - expm(U) * cons.F0, Inf) > 1e-12
+   if vecnorm(F - _expm(U) * cons.F0, Inf) > 1e-12
       @show F
-      @show expm(U) * cons.F0
+      @show _expm(U) * cons.F0
       error("something has gone wrong; U is not symmetric?")
    end
    return U, F
@@ -65,7 +66,7 @@ function position_dofs(at::AbstractAtoms, cons::ExpVariableCell)
    X = positions(at)
    U, _ = logm_defm(at, cons)
    # tranform the positions back to the reference cell (F0)
-   broadcast!(x -> expm(-U) * x, X, X)
+   broadcast!(x -> _expm(-U) * x, X, X)
    # construct dof vector
    return [mat(X)[cons.ifree]; U2dofs(U)]
 end
@@ -73,7 +74,7 @@ end
 
 function set_position_dofs!(at::AbstractAtoms, cons::ExpVariableCell, x::Dofs)
    U = dofs2U(x)
-   expU = expm(U)
+   expU = _expm(U)
    F = expU * cons.F0
    Z = copy(cons.X0)
    mat(Z)[cons.ifree] = expposdofs(x)
@@ -90,15 +91,15 @@ AL-MOHY, HIGHAM SIAM J. Matrix Anal. Appl. 30, 2009.
 """
 function dexpm_3x3(X::AbstractMatrix, E::AbstractMatrix)
    @assert size(X) == size(E) == (3, 3)
-   return expm([ X E; zeros(3,3) X ])[1:3, 4:6]
+   return _expm([ X E; zeros(3,3) X ])[1:3, 4:6]
 end
 
 
 function gradient(at::AbstractAtoms, cons::ExpVariableCell)
    U, F = logm_defm(at, cons)
    G = forces(at)
-   broadcast!(g -> - (expm(U) * g), G, G)   # G[n] <- -exp(U) * G[n]
-   T = dexpm_3x3(U, - virial(at) * expm(-U))
+   broadcast!(g -> - (_expm(U) * g), G, G)   # G[n] <- -exp(U) * G[n]
+   T = dexpm_3x3(U, - virial(at) * _expm(-U))
    # add the forces acting on the upper diagonal of U to the lower diagonal
    # this way we ensure that T : V = U2dofs(T) : U2dofs(V)
    T[[2,3,6]] += T[[4,7,8]]
