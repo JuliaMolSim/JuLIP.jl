@@ -250,5 +250,6 @@ function estimate_energyscale(at, P)
 end
 
 
+include("ffprecond.jl")
 
 end # end module Preconditioners

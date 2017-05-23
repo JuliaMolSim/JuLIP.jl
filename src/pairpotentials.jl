@@ -19,7 +19,7 @@ end
 
 # TODO: why is this not in the abstract file?
 # a simplified way to calculate gradients of pair potentials
-grad(pp::PairPotential, r::Float64, R::JVecF) =
+grad(pp::PairPotential, r::Real, R::JVec) =
             (evaluate_d(pp::PairPotential, r) / r) * R
 
 # TODO: rewrite using generator once bug is fixed

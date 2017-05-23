@@ -9,7 +9,7 @@ julip_tests = [
    ("testpotentials.jl", "Potentials"),
    ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
-   ("testsolve.jl", "Solve")
+   ("testsolve.jl", "Solve"),
 ]
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
