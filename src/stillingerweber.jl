@@ -116,3 +116,7 @@ function evaluate_d(calc::StillingerWeber, r, R)
    end
    return dEs
 end
+
+
+
+# and FF preconditioner for StillingerWeber
