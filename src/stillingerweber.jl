@@ -22,7 +22,9 @@
 
 export StillingerWeber
 
-import JuLIP.Potentials: evaluate, evaluate_d, @pot, @D
+# using JuLIP.Potentials: evaluate_dd, @D, @DD
+# import JuLIP.Potentials: evaluate, evaluate_d
+
 
 """
 `bondangle(S1, S2) -> (dot(S1, S2) + 1.0/3.0)^2`
@@ -121,30 +123,47 @@ end
 
 # an FF preconditioner for StillingerWeber
 function precon(V::PairPotential, r, R)
-   dV = @D V(r, R)
-   hV = @DD V(r, R)
-   R̂ = R/r
-   return abs(hV) * R̂ * R̂' + abs(dV / r) * (eye(JMatF) - R̂ * R̂')
+   dV = @D V(r)
+   hV = @DD V(r)
+   S = R/r
+   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (eye(JMatF) - S * S')) +
+          0.1 * (abs(hV) + abs(dV / r)) * eye(JMatF)
 end
+
 
 function precon(V::StillingerWeber, r, R)
    n = length(r)
-   hV = zeros(JMatF, n, n)
+   pV = zeros(JMatF, n, n)
 
    # two-body contributions
    for (i, (r1, R1)) in enumerate(zip(r, R))
-      hV[i,i] += precon(V.V2, r1, R1)
+      pV[i,i] += precon(V.V2, r1, R1)
    end
 
    # three-body terms
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
-   V3 = [calc.V3(s) for s in r]
-   gV3 = [ grad(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
-   for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
-      a, b1, b2 = bondangle_d(S[i1], S[i2], r[i1], r[i2])
-      dEs[i1] += (V3[i1] * V3[i2]) * b1 + (V3[i2] * a) * gV3[i1]
-      dEs[i2] += (V3[i1] * V3[i2]) * b2 + (V3[i1] * a) * gV3[i2]
+   V3 = [V.V3(s) for s in r]
+   # gV3 = [ grad(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
+   # pV3 = [ precon(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
+   for i1 = 1:(n-1), i2 = (i1+1):n
+      Θ = dot(S[i1], S[i2])
+      dΘ1 = (1.0/r[i1]) * S[i2] - (Θ/r[i1]) * S[i1]
+      dΘ2 = (1.0/r[i2]) * S[i1] - (Θ/r[i2]) * S[i2]
+      # ψ = (Θ + 1/3)^2, ψ' = (Θ + 1/3), ψ'' = 2.0
+      a = abs((V3[i1] * V3[i2] * 2.0))
+      pV[i1,i2] += a * dΘ1 * dΘ2'
+      pV[i1,i1] += a * dΘ1 * dΘ1'
+      pV[i2, i2] += a * dΘ2 * dΘ2'
+      pV[i2, i1] += a * dΘ2 * dΘ1'
    end
 
-
+   # convert to a matrix
+   P = zeros(3*n, 3*n)
+   for i1 = 1:n, i2 = 1:n
+      I1 = 3*(i1-1) + [1,2,3]
+      I2 = 3*(i2-1) + [1,2,3]
+      P[I1, I2] = pV[i1, i2]
+   end
+   P = 0.5 * (P + P')
+   return P
 end
