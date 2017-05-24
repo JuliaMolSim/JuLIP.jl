@@ -119,4 +119,32 @@ end
 
 
 
-# and FF preconditioner for StillingerWeber
+# an FF preconditioner for StillingerWeber
+function precon(V::PairPotential, r, R)
+   dV = @D V(r, R)
+   hV = @DD V(r, R)
+   R̂ = R/r
+   return abs(hV) * R̂ * R̂' + abs(dV / r) * (eye(JMatF) - R̂ * R̂')
+end
+
+function precon(V::StillingerWeber, r, R)
+   n = length(r)
+   hV = zeros(JMatF, n, n)
+
+   # two-body contributions
+   for (i, (r1, R1)) in enumerate(zip(r, R))
+      hV[i,i] += precon(V.V2, r1, R1)
+   end
+
+   # three-body terms
+   S = [ R1/r1 for (R1,r1) in zip(R, r) ]
+   V3 = [calc.V3(s) for s in r]
+   gV3 = [ grad(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
+   for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
+      a, b1, b2 = bondangle_d(S[i1], S[i2], r[i1], r[i2])
+      dEs[i1] += (V3[i1] * V3[i2]) * b1 + (V3[i2] * a) * gV3[i1]
+      dEs[i2] += (V3[i1] * V3[i2]) * b2 + (V3[i1] * a) * gV3[i2]
+   end
+
+
+end
