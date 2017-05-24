@@ -14,6 +14,8 @@ catch
    JuLIP.julipwarn("failed to load `PyAMG`")
 end
 
+import JuLIP.Potentials: precon
+
 import JuLIP: update!
 import Base: A_ldiv_B!, A_mul_B!, dot, *, \
 

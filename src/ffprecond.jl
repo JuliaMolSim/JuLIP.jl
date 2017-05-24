@@ -3,10 +3,17 @@ using JuLIP: vecs, mat
 using JuLIP.Potentials: evaluate_d, SitePotential, sites
 using ForwardDiff, PositiveFactorizations
 
+import JuLIP.Potentials: cutoff
+
+type ADP{VT <: SitePotential} <: SitePotential
+   V::VT
+end
+cutoff(V::ADP) = cutoff(V.V)
 
 # TODO: fine-tune and tweak (see Exp for comparison)
 function FF(at::AbstractAtoms, V; tol = 1e-7)
-   return AMGPrecon(V, at, tol=tol)
+   r0 = estimate_rnn(at)
+   return AMGPrecon(V, at, tol=tol)   # , updatedist = 0.2 * r0
 end
 
 function _ad_grad(V::SitePotential, S)
@@ -18,20 +25,14 @@ end
 
 _ad_hess(V::SitePotential, S) = ForwardDiff.jacobian( S_ -> _ad_grad(V, S_), S )
 
-function ad_hess(V::SitePotential, R)
+function precon(Vad::ADP, r, R)
+   V = Vad.V
    hV = _ad_hess(V, mat(R)[:])
    # positive factorisation
    hV = 0.5 * (hV + hV')
    L = cholfact(Positive, hV)[:L]
-   return L * L'
-end
-
-function hess_precond(V::SitePotential, R)
-   hV = _ad_hess(V, mat(R)[:])
-   # positive factorisation
-   hV = 0.5 * (hV + hV')
-   L = cholfact(Positive, hV)[:L]
-   return L * L'
+   H = L * L'
+   return 0.9 * H + 0.1 * maximum(diag(H)) * eye(size(L,1))
 end
 
 hinds(j) =  3 * (j-1) + [1,2,3]
@@ -47,7 +48,7 @@ function matrix(V::SitePotential, at::AbstractAtoms)
       jj = [atind2lininds(j_) for j_ in neigs]
 
       # compute positive version of hessian of V(R)
-      hV = hess_precond(V, R)
+      hV = precon(V, r, R)
 
       nneigs = length(neigs)
       for j1 = 1:nneigs, j2 = 1:nneigs
