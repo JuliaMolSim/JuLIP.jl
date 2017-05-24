@@ -15,7 +15,7 @@ catch
 end
 
 import JuLIP: update!
-import Base: A_ldiv_B!, A_mul_B!
+import Base: A_ldiv_B!, A_mul_B!, dot, *, \
 
 
 # ================ AMGPrecon =====================
@@ -94,6 +94,13 @@ A_mul_B!(out::Dofs, P::AMGPrecon, f::Dofs) = A_mul_B!(out, P.amg, f)
 
 A_ldiv_B!(out::Dofs, P::DirectPrecon, x::Dofs) = A_ldiv_B!(out, P.A, x)
 A_mul_B!(out::Dofs, P::DirectPrecon, f::Dofs) = A_mul_B!(out, P.A, f)
+
+dot(x, P::Union{DirectPrecon, AMGPrecon}, y) = dot(x, P * y)
+
+*(P::DirectPrecon, x::AbstractVector) = P.A * x
+*(P::AMGPrecon, x::AbstractVector) = P.amg * x
+\(P::DirectPrecon, x::AbstractVector) = P.A \ x
+\(P::AMGPrecon, x::AbstractVector) = P.amg \ x
 
 
 need_update(P::PairPrecon, at::AbstractAtoms) =
