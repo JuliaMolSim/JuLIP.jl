@@ -78,6 +78,9 @@ StillingerWeber
 
 cutoff(calc::StillingerWeber) = max(cutoff(calc.V2), cutoff(calc.V3))
 
+# TODO: brittle StillingerWeber
+#       make λ = 42.0
+
 StillingerWeber(; ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
                   p = 4, a = 1.8, λ=21.0, γ=1.20 ) =
    StillingerWeber(
