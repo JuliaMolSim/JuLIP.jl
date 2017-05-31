@@ -5,8 +5,12 @@ using PyCall, JSON
 using JuLIP: set_pbc!, positions, neighbourlist
 using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
 
+import Base.display, Base.show
+
 @pyimport IPython.display as ipydisp
 @pyimport imolecule
+
+show(at::AbstractAtoms; kwargs...) = display(at; kwargs...)
 
 """
 
@@ -30,7 +34,7 @@ using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
 * bonds: :babel, :auto
 * cutoff: :auto or a number
 """
-function show(at::AbstractAtoms; bonds=:babel, box=:auto,
+function display(at::AbstractAtoms; bonds=:babel, box=:auto,
             camera_type="perspective", size=(500,500), display_html=false,
             cutoff=:auto,
             kwargs...)
