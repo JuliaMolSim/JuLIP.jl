@@ -24,6 +24,29 @@ function evaluate_d(V::EAM, r, R)
    return [ ((0.5 * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S  for (s, S) in zip(r, R) ]
 end
 
+# TODO: which of the two `evaluate_dd` and `hess` should we be using?
+evaluate_dd(V::EAM, r, R) = hess(V, r, R)
+
+function hess(V::EAM, r, R)
+   # allocate storage
+   H = zeros(JMatF, length(r), length(r))
+   # precompute some stuff
+   ρ̄ = sum( V.ρ(s, S)  for (s, S) in zip(r, R) )
+   ∇ρ = [ hess(V.ρ, s, S) for (s, S) in zip(r, R) ]
+   F = V.F(ρ̄)
+   dF = @D V.F(ρ̄)
+   ddF = @DD V.F(ρ̄)
+   # assemble
+   for i = 1:length(r)
+      for j = 1:length(r)
+         H[i,j] = ddF * ∇ρ[i] * ∇ρ[j]'
+      end
+      H[i,i] += hess(V.ϕ, r[i], R[i]) + dF * ∇ρ[i]
+   end
+   return H
+end
+
+
 
 """
 `type EAM`
@@ -88,3 +111,6 @@ function FinnisSinclair(fpair::AbstractString, feden::AbstractString; kwargs...)
    eden = SplinePairPotential(feden; kwargs...)
    return FinnisSinclair(pair, eden)
 end
+
+
+# ================= Hessian Implementation  =======================

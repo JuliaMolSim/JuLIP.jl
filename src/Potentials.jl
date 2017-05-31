@@ -270,4 +270,44 @@ function fd_hessian!(H, calc::AbstractCalculator, at::AbstractAtoms, h)
 end
 
 
+
+function hessian_pos(V::SitePotential, at::AbstractAtoms)
+   nlist = neighbourlist(at, cutoff(V))
+   I, J, Z = Int[], Int[], JMatF[]
+   # a crude size hint
+   for C in (I, J, Z); sizehint!(C, 24*length(nlist)); end
+   for (i, neigs, r, R, _) in sites(nlist)
+      nneigs = length(neigs)
+      # [1] the "off-centre" component of the hessian:
+      # h[a, b] = ∂_{Ra} ∂_{Rb} V     (this is a nneigs x nneigs block-matrix)
+      h = hess(V, r, R)
+      for a = 1:nneigs, b = 1:nneigs
+         push!(I, neigs[a])
+         push!(J, neigs[b])
+         push!(Z, h[a,b])
+      end
+
+      # [2] the ∂_{Ri} ∂_{Ra} terms
+      # hib = ∂_{Ri} ∂_{Rb} V = - ∑_a ∂_{Ra} ∂_{Rb} V
+      # also at the same time we pre-compute the centre-centre term:
+      #    hii = ∂_{Ri} ∂_{Ri} V = - ∑_a ∂_{Ri} ∂_{Ra} V
+      hii = zero(JMatF)
+      for b = 1:nneigs
+         hib = -sum( h[a, b] for a = 1:nneigs )
+         hii -= hib
+         append!(I, (i,         neigs[b] ))
+         append!(J, (neigs[b],  i        ))
+         append!(Z, (hib,       hib'     ))
+      end
+
+      # and finally add the  ∂_{Ri}^2 term, which is precomputed above
+      push!(I, i)
+      push!(J, i)
+      push!(Z, hii)
+   end
+   return sparse(I, J, Z, length(at), length(at))
+ end
+
+
+
 end

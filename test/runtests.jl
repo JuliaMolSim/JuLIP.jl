@@ -2,14 +2,14 @@
 verbose=true
 
 julip_tests = [
-   ("testaux.jl", "Miscellaneous"),
-   ("testase.jl", "ASE"),
-   ("testdft.jl", "DFT"),
-   ("testanalyticpotential.jl", "Analytic Potential"),
-   ("testpotentials.jl", "Potentials"),
-   ("testvarcell.jl", "Variable Cell"),
+   # ("testaux.jl", "Miscellaneous"),
+   # ("testase.jl", "ASE"),
+   # ("testdft.jl", "DFT"),
+   # ("testanalyticpotential.jl", "Analytic Potential"),
+   # ("testpotentials.jl", "Potentials"),
+   # ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
-   ("testsolve.jl", "Solve"),
+   # ("testsolve.jl", "Solve"),
 ]
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
