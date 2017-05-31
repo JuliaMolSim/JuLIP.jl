@@ -23,30 +23,31 @@ end
 
 # TODO: which of the two `evaluate_dd` and `hess` should we be using?
 evaluate_dd(V::EAM, r, R) = hess(V, r, R)
-hess(V::EAM, r, R) = _hess_(V, r, R, identity, hess)
+hess(V::EAM, r, R) = _hess_(V, r, R, identity)
 
 # ff preconditioner specification for EAM potentials
 #   (just replace id with abs and hess with precon in the hessian code)
-precon(V::EAM, r, R) = _hess_(V, r, R, abs, precon)
+precon(V::EAM, r, R) = _hess_(V, r, R, abs)
 
 
-function _hess_(V::EAM, r, R, fabs, fhess)
+function _hess_(V::EAM, r, R, fabs)
    # allocate storage
    H = zeros(JMatF, length(r), length(r))
    # precompute some stuff
    ρ̄ = sum( V.ρ(s, S)  for (s, S) in zip(r, R) )
    ∇ρ = [ grad(V.ρ, s, S) for (s, S) in zip(r, R) ]
-   dF = fabs(@D V.F(ρ̄))
-   ddF = fabs(@DD V.F(ρ̄))
+   dF = @D V.F(ρ̄)
+   ddF = @DD V.F(ρ̄)
    # assemble
    for i = 1:length(r)
       for j = 1:length(r)
-         H[i,j] = ddF * ∇ρ[i] * ∇ρ[j]'
+         H[i,j] = fabs(ddF) * ∇ρ[i] * ∇ρ[j]'
       end
-      # TODO: this can be made more performant by combining the two
-      #       pair-potential-like terms into one big one
-      #       and this would also lead to a better preconditioner 
-      H[i,i] += 0.5 * fhess(V.ϕ, r[i], R[i]) + dF * fhess(V.ρ, r[i], R[i])
+      S = R[i] / r[i]
+      H[i,i] += (  fabs(0.5 * (@DD V.ϕ(r[i])) + dF * (@DD V.ρ(r[i])))
+                     * S * S'
+                 + fabs((0.5 * (@D V.ϕ(r[i])) + dF * (@D V.ρ(r[i]))) / r[i])
+                     * (eye(JMatF) - S * S')  )
    end
    return H
 end
