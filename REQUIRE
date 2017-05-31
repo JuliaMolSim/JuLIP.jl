@@ -9,3 +9,5 @@ JSON
 Reexport
 FunctionWrappers
 Dierckx
+ForwardDiff 0.4
+PositiveFactorizations

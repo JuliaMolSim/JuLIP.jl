@@ -22,7 +22,9 @@
 
 export StillingerWeber
 
-import JuLIP.Potentials: evaluate, evaluate_d, @pot, @D
+# using JuLIP.Potentials: evaluate_dd, @D, @DD
+# import JuLIP.Potentials: evaluate, evaluate_d
+
 
 """
 `bondangle(S1, S2) -> (dot(S1, S2) + 1.0/3.0)^2`
@@ -76,6 +78,9 @@ StillingerWeber
 
 cutoff(calc::StillingerWeber) = max(cutoff(calc.V2), cutoff(calc.V3))
 
+# TODO: brittle StillingerWeber
+#       make λ = 42.0
+
 StillingerWeber(; ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
                   p = 4, a = 1.8, λ=21.0, γ=1.20 ) =
    StillingerWeber(
@@ -115,4 +120,36 @@ function evaluate_d(calc::StillingerWeber, r, R)
       dEs[i2] += (V3[i1] * V3[i2]) * b2 + (V3[i1] * a) * gV3[i2]
    end
    return dEs
+end
+
+
+
+
+function precon(V::StillingerWeber, r, R)
+   n = length(r)
+   pV = zeros(JMatF, n, n)
+
+   # two-body contributions
+   for (i, (r1, R1)) in enumerate(zip(r, R))
+      pV[i,i] += precon(V.V2, r1, R1)
+   end
+
+   # three-body terms
+   S = [ R1/r1 for (R1,r1) in zip(R, r) ]
+   V3 = [V.V3(s) for s in r]
+   # gV3 = [ grad(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
+   # pV3 = [ precon(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
+   for i1 = 1:(n-1), i2 = (i1+1):n
+      Θ = dot(S[i1], S[i2])
+      dΘ1 = (1.0/r[i1]) * S[i2] - (Θ/r[i1]) * S[i1]
+      dΘ2 = (1.0/r[i2]) * S[i1] - (Θ/r[i2]) * S[i2]
+      # ψ = (Θ + 1/3)^2, ψ' = (Θ + 1/3), ψ'' = 2.0
+      a = abs((V3[i1] * V3[i2] * 2.0))
+      pV[i1,i2] += a * dΘ1 * dΘ2'
+      pV[i1,i1] += a * dΘ1 * dΘ1'
+      pV[i2, i2] += a * dΘ2 * dΘ2'
+      pV[i2, i1] += a * dΘ2 * dΘ1'
+   end
+
+   return pV 
 end

@@ -104,22 +104,12 @@ evaluate_dd(p::AnalyticPairPotential, r::Number) = p.f_dd(r)
 Base.print(io::Base.IO, p::AnalyticPairPotential) = print(io, p.id)
 cutoff(p::AnalyticPairPotential) = p.cutoff
 
-# construct from string or expression
-AnalyticPotential(s::AbstractString; id = s, cutoff=Inf) =
-      AnalyticPotential(parse(s), id=id, cutoff=cutoff)
-
-function AnalyticPotential(ex::Expr; id::AbstractString = string(ex), cutoff=Inf)
-   warn("""`AnalyticPotential` is deprecated;
-            please use the `PairPotential` constructor instead""")
-   return PairPotential(ex, id=id, cutoff=cutoff)
-end
-
 
 PairPotential(s::AbstractString; id = s, cutoff=Inf) =
       PairPotential(parse(s), id=id, cutoff=cutoff)
 
 PairPotential(ex::Expr; id::AbstractString = string(ex), cutoff=Inf) =
-   AnalyticPotential(diff2(ex)..., id, cutoff)
+     AnalyticPotential(diff2(ex)..., id, cutoff)
 
 
 WrappedPPotential(s::AbstractString; id = s, cutoff=Inf) =

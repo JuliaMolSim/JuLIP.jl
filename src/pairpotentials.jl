@@ -19,7 +19,7 @@ end
 
 # TODO: why is this not in the abstract file?
 # a simplified way to calculate gradients of pair potentials
-grad(pp::PairPotential, r::Float64, R::JVecF) =
+grad(pp::PairPotential, r::Real, R::JVec) =
             (evaluate_d(pp::PairPotential, r) / r) * R
 
 # TODO: rewrite using generator once bug is fixed
@@ -66,17 +66,17 @@ hess(pp::PairPotential, r::Float64, R::JVecF) = (
 
 
 function hessian_pos(pp::PairPotential, at::AbstractAtoms)
-  nlist = neighbourlist(at, cutoff(pp))
-  I, J, Z = Int[], Int[], JMatF[]
-  for C in (I, J, Z); sizehint!(C, 2*length(nlist)); end
-  for (i, j, r, R, _) in bonds(nlist)
+   nlist = neighbourlist(at, cutoff(pp))
+   I, J, Z = Int[], Int[], JMatF[]
+   for C in (I, J, Z); sizehint!(C, 2*length(nlist)); end
+   for (i, j, r, R, _) in bonds(nlist)
       h = hess(pp, r, R)
       append!(I, (i,  i,  j, j))
       append!(J, (i,  j,  i, j))
       append!(Z, (h, -h, -h, h))
-  end
-  hE = sparse(I, J, Z, length(at), length(at))
-  return hE
+   end
+   hE = sparse(I, J, Z, length(at), length(at))
+   return hE
 end
 
 
@@ -161,6 +161,17 @@ evaluate(psp::PairSitePotential, r, R) = _sumpair_(psp.pp, r)
 
 evaluate_d(psp::PairSitePotential, r, R) =
             [ grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
+
+
+# an FF preconditioner for pair potentials
+function precon(V::PairPotential, r, R)
+   dV = @D V(r)
+   hV = @DD V(r)
+   S = R/r
+   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (eye(JMatF) - S * S')) +
+          0.1 * (abs(hV) + abs(dV / r)) * eye(JMatF)
+end
+
 
 
 # TODO: define a `ComposePotential?`

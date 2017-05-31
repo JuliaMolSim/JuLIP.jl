@@ -5,7 +5,7 @@
 @pot type EAM{T1, T2, T3} <: SitePotential
    ϕ::T1    # pair potential
    ρ::T2    # electron density potential
-   F::T3   # embedding function
+   F::T3    # embedding function
 end
 
 cutoff(V::EAM) = max(cutoff(V.ϕ), cutoff(V.ρ))
@@ -15,14 +15,43 @@ evaluate(V::EAM, r, R) = V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
 # TODO: this creates a lot of unnecessary overhead; probaby better to
 #       define vectorised versions of pair potentials
 function evaluate_d(V::EAM, r, R)
-   # r = collect(r)
-   # dϕ = [@D V.ϕ(s) for s in r]
    ρ̄ = sum(V.ρ(s) for s in r)
    dF = @D V.F(ρ̄)
-   # dρ = [@D V.ρ(s) for s in r]
-   #          (0.5 * ϕ'         + F'  *  ρ') * ∇r     (where ∇r = R/r)
+   #         (0.5 * ϕ'          + F' *  ρ')           * ∇r     (where ∇r = R/r)
    return [ ((0.5 * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S  for (s, S) in zip(r, R) ]
 end
+
+# TODO: which of the two `evaluate_dd` and `hess` should we be using?
+evaluate_dd(V::EAM, r, R) = hess(V, r, R)
+hess(V::EAM, r, R) = _hess_(V, r, R, identity)
+
+# ff preconditioner specification for EAM potentials
+#   (just replace id with abs and hess with precon in the hessian code)
+precon(V::EAM, r, R) = _hess_(V, r, R, abs)
+
+
+function _hess_(V::EAM, r, R, fabs)
+   # allocate storage
+   H = zeros(JMatF, length(r), length(r))
+   # precompute some stuff
+   ρ̄ = sum( V.ρ(s, S)  for (s, S) in zip(r, R) )
+   ∇ρ = [ grad(V.ρ, s, S) for (s, S) in zip(r, R) ]
+   dF = @D V.F(ρ̄)
+   ddF = @DD V.F(ρ̄)
+   # assemble
+   for i = 1:length(r)
+      for j = 1:length(r)
+         H[i,j] = fabs(ddF) * ∇ρ[i] * ∇ρ[j]'
+      end
+      S = R[i] / r[i]
+      H[i,i] += (  fabs(0.5 * (@DD V.ϕ(r[i])) + dF * (@DD V.ρ(r[i])))
+                     * S * S'
+                 + fabs((0.5 * (@D V.ϕ(r[i])) + dF * (@D V.ρ(r[i]))) / r[i])
+                     * (eye(JMatF) - S * S')  )
+   end
+   return H
+end
+
 
 
 """
@@ -57,7 +86,6 @@ EAM
 
 
 # implementation of EAM models using data files
-
 
 function EAM(fpair::AbstractString, feden::AbstractString,
              fembed::AbstractString; kwargs...)
