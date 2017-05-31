@@ -5,7 +5,7 @@
 @pot type EAM{T1, T2, T3} <: SitePotential
    ϕ::T1    # pair potential
    ρ::T2    # electron density potential
-   F::T3   # embedding function
+   F::T3    # embedding function
 end
 
 cutoff(V::EAM) = max(cutoff(V.ϕ), cutoff(V.ρ))
@@ -15,33 +15,38 @@ evaluate(V::EAM, r, R) = V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
 # TODO: this creates a lot of unnecessary overhead; probaby better to
 #       define vectorised versions of pair potentials
 function evaluate_d(V::EAM, r, R)
-   # r = collect(r)
-   # dϕ = [@D V.ϕ(s) for s in r]
    ρ̄ = sum(V.ρ(s) for s in r)
    dF = @D V.F(ρ̄)
-   # dρ = [@D V.ρ(s) for s in r]
-   #          (0.5 * ϕ'         + F'  *  ρ') * ∇r     (where ∇r = R/r)
+   #         (0.5 * ϕ'          + F' *  ρ')           * ∇r     (where ∇r = R/r)
    return [ ((0.5 * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S  for (s, S) in zip(r, R) ]
 end
 
 # TODO: which of the two `evaluate_dd` and `hess` should we be using?
 evaluate_dd(V::EAM, r, R) = hess(V, r, R)
+hess(V::EAM, r, R) = _hess_(V, r, R, identity, hess)
 
-function hess(V::EAM, r, R)
+# ff preconditioner specification for EAM potentials
+#   (just replace id with abs and hess with precon in the hessian code)
+precon(V::EAM, r, R) = _hess_(V, r, R, abs, precon)
+
+
+function _hess_(V::EAM, r, R, fabs, fhess)
    # allocate storage
    H = zeros(JMatF, length(r), length(r))
    # precompute some stuff
    ρ̄ = sum( V.ρ(s, S)  for (s, S) in zip(r, R) )
-   ∇ρ = [ hess(V.ρ, s, S) for (s, S) in zip(r, R) ]
-   F = V.F(ρ̄)
-   dF = @D V.F(ρ̄)
-   ddF = @DD V.F(ρ̄)
+   ∇ρ = [ grad(V.ρ, s, S) for (s, S) in zip(r, R) ]
+   dF = fabs(@D V.F(ρ̄))
+   ddF = fabs(@DD V.F(ρ̄))
    # assemble
    for i = 1:length(r)
       for j = 1:length(r)
          H[i,j] = ddF * ∇ρ[i] * ∇ρ[j]'
       end
-      H[i,i] += hess(V.ϕ, r[i], R[i]) + dF * ∇ρ[i]
+      # TODO: this can be made more performant by combining the two
+      #       pair-potential-like terms into one big one
+      #       and this would also lead to a better preconditioner 
+      H[i,i] += 0.5 * fhess(V.ϕ, r[i], R[i]) + dF * fhess(V.ρ, r[i], R[i])
    end
    return H
 end
@@ -81,7 +86,6 @@ EAM
 
 # implementation of EAM models using data files
 
-
 function EAM(fpair::AbstractString, feden::AbstractString,
              fembed::AbstractString; kwargs...)
    pair = SplinePairPotential(fpair; kwargs...)
@@ -111,6 +115,3 @@ function FinnisSinclair(fpair::AbstractString, feden::AbstractString; kwargs...)
    eden = SplinePairPotential(feden; kwargs...)
    return FinnisSinclair(pair, eden)
 end
-
-
-# ================= Hessian Implementation  =======================

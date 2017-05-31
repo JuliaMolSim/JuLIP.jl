@@ -270,7 +270,8 @@ function fd_hessian!(H, calc::AbstractCalculator, at::AbstractAtoms, h)
 end
 
 
-
+# implementation of a generic assembly of a global block-hessian from
+# local site-hessians 
 function hessian_pos(V::SitePotential, at::AbstractAtoms)
    nlist = neighbourlist(at, cutoff(V))
    I, J, Z = Int[], Int[], JMatF[]

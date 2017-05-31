@@ -124,15 +124,6 @@ end
 
 
 
-# an FF preconditioner for StillingerWeber
-function precon(V::PairPotential, r, R)
-   dV = @D V(r)
-   hV = @DD V(r)
-   S = R/r
-   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (eye(JMatF) - S * S')) +
-          0.1 * (abs(hV) + abs(dV / r)) * eye(JMatF)
-end
-
 
 function precon(V::StillingerWeber, r, R)
    n = length(r)
@@ -160,13 +151,5 @@ function precon(V::StillingerWeber, r, R)
       pV[i2, i1] += a * dΘ2 * dΘ1'
    end
 
-   # convert to a matrix
-   P = zeros(3*n, 3*n)
-   for i1 = 1:n, i2 = 1:n
-      I1 = 3*(i1-1) + [1,2,3]
-      I2 = 3*(i2-1) + [1,2,3]
-      P[I1, I2] = pV[i1, i2]
-   end
-   P = 0.5 * (P + P')
-   return P
+   return pV 
 end
