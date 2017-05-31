@@ -2,8 +2,8 @@
 verbose=true
 
 julip_tests = [
-   # ("testaux.jl", "Miscellaneous"),
-   # ("testase.jl", "ASE"),
+   ("testaux.jl", "Miscellaneous"),
+   ("testase.jl", "ASE"),
    # ("testdft.jl", "DFT"),
    # ("testanalyticpotential.jl", "Analytic Potential"),
    # ("testpotentials.jl", "Potentials"),
@@ -31,7 +31,7 @@ using JuLIP.Testing
 end
 
 
-# if we want to check whether we are on travis then we can use this:
+# TODO: if we want to check whether we are on travis then we can use this:
 # if haskey(ENV, "CI")
 #    @show ENV["CI"]
 # end
