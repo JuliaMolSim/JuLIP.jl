@@ -165,3 +165,5 @@ function precon(Vad::ADP, r, R)
    H = L * L'
    return 0.9 * H + 0.1 * maximum(diag(H)) * eye(size(L,1))
 end
+
+hinds(j) =  3 * (j-1) + [1,2,3]
