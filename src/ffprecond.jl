@@ -10,7 +10,7 @@ import JuLIP.Potentials: cutoff
 """
 `FF`: defines a preconditioner based on a force-field;
 
-TODO: thorough documentatin and reference once the paper is finished
+TODO: thorough documentation and reference once the paper is finished
 """
 function FF(at::AbstractAtoms, V::SitePotential;
             tol = 1e-7, updatefreq=10, solver = :amg)
