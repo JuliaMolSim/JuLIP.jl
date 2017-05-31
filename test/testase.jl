@@ -22,13 +22,13 @@ println("   TODO: implement test with periodicity as well?")
 println("   ... assemble neighbour list ...")
 at = bulk("Al", cubic=true) * 3
 set_pbc!(at, (false,false,false))
-cutoff = 1.7 * a0
-nlist = neighbourlist(at, cutoff)
+rcut = 1.7 * a0
+nlist = neighbourlist(at, rcut)
 # create a neighbourlist via a naive double-loop
 simple = zeros(length(at), length(at))
 X = positions(at)
 for n = 2:length(at), m = 1:n-1
-   if norm(X[m]-X[n]) <= cutoff
+   if norm(X[m]-X[n]) <= rcut
       simple[n,m] = simple[m,n] = 1
    end
 end

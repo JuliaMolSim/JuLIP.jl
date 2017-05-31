@@ -108,7 +108,7 @@ function minimise!(at::AbstractAtoms;
    elseif method == :lbfgs
       optimiser = Optim.LBFGS( P = precond, extrapolate=true,
                         precondprep = (P, x) -> update!(P, at, x),
-                        linesearch = LineSearches.bt3! )        # BackTracking(order=2)
+                        linesearch = LineSearches.bt2! )        # BackTracking(order=2)
    else
       error("JulIP.Solve.minimise!: unknown `method` option")
    end
