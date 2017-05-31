@@ -13,9 +13,9 @@ function FF(at::AbstractAtoms, V; tol = 1e-7)
    return AMGPrecon(V, at, tol=tol)
 end
 
-Exp(at::AbstractAtoms;
-             A=3.0, r0=estimate_rnn(at), cutoff_mult=2.2,
-             tol=1e-7, updatefreq=10, solver = :amg, energyscale = 1.0)
+# Exp(at::AbstractAtoms;
+#              A=3.0, r0=estimate_rnn(at), cutoff_mult=2.2,
+#              tol=1e-7, updatefreq=10, solver = :amg, energyscale = 1.0)
 
 
 

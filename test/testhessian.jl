@@ -62,7 +62,7 @@ at = bulk("Fe", cubic=true) * 3
 set_pbc!(at, false)
 set_constraint!(at, FixedCell(at))
 dir = joinpath(dirname(@__FILE__), "..", "data") * "/"
-eam = Potentials.EAM(dir * "pfe.plt", dir * "ffe.plt", dir * "F_fe.plt")
+eam = eam_Fe
 set_calculator!(at, eam)
 
 println("test a single stencil")
