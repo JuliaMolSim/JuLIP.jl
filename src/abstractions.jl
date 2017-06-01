@@ -148,7 +148,11 @@ get_positions = positions
 "Set positions of all atoms as a `3 x N` array."
 @protofun set_positions!(::AbstractAtoms, ::JVecs)
 
+# TODO: move all abstract types to the beginning of the module 
 set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
+set_positions!(at::AbstractAtoms, x, y, z) = set_positions!(at, [x'; y'; z'])
+xyz(at::AbstractAtoms) = xyz(positions(at))
+
 
 "Return copy of momenta of all atoms as a `3 x N` array."
 @protofun momenta(::AbstractAtoms)

@@ -81,6 +81,28 @@ function mats{T,N}(V::Array{T, N})
   return reinterpret(JMat{T}, V, tuple(size(V)[3:end]...))
 end
 
+export xyz
+
+"""
+convert a Vector{JVec{T}} or a 3 x N Matrix{T} into a 3-tuple
+(x, y, z). E.g.,
+```
+x, y, z = positions(at) |> xyz
+```
+a short-cut is
+```
+x, y, z = xyz(at)
+```
+Conversely, `set_positions!(at, x, y, z)` is also allowed.
+"""
+xyz{T}(V::Vector{JVec{T}}) = xyz(mat(V))
+
+
+function xyz(V::Matrix)
+   @assert size(V, 1) == 3
+   return (view(V, 1, :), view(V, 2, :), view(V, 3, :))
+end
+
 
 
 """
