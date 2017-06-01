@@ -1,6 +1,7 @@
 
 export rattle!, r_sum, r_dot,
-      swapxy!, swapxz!, swapyz!
+      swapxy!, swapxz!, swapyz!,
+      dist
 
 
 ############################################################
@@ -63,6 +64,9 @@ function julipwarn(s)
 end
 
 
+"""
+swap x and y position coordinates
+"""
 function swapxy!(at::AbstractAtoms)
    X = positions(at) |> mat
    X[[2,1],:] = X[[1,2],:]
@@ -70,6 +74,9 @@ function swapxy!(at::AbstractAtoms)
    return at
 end
 
+"""
+swap x and z position coordinates
+"""
 function swapxz!(at::AbstractAtoms)
    X = positions(at) |> mat
    X[[3,1],:] = X[[1,3],:]
@@ -77,9 +84,48 @@ function swapxz!(at::AbstractAtoms)
    return at
 end
 
+"""
+swap y and z position coordinates
+"""
 function swapyz!(at::AbstractAtoms)
    X = positions(at) |> mat
    X[[3,2],:] = X[[2,3],:]
    set_positions!(at, X)
    return at
+end
+
+
+
+
+"""
+`dist(at, X1, X2, p = Inf)`
+`dist(at1, at2, p = Inf)`
+
+Returns the maximum distance (p = Inf) or alternatively a p-norm of
+distances between the two configurations `X1, X2` or `at1, at2`.
+This implementation accounts for periodic boundary conditions (in those
+coordinate directions where they are set to `true`)
+"""
+function dist{T}(at::AbstractAtoms,
+                 X1::Vector{JVec{T}}, X2::Vector{JVec{T}},
+                 p = Inf)
+   @assert length(X1) == length(X2)
+   F = defm(at)
+   Finv = inv(F)
+   bcrem = [ p ? 1.0 : Inf for p in pbc(at) ]
+   d = [ norm(_project_pbc_(F, Finv, bcrem, x1 - x2))  # - _project_pbc_(F, Finv, bcrem, x2))
+         for (x1, x2) in zip(X1, X2) ]
+   return norm(d, p)
+end
+
+function dist(at1::AbstractAtoms, at2::AbstractAtoms, p = Inf)
+   @assert vecnorm(cell(at1) - cell(at2), Inf) < 1e-14
+   return dist(at1, positions(at1), positions(at2), p)
+end
+
+function _project_pbc_(F, Finv, bcrem, x)
+   λ = Finv * x     # convex coordinates
+   # convex coords projected to the unit
+   λp = JVecF(rem(λ[1], bcrem[1]), rem(λ[2], bcrem[2]), rem(λ[3], bcrem[3]))
+   return F * λp     # convert back to real coordinates
 end
