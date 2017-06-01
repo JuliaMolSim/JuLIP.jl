@@ -1,6 +1,6 @@
 
 
-export SWCutoff, ShiftCutoff, SplineCutoff
+export SWCutoff, ShiftCutoff, SplineCutoff, StepFunction
 
 
 
@@ -136,3 +136,25 @@ evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)
 evaluate_dd(p::SplineCutoff, r) = fcut_dd(r, p.r0, p.r1)
 cutoff(p::SplineCutoff) = p.r1
 Base.string(p::SplineCutoff) = "SplineCutoff(r0=$(p.r0), r1=$(p.r1))"
+
+
+
+
+@pot type StepFunction <: PairPotential
+   r0::Float64
+end
+
+"""
+`StepFunction(r0=0.0)` or `Heaviside(r0=0.0)` : standard Heaviside step function,
+
+f(x) = (x <= r0)
+"""
+StepFunction
+
+Heaviside = StepFunction
+
+evaluate(p::StepFunction, r::Number) = r < p.r0 ? 1.0 : 0.0
+evaluate_d(p::StepFunction, r::Number) = 0.0
+evaluate_dd(p::StepFunction, r::Number) = 0.0
+cutoff(p::StepFunction) = p.r0
+Base.string(p::StepFunction) = "StepFunction(r0=$(p.r0))"
