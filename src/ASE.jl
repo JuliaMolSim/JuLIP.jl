@@ -30,7 +30,8 @@ import JuLIP:
       energy, forces, virial,
       momenta, set_momenta!
 
-import Base.length, Base.deleteat!, Base.write, Base.deepcopy         # ✓
+import Base.length, Base.deleteat!, Base.write, Base.deepcopy,         # ✓
+      Base.read, Base.write
 
 # from arrayconversions:
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
@@ -46,7 +47,7 @@ export ASEAtoms,      # ✓
       get_transient, set_transient!, has_transient,
       velocities, set_velocities!, masses, set_masses!,
       static_neighbourlist
-      
+
 using PyCall
 
 @pyimport ase.io as ase_io
@@ -527,6 +528,8 @@ function write(filename::AbstractString, ats::AbstractVector{ASEAtoms}, mode=:wr
    pyclosef(filehandle)
 end
 
+
+read(filename::AbstractString) = ASEAtoms(ase_io.read(filename))
 
 
 """

@@ -112,3 +112,13 @@ nlist = static_neighbourlist(at, rnn("Cu") * 1.1)
 rattle!(at, 0.05)
 nlist1 = static_neighbourlist(at, rnn("Cu") * 1.1)
 @test nlist === nlist1
+
+# ======================================================================
+
+println("testing read and write")
+fname = "test.xyz"
+at = bulk("Cu") * 2
+write(fname, at)
+at2 = read(fname)
+@assert positions(at) == positions(at2)
+rm(fname)
