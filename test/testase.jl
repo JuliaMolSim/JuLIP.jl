@@ -104,3 +104,11 @@ set_velocities!(at, v/2.0)
 
 println("Checking chemical_symbols")
 @test chemical_symbols(at) == ["Cu" for i in 1:length(at)]
+
+# ======================================================================
+
+println("testing static_neighbourlist")
+nlist = static_neighbourlist(at, rnn("Cu") * 1.1)
+rattle!(at, 0.05)
+nlist1 = static_neighbourlist(at, rnn("Cu") * 1.1)
+@test nlist === nlist1
