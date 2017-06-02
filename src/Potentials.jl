@@ -157,18 +157,9 @@ include("EMT.jl")
 include("stillingerweber.jl")
 # * type StillingerWeber
 
-const JULIP_SPLINES = true
-try
-   include("splines.jl")
-   include("eam.jl")
-catch
-   warn("""the spline library could not be imported. To make EAM
-           available, install `Pkg.add("Dierckx")` and then
-           `Pkg.checkout("Dierckx")`.
-           """)
-  JULIP_SPLINES = false
-end
-
+include("splines.jl")
+include("eam.jl")
+# EAM, FinnisSinclair
 
 export ZeroSitePotential
 
