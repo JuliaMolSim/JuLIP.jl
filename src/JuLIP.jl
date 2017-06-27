@@ -3,6 +3,13 @@
 
 module JuLIP
 
+using PyCall
+
+if pyversion >= v"2.8"
+   warn("Python version $(pyversion) detected. JuLIP has only been tested with Python v2.7.x")
+end
+
+
 using Reexport
 
 export Atoms
