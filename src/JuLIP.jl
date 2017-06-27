@@ -38,7 +38,11 @@ typealias Atoms ASE.ASEAtoms
 # only try to import Visualise, it is not needed for the rest to work.
 try
    # some visualisation options
-   include("Visualise.jl")
+   if isdefined(Main, :JULIPVISUALISE)
+      if Main.JULIPVISUALISE == true
+         include("Visualise.jl")
+      end
+   end
 catch
    JuLIP.julipwarn("""JuLIP.Visualise did not import correctly, probably because
                `imolecule` is not correctly installed.""")
