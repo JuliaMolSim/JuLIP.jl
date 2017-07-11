@@ -29,9 +29,6 @@ include("utils.jl")
 include("ASE.jl")
 @reexport using JuLIP.ASE
 
-# interface to DFT codes
-include("DFT.jl")
-
 # define the default atoms object
 """
 `type Atoms`
