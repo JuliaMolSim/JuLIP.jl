@@ -8,7 +8,6 @@ verbose=true
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
    ("testase.jl", "ASE"),
-   ("testdft.jl", "DFT"),
    ("testanalyticpotential.jl", "Analytic Potential"),
    ("testpotentials.jl", "Potentials"),
    ("testvarcell.jl", "Variable Cell"),
