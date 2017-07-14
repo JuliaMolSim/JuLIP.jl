@@ -63,7 +63,8 @@ function minimise!(at::AbstractAtoms;
                   method = :auto,
                   gtol=1e-5, ftol=1e-32,
                   verbose = 1,
-                  robust_energy_difference = false )
+                  robust_energy_difference = false,
+                  store_trace = false )
 
    # create an objective function
    if robust_energy_difference
@@ -115,6 +116,7 @@ function minimise!(at::AbstractAtoms;
 
    results = optimize( obj_f, obj_g!, dofs(at), optimiser,
                         Optim.Options( f_tol = ftol, g_tol = gtol,
+                                       store_trace = store_trace,
                                        show_trace = (verbose > 1)) )
    set_dofs!(at, Optim.minimizer(results))
    # analyse the results
