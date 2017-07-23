@@ -99,13 +99,10 @@ println("--------------------------------------------------")
 @test abs(energy(pp, at8) - energy(psp, at8)) < 1e-12
 
 
-if JuLIP.Potentials.JULIP_SPLINES
-   # [9] EAM Potential
-   at9 = set_pbc!( bulk("Fe", cubic = true), false ) * 2
-   eam = eam_Fe
-   push!(calculators, (eam, at9))
-end
-
+# [9] EAM Potential
+at9 = set_pbc!( bulk("Fe", cubic = true), false ) * 2
+eam = eam_Fe
+push!(calculators, (eam, at9))
 
 # ========== Run the finite-difference tests for all calculators ============
 
