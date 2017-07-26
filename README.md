@@ -60,53 +60,12 @@ simply print a warning.
 
 `JuLIP.Visualise` uses the Python module `imolecule` to visualise atomistic
 configurations in an IPython notebook. Its main dependency is
-[OpenBabel](http://openbabel.org/wiki/Main_Page). This was somewhat
-painful to get to work with Anaconda; the following are two alternative set
-of instructions that worked at some point.
-
-### Option 1
-
+[OpenBabel](http://openbabel.org/wiki/Main_Page). Most recently, this could be installed succesfully (from the bash) using
 ```bash
-conda install -c omnia openbabel=2015.09
+conda install -c openbabel openbabel
 pip install imolecule
 ```
 
-### Option 2
-
-If Option 1 fails, then try the following instructions, which
- were only tested on OS X.
-
-To install `imolecule` simply type
-```bash
-pip install imolecule
-```
-in a terminal.
-
-Installing OpenBabel is relatively straightforward; the key issue is to get
-the Python bindings set up correctly, especially since there are normally
-multiple Python versions on an OS X system (Apple, homebrew and anaconda).
-The following instructions worked for 2.3.90, but make sure to change the SWIG version
-number directories as needed:
-```bash
-conda install cmake lxml swig
-git clone https://github.com/openbabel/openbabel.git
-cd openbabel
-cmake ../openbabel-2.3.2 -DPYTHON_BINDINGS=ON -DRUN_SWIG=ON -DCMAKE_INSTALL_PREFIX=~/anaconda -DPYTHON_INCLUDE_DIR=~/anaconda/include/python2.7 -DCMAKE_LIBRARY_PATH=~/anaconda/lib -DSWIG_DIR=~/anaconda/share/swig/3.0.2/ -DSWIG_EXECUTABLE=~/anaconda/bin/swig -DPYTHON_LIBRARY=~/anaconda/lib/libpython2.7.so
-make
-make install
-```
-This should have installed all libraries and python packages in `~/anaconda`
-and the data files in `/usr/local/share/openbabel/2.3.90/`. To tell `babel`
-where to find them, the following lines must be added to `~/.bash_profile`:
-```bash
-export BABEL_DATADIR="/usr/local/share/openbabel/2.3.90/"
-export BABEL_LIBDIR="/Users/ortner/anaconda/lib/openbabel/2.3.90/"
-```
-
-<!--
-(Update: the configuration can be written directly to a JSON file, which
-ought to circumvent the need for OpenBabel. Need to test this on a clean system.)
--->
 
 ## Automatic Differentiation
 
@@ -148,7 +107,7 @@ using JuLIP.Potentials
 r0 = JuLIP.ASE.rnn("Al")
 A = 4.0;  # stiffness paramter
 pot = PairPotential( :( 6.0 * exp(- $A * (r/$r0 - 1.)) - $A * ($r0/r)^6 ) )
-pot = pot * SplineCutoff(2.1*r0, 3.5*r0)   
+pot = pot * SplineCutoff(2.1*r0, 3.5*r0)
 # `pot` can now be used as a calculator to do something interesting ...
 ```
 
