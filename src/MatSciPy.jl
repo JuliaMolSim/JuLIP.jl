@@ -54,6 +54,7 @@ function __neighbour_list__(atoms::ASEAtoms,
                         cutoff::Float64,
                         quantities="ijdDS";
                         convertarrays=true)
+   cell(atoms)   # TODO: this is a workaround for a weird bug in matscipy (or ase?)
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
    results = pycall(matscipy_neighbours.neighbour_list,
@@ -121,6 +122,7 @@ type Sites
 end
 
 length(s::Sites) = s.nlist.length 
+length(s::Sites) = s.nlist.length
 
 sites(nlist::NeighbourList) = Sites(nlist)
 
