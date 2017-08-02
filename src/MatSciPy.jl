@@ -121,7 +121,6 @@ type Sites
    nlist::NeighbourList
 end
 
-length(s::Sites) = s.nlist.length 
 length(s::Sites) = s.nlist.length
 
 sites(nlist::NeighbourList) = Sites(nlist)
