@@ -10,11 +10,13 @@ end
 
 cutoff(V::EAM) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
-evaluate(V::EAM, r, R) = V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
+evaluate(V::EAM, r, R) =
+    length(r) > 0 ? V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r) : 0.0
 
 # TODO: this creates a lot of unnecessary overhead; probaby better to
 #       define vectorised versions of pair potentials
 function evaluate_d(V::EAM, r, R)
+    if length(r) == 0; return JVecF[]; end
    ρ̄ = sum(V.ρ(s) for s in r)
    dF = @D V.F(ρ̄)
    #         (0.5 * ϕ'          + F' *  ρ')           * ∇r     (where ∇r = R/r)
