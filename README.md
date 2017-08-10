@@ -44,13 +44,13 @@ Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. If a test fails, please open an issue.
 
-At the moment, best to use master for `JuLIP, Optim` and `LineSearches`, i.e., from the Julia REPL run
+<!-- At the moment, best to use master for `JuLIP, Optim` and `LineSearches`, i.e., from the Julia REPL run
 ```
 Pkg.checkout("JuLIP")
 Pkg.checkout("Optim")
 Pkg.checkout("LineSearches")
 ```
-(though for Optim and LineSearches this requirement should very soon drop)
+(though for Optim and LineSearches this requirement should very soon drop) -->
 
 
 ## `imolecule` and dependencies
