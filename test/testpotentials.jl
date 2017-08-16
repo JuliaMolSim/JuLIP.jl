@@ -35,7 +35,9 @@ push!(calculators, (  lennardjones(r0=rnn("Al")),
 emt = JuLIP.ASE.EMTCalculator()
 at = rattle!( set_pbc!( bulk("Cu", cubic=true) * 2, (true,false,false) ), 0.1 )
 set_calculator!(at, emt)
-push!(calculators, (emt, at))
+if notCI
+   push!(calculators, (emt, at))
+end
 
 # [3] JuLIP's EMT calculator
 at2 = set_pbc!( bulk("Cu", cubic=true) * (2,2,2), (true,false,false) )
@@ -88,7 +90,9 @@ push!(calculators, (sw, at3))
 at8 = set_pbc!( bulk("Al", cubic=true), false ) * 2
 pp = lennardjones(r0=rnn("Al"))
 psp = SitePotential(pp)
-push!(calculators, (psp, at8))
+if notCI
+   push!(calculators, (psp, at8))
+end 
 
 println("--------------------------------------------------")
 println(" PairSitePotential Consistency test: ")
@@ -100,7 +104,7 @@ println("--------------------------------------------------")
 
 
 # [9] EAM Potential
-at9 = set_pbc!( bulk("Fe", cubic = true), false ) * 2
+at9 = set_pbc!( bulk("Fe", cubic = true), false ) * (2,1,1)
 eam = eam_Fe
 push!(calculators, (eam, at9))
 

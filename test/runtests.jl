@@ -4,6 +4,8 @@ using Base.Test
 using JuLIP.Testing
 
 verbose=true
+isCI = haskey(ENV, "CI")
+notCI = !isCI
 
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
@@ -14,6 +16,12 @@ julip_tests = [
    ("testhessian.jl", "Hessian"),
    ("testsolve.jl", "Solve"),
 ]
+
+# remove testsolve if on Travis
+if isCI 
+   julip_tests = julip_tests[1:end-1]
+end
+
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
 
