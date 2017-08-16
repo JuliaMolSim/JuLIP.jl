@@ -60,7 +60,7 @@ set_constraint!(at, VariableCell(at))
 
 println("For the initial state, stress/virial is far from 0:")
 @show vecnorm(virial(at), Inf)
-JuLIP.Solve.minimise!(at)
+JuLIP.Solve.minimise!(at, verbose=2)
 println("After optimisation, stress/virial should be 0:")
 @show vecnorm(virial(at), Inf)
 @test vecnorm(virial(at), Inf) < 1e-4
@@ -74,7 +74,7 @@ JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
 at = bulk("Al") * 2   # cubic=true,
 set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at, pressure=0.01))
-JuLIP.Solve.minimise!(at)
+JuLIP.Solve.minimise!(at, verbose = 2)
 @show vecnorm(virial(at), Inf)
 @show vecnorm(gradient(at), Inf)
 @test vecnorm(gradient(at), Inf) < 1e-4
