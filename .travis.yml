@@ -16,7 +16,12 @@ addons:
 notifications:
   email: false
 
+env:
+ - PYTHON=""
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; brew install gcc; fi
+
 script:
-  - if [ $TRAVIS_OS_NAME = osx ]; then brew install gcc; fi
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'ENV["PYTHON"]=""; Pkg.add("PyCall"); Pkg.add("Conda"); using Conda; Conda.add("NumPy"); Conda.add("SciPy"); Pkg.clone(pwd()); Pkg.build("JuLIP"); Pkg.test("JuLIP"; coverage=true)'
+  - julia -e 'Pkg.add("Conda"); using Conda; Conda.add("NumPy"); Conda.add("SciPy"); Pkg.clone(pwd()); Pkg.build("JuLIP"); Pkg.test("JuLIP"; coverage=true)'
