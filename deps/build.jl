@@ -1,5 +1,27 @@
 using PyCall
 
+function checkpip()
+   # Import pip
+   try
+       @pyimport pip
+   catch
+       # If it is not found, install it
+       println("""I couldn't find `pip`. I will try to download and install it
+                  automatically, but if this fails, please install
+                  manually, then try to build `JuLIP` again.""")
+       get_pip = joinpath(dirname(@__FILE__), "get-pip.py")
+       download("https://bootstrap.pypa.io/get-pip.py", get_pip)
+       run(`$(PyCall.python) $get_pip --user`)
+   end
+end
+
+function pip(pkgname)
+   checkpip()
+   pipcmd = `$(PyCall.pyprogramname[1:end-6])pip install --upgrade --user $(pkgname)`
+   run(`$(pipcmd)`)
+end
+
+
 
 println("Installing Dependencies of `JuLIP.jl`: `ase` and `matscipy`")
 
@@ -10,8 +32,7 @@ if is_unix()
       println("""`ase` was not found, trying to install via pip. If this fails,
                please file an issue and try to install it manually, following
                the instructions at `https://wiki.fysik.dtu.dk/ase/install.html`""")
-      pipcmd = `$(PyCall.pyprogramname[1:end-6])pip install --upgrade --user ase`
-      run(`$(pipcmd)`)
+      pip("ase")
    end
 
    try
@@ -20,16 +41,15 @@ if is_unix()
       println("""`matscipy` was not found, trying to install it. If this fails,
                please file an issue and try to install it manually, following
                the instructions at `https://github.com/libAtoms/matscipy`""")
-      run(`pwd`)
-      run(`git clone https://github.com/libAtoms/matscipy.git`)
-      cd(joinpath(dirname(@__FILE__), "matscipy"))
-      run(`$(PyCall.pyprogramname) setup.py build`)
-      run(`$(PyCall.pyprogramname) setup.py install`)
-      cd(dirname(@__FILE__))
-      run(`rm -rf matscipy`)
+      pip("matscipy")
    end
-
 else
    println("""it looks like this is a windows machine? I don't dare try to
-            automatically build the dependencies here -- sorry!""")
+            automatically build the dependencies here -- sorry!
+            If installing them by hand turns out non-trivial, please file an
+            issue.""")
 end
+
+# This here is a gist with a slightly different approach to installing
+# the dependencies, using @pyimport pip
+# https://gist.github.com/Luthaf/368a23981c8ec095c3eb
