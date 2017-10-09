@@ -18,7 +18,7 @@ julip_tests = [
 ]
 
 # remove testsolve if on Travis
-if isCI 
+if isCI
    julip_tests = julip_tests[1:end-1]
 end
 
