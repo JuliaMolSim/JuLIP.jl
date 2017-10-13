@@ -5,12 +5,11 @@ using PyCall, JSON
 using JuLIP: set_pbc!, positions, neighbourlist
 using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
 
-import Base.display, Base.show
+import Base.display
 
 @pyimport IPython.display as ipydisp
 @pyimport imolecule
 
-show(at::AbstractAtoms; kwargs...) = display(at; kwargs...)
 
 """
 

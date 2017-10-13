@@ -93,7 +93,7 @@ deleteat!(at, 1)
 set_calculator!(at, JuLIP.Potentials.StillingerWeber())
 set_constraint!(at, FixedCell(at))
 JuLIP.Solve.minimise!(at)
-JuLIP.Visualise.show(at)   # (this will only work in a ipynb)
+JuLIP.Visualise.display(at)   # (this will only work in a ipynb)
 ```
 see the `BulkSilicon.ipynb` notebook under `examples` for an extended
 example.
