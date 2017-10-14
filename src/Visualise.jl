@@ -5,7 +5,7 @@ using PyCall, JSON
 using JuLIP: set_pbc!, positions, neighbourlist
 using JuLIP.ASE: AbstractAtoms, ASEAtoms, write, rnn, chemical_symbols
 
-import Base.display
+export draw
 
 @pyimport IPython.display as ipydisp
 @pyimport imolecule
@@ -33,7 +33,7 @@ import Base.display
 * bonds: :babel, :auto
 * cutoff: :auto or a number
 """
-function display(at::AbstractAtoms; bonds=:babel, box=:auto,
+function draw(at::AbstractAtoms; bonds=:babel, box=:auto,
             camera_type="perspective", size=(500,500), display_html=false,
             cutoff=:auto,
             kwargs...)
@@ -54,7 +54,7 @@ function display(at::AbstractAtoms; bonds=:babel, box=:auto,
    elseif bonds == :auto
       # TODO: bonds = autobondlenghts(at)
    elseif !isa(bonds, Dict)
-      error("""view(at ...) : at the momement, `bonds` must be
+      error("""draw(at ...) : at the momement, `bonds` must be
                `:babel`, `:auto` or a `Dict` containing the bonds-length
                information""")
    end
