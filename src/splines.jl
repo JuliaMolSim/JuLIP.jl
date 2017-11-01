@@ -58,7 +58,7 @@ evaluate_dd(V::SplinePairPotential, r) = _deriv(V, r, 2)
 
 
 function SplinePairPotential(xdat, ydat; s = 1e-2, fixcutoff=true, order=3,
-                             w = (1.0 + ydat).^(-2))
+                             w = (1.0 + abs(ydat)).^(-2))
    # this creates a "fit" with s determining the balance between smoothness
    # and fitting the data (basically an error bound)
    spl = Spline1D(xdat, ydat; bc = "zero", s = s, k = order, w = w)
