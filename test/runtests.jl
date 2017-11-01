@@ -29,7 +29,7 @@ end
 data = joinpath(dirname(@__FILE__), "..", "data") * "/"
 eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
 eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
-
+eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
 
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 println("  Starting JuLIP Tests")

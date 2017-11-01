@@ -92,7 +92,7 @@ pp = lennardjones(r0=rnn("Al"))
 psp = SitePotential(pp)
 if notCI
    push!(calculators, (psp, at8))
-end 
+end
 
 println("--------------------------------------------------")
 println(" PairSitePotential Consistency test: ")
@@ -107,6 +107,13 @@ println("--------------------------------------------------")
 at9 = set_pbc!( bulk("Fe", cubic = true), false ) * (2,1,1)
 eam = eam_Fe
 push!(calculators, (eam, at9))
+
+if notCI
+   # [10] Another EAM Potential
+   at10 = set_pbc!( bulk("W", cubic = true), false ) * (2,1,2)
+   eam4 = eam_W4
+   push!(calculators, (eam4, at10))
+end
 
 # ========== Run the finite-difference tests for all calculators ============
 

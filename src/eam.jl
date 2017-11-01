@@ -2,11 +2,14 @@
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
 
-@pot type EAM{T1, T2, T3} <: SitePotential
+@pot type EAM{T1, T2, T3, T4} <: SitePotential
    ϕ::T1    # pair potential
    ρ::T2    # electron density potential
    F::T3    # embedding function
+   info::T4
 end
+
+EAM(ϕ, ρ, F) = EAM(ρ, ρ, F, nothing)
 
 cutoff(V::EAM) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
@@ -46,9 +49,9 @@ function _hess_(V::EAM, r, R, fabs)
          H[i,j] = fabs(ddF) * ∇ρ[i] * ∇ρ[j]'
       end
       S = R[i] / r[i]
-      H[i,i] += (  fabs(0.5 * (@DD V.ϕ(r[i])) + dF * (@DD V.ρ(r[i])))
+      H[i,i] += ( fabs(0.5 * (@DD V.ϕ(r[i])) + dF * (@DD V.ρ(r[i])))
                      * S * S'
-                 + fabs((0.5 * (@D V.ϕ(r[i])) + dF * (@D V.ρ(r[i]))) / r[i])
+                + fabs((0.5 * (@D V.ϕ(r[i])) + dF * (@D V.ρ(r[i]))) / r[i])
                      * (eye(JMatF) - S * S')  )
    end
    return H
@@ -97,6 +100,22 @@ function EAM(fpair::AbstractString, feden::AbstractString,
    return EAM(pair, eden, embed)
 end
 
+#
+# Load EAM file from .fs file format
+#
+function EAM(fname::AbstractString)
+
+   if fname[end-3:end] == ".eam"
+      error(".eam is not yet implemented, please file an issue")
+   elseif fname[end-6:end] == ".eam.fs"
+      error(".eam.fs is not yet implemented, please file an issue")
+   elseif fname[end-2:end] == ".fs"
+      return eam_from_fs(fname)
+   end
+
+   error("unknwon EAM file format, please file an issue")
+end
+
 
 # ================= Finnis-Sinclair Potential =======================
 
@@ -117,4 +136,71 @@ function FinnisSinclair(fpair::AbstractString, feden::AbstractString; kwargs...)
    pair = SplinePairPotential(fpair; kwargs...)
    eden = SplinePairPotential(feden; kwargs...)
    return FinnisSinclair(pair, eden)
+end
+
+
+# ================= Various File Loaders =======================
+
+"""
+`eam_from_fs(fname; kwargs...) -> EAM`
+
+Read a `.fs` file specifying and EAM / Finnis-Sinclair potential.
+"""
+function eam_from_fs(fname; kwargs...)
+   F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
+   return EAM( SplinePairPotential(r, ϕfun, kwargs...),
+               SplinePairPotential(r, ρfun, kwargs...),
+               SplinePairPotential(ρ, F; fixcutoff= false, kwargs...),
+               info )
+end
+
+
+"""
+`read_fs(fname)` -> F, ρfun, ϕfun, ρ, r, info
+
+Read a `.fs` file specifying and EAM / Finnis-Sinclair potential.
+The description of the file format is taken from
+   http://lammps.sandia.gov/doc/pair_eam.html
+see also
+   https://sites.google.com/a/ncsu.edu/cjobrien/tutorials-and-guides/eam
+"""
+function read_fs(fname)
+   f = open(fname)
+   # ignore the first three lines
+   for n = 1:3
+      readline(f)
+   end
+
+   # line 4: Nelements Element1 Element2 ... ElementN
+   L4 = readline(f) |> chomp |> IOBuffer |> readdlm
+   if L4[1] != 1
+      error("""`read_fs`: the file `$fname` is for alloys, but only
+               the single species potential is implemented so far.""")
+   end
+   info = Dict()
+   info[:species] = L4[2]
+
+   # line 5: Nrho, drho, Nr, dr, cutoff
+   L5 = readline(f) |> IOBuffer |> readdlm
+   Nrho, drho, Nr, dr, cutoff = Int(L5[1]), L5[2], Int(L5[3]), L5[4], L5[5]
+   info[:cutoff] = cutoff
+
+   # line 6: atomic number, mass, lattice constant, lattice type (e.g. FCC)
+   L6 = readline(f) |> IOBuffer |> readdlm
+   info[:number], info[:mass], info[:a0], info[:lattice] = tuple(L6...)
+
+   # all the data
+   data = readdlm(f)
+   @assert length(data) == Nrho+2*Nr
+   ρ = linspace(0, (Nrho-1)*drho, Nrho)
+   r = linspace(cutoff - (Nr-1)*dr, cutoff, Nr)
+
+   # embedding function
+   F = data[1:Nrho]
+   # density function
+   ρfun  = data[Nrho+1:Nrho+Nr]
+   # interatomic potential
+   ϕfun  = data[Nrho+Nr+1:Nrho+2*Nr]
+
+   return F, ρfun, ϕfun, ρ, r, info
 end
