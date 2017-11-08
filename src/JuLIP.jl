@@ -59,6 +59,10 @@ include("preconditioners.jl")
 include("Solve.jl")
 @reexport using JuLIP.Solve
 
+# experimental features
+include("Experimental.jl")
+@reexport using JuLIP.Experimental
+
 # codes to facilitate testing
 include("Testing.jl")
 
