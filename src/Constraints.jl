@@ -19,7 +19,7 @@ import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient, 
 import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy, hessian
 
 
-export FixedCell, VariableCell, ExpVariableCell, FixedCell2D
+export FixedCell, VariableCell, ExpVariableCell, FixedCell2D, atomdofs
 
 
 function zeros_free{T}(n::Integer, x::Vector{T}, free::Vector{Int})
@@ -294,5 +294,8 @@ project!(at::AbstractAtoms, cons::VariableCell) = at
 
 # TODO: CONTINUE WITH EXPCELL IMPLEMENTATION
 # include("expcell.jl")
+
+# convenience function to return DoFs associated with a particular atom
+atomdofs(a::AbstractAtoms, I::Integer) = findin(constraint(a).ifree, 3*I-3:3*I)
 
 end # module
