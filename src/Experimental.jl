@@ -5,7 +5,7 @@ TODO: write documentation
 """
 module Experimental
 
-using JuLIP: AbstractAtoms, dofs, set_dofs!
+using JuLIP: AbstractAtoms, dofs, set_dofs!, atomdofs
 using JuLIP.Potentials
 using ForwardDiff
 
