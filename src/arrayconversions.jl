@@ -11,24 +11,24 @@ export zerovecs, maxdist, maxnorm
 
 export unsafe_pyarrayref, safe_pyarrayref
 
-"typealias for a static vector type; currently `StaticArrays.SVector`"
-typealias SVec SVector
-"typealias for a static matrix type; currently `StaticArrays.SMatrix`"
-typealias SMat SMatrix
-"typealias for a static array type; currently `StaticArrays.SArray`"
-typealias STen SArray
+"typealias fora static vector type; currently `StaticArrays.SVector`"
+const SVec = SVector
+"typealias fora static matrix type; currently `StaticArrays.SMatrix`"
+const SMat = SMatrix
+"typealias fora static array type; currently `StaticArrays.SArray`"
+const STen = SArray
 
 "`JVec{T}` : 3-dimensional immutable vector"
-typealias JVec{T} SVec{3,T}
-typealias JVecF JVec{Float64}
-typealias JVecI JVec{Int}
+const JVec{T} = SVec{3,T}
+const JVecF = JVec{Float64}
+const JVecI = JVec{Int}
 
 Base.zero{T}(::Type{JVec{T}}) = JVec([zero(T) for i=1:3])
 
 "`JVecs{T}` : List of 3-dimensional immutable vectors"
-typealias JVecs{T} Vector{JVec{T}}
-typealias JVecsF JVecs{Float64}
-typealias JVecsI JVecs{Int}
+const JVecs{T} = Vector{JVec{T}}
+const JVecsF = JVecs{Float64}
+const JVecsI = JVecs{Int}
 
 """
 `vecs(V::Matrix)` : convert (as reference) a 3 x N matrix representing
@@ -46,17 +46,17 @@ vecs{T,N}(V::Array{T,N}) = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
 
 "`JMat{T}` : 3 × 3 immutable marix"
 
-typealias JMat{T,N} SMatrix{3,3,T,N}
-typealias JMatF SMatrix{3,3,Float64,9}
-typealias JMatI JMat{Int}
+const JMat{T,N} = SMatrix{3,3,T,N}
+const JMatF = SMatrix{3,3,Float64,9}
+const JMatI = JMat{Int}
 
 # Base.zero{T}(::Type{JMat{T}}) = JMat([zero(T) for i = 1:9])
 # Base.eye{T}(::Type{JMat{T}}) = JMat(T, eye(3))
 
 "`JMats{T}` : (2-dimensional) Array of 3 × 3 immutable matrices"
-typealias JMats{T} Array{JMat{T}}
-typealias JMatsF JMats{Float64}
-typealias JMatsI JMats{Int}
+const JMats{T} = Array{JMat{T}}
+const JMatsF = JMats{Float64}
+const JMatsI = JMats{Int}
 #
 # """
 # `mats(V::Matrix)` : convert (as reference) a 3 x 3 x N x N tensor representing

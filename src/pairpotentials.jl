@@ -17,7 +17,7 @@ function site_energies(pp::PairPotential, at::AbstractAtoms)
 end
 
 
-# TODO: why is this not in the abstract file?
+# TODO: why is this not in theabstractfile?
 # a simplified way to calculate gradients of pair potentials
 grad(pp::PairPotential, r::Real, R::JVec) =
             (evaluate_d(pp::PairPotential, r) / r) * R

@@ -422,9 +422,9 @@ end
 ######################################################
 
 """
-Abstract type for all calculators that interface to ASE
+abstract type for all calculators that interface to ASE
 """
-abstract AbstractASECalculator <: AbstractCalculator
+abstract type AbstractASECalculator <: AbstractCalculator end
 
 """
 Concrete subtype of ASECalculator for classical potentials

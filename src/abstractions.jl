@@ -4,14 +4,14 @@
 """
 `AbstractAtoms`
 
-the abstract supertype for storing atomistic
+theabstractsupertype for storing atomistic
 configurations. A basic implementation might simply store a list of positions.
 """
-abstract AbstractAtoms
+abstract type AbstractAtoms end
 
 
 """
-Abstract supertype of neighbourlists.
+abstract supertype of neighbourlists.
 
 The standard contructor should be of the form
 ```
@@ -19,34 +19,34 @@ The standard contructor should be of the form
 ```
 where `rcut` should be either a scalar or a vector of cut-offs.
 """
-abstract AbstractNeighbourList
+abstract type AbstractNeighbourList end
 
-abstract AbstractConstraint
+abstract type AbstractConstraint end
 
 """
 `Dofs`: dof vector
 """
-typealias Dofs Vector{Float64}
+const Dofs = Vector{Float64}
 
 
 
 """
-`AbstractCalculator`: the abstract supertype of calculators. These
+`AbstractCalculator`: theabstractsupertype of calculators. These
 store model information, and are linked to the implementation of energy,
 forces, and so forth.
 """
-abstract AbstractCalculator
+abstract type AbstractCalculator end
 
 
 """
-`Preconditioner`: abstract base type for preconditioners
+`Preconditioner`:abstractbase type for preconditioners
 
 Preconditioners need to implement the following three functions:
 * `update!(P, at::AbstractAtoms)`
 * `A_mul_B!(out::Dof, P, x::Dof)`
 * `A_ldiv_B!(out::Dof, P, f::Dof)`
 """
-abstract Preconditioner <: AbstractMatrix{Float64}
+abstract type Preconditioner <: AbstractMatrix{Float64} end
 
 
 
@@ -57,7 +57,7 @@ generates "function prototypes" which throw an error message
 with a little extra information in case a certain function has not been
 implemented. This is in some way duplicating default Julia behaviour, but it
 has the advantage that we can write documention for non-existing functions and
-it also emphasizes that this specific function is part of the abstract atoms
+it also emphasizes that this specific function is part of theabstractatoms
 interface.
 
 ## Usage
@@ -148,7 +148,7 @@ get_positions = positions
 "Set positions of all atoms as a `3 x N` array."
 @protofun set_positions!(::AbstractAtoms, ::JVecs)
 
-# TODO: move all abstract types to the beginning of the module 
+# TODO: move allAbstractypes to the beginning of the module
 set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
 set_positions!(at::AbstractAtoms, x, y, z) = set_positions!(at, [x'; y'; z'])
 xyz(at::AbstractAtoms) = xyz(positions(at))
@@ -525,7 +525,7 @@ Update the preconditioner with the new geometry information.
 @protofun update!(precond::Preconditioner, at::AbstractAtoms)
 update!(precond::Preconditioner, at::AbstractAtoms, x::Dofs) =
             update!(precond, set_dofs!(at, x))
-# TODO: this is a bit of a problem with the nice abstract framework we
+# TODO: this is a bit of a problem with the niceabstractframework we
 #       are constructing here; it can easily happen now that we
 #       update positions multiple times
 
