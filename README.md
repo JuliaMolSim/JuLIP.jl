@@ -3,7 +3,9 @@
 [![Build Status](https://travis-ci.org/libAtoms/JuLIP.jl.svg?branch=master)](https://travis-ci.org/libAtoms/JuLIP.jl)
 
 A package for rapid implementation and testing of new interatomic potentials and
-molecular simulation algorithms. Requires v0.5 of Julia.
+molecular simulation algorithms. Requires v0.5 or v0.6 of Julia.
+
+**(WARNING: v0.6 compatibility is work in progress!)**
 
 The structure of JuLIP is heavily inspired by [ASE](https://gitlab.com/ase/ase)
 but uses more "Julian" notation.  JuLIP relies on ASE for much of the
