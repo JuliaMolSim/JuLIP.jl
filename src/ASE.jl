@@ -364,8 +364,17 @@ graphene_nanoribbon(args...; kwargs...) =
    ASEAtoms(ase_build.graphene_nanoribbon(args...; kwargs...))
 
 "nanotube(n, m, length=1, bond=1.42, symbol=\"C\", verbose=False)"
-nanotube(args...; kwargs...) =
-      ASEAtoms(ase_build.nanotube(args...; kwargs...))
+function nanotube(args...; kwargs...)
+   at = ASEAtoms(ase_build.nanotube(args...; kwargs...))
+   C = Matrix(cell(at))
+   if det(C) ≈ 0.0
+      C[1,1] = 1.0
+      C[2,2] = 1.0
+      @assert !(det(C) ≈ 0.0)
+   end
+   set_cell!(at, C)
+   return at
+end
 
 @doc ase_build.molecule[:__doc__] ->
       molecule(args...; kwargs...) =
