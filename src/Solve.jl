@@ -73,7 +73,7 @@ function minimise!(at::AbstractAtoms;
    else
       obj_f = x->energy(at, x)
    end
-   obj_g! = (x, g) -> copy!(g, gradient(at, x))    # switch to (g, x) for Optim 0.8+
+   obj_g! = (g, x) -> copy!(g, gradient(at, x))
 
    # create a preconditioner
    if isa(precond, Symbol)
@@ -100,16 +100,16 @@ function minimise!(at::AbstractAtoms;
    # choose the optimisation method Optim.jl
    if method == :auto
       if isa(precond, Identity)
-         optimiser = Optim.ConjugateGradient()
+         optimiser = Optim.ConjugateGradient(linesearch = LineSearches.BackTracking(order=2))
       else
          optimiser = Optim.ConjugateGradient( P = precond,
                            precondprep = (P, x) -> update!(P, at, x),
-                           linesearch = LineSearches.bt2! )    # LineSearches.BackTracking(order=2)
+                           linesearch = LineSearches.BackTracking(order=2) )
       end
    elseif method == :lbfgs
       optimiser = Optim.LBFGS( P = precond, extrapolate=true,
                         precondprep = (P, x) -> update!(P, at, x),
-                        linesearch = LineSearches.bt2! )        # BackTracking(order=2)
+                        linesearch = LineSearches.BackTracking(order=2) )
    else
       error("JulIP.Solve.minimise!: unknown `method` option")
    end

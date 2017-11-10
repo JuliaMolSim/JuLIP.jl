@@ -20,13 +20,13 @@ lj = JuLIP.Potentials.PairPotential(
 ljold = Morseold(e0, A, r0)
 
 rr = collect(linspace(0.9, 2.1, 100))
-lj_r = [lj(r) for r in rr]
-ljold_r = ljold(rr)
+lj_r = lj.(rr)
+ljold_r = ljold.(rr)
 dlj_r = [(@D lj(r)) for r in rr]
-dljold_r = @D ljold(rr)
+dljold_r = [ (@D ljold(r)) for r in rr ] 
 
-@show vecnorm(lj_r - ljold_r, Inf)
-@show vecnorm(dlj_r - dljold_r, Inf)
+@test vecnorm(lj_r - ljold_r, Inf) < 1e-14
+@test vecnorm(dlj_r - dljold_r, Inf) < 1e-14
 
 function test(N, p)
    r = 1.234
