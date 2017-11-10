@@ -14,7 +14,7 @@ export @D, @DD, @GRAD, @pot
 # call(pp::Potential, ::Type{Val{:DD}}, varargs...) = evaluate_dd(pp, varargs...)
 # call(pp::Potential, ::Type{Val{:GRAD}}, varargs...) = grad(pp, varargs...)
 
-# unfortunately, in 0.5 `call` doesn't take an abstract argument anymore,
+# unfortunately, in 0.5 `call` doesn't take anabstractargument anymore,
 # which means that we need to specify for every potential how to
 # create this syntactic sugar. This is what `@pot` is for.
 

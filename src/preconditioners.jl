@@ -27,7 +27,7 @@ import Base: A_ldiv_B!, A_mul_B!, dot, *, \
 #       in this case we should to a cholesky factorisation
 #       on `force_update!`
 
-abstract PairPrecon <: Preconditioner
+abstract type PairPrecon <: Preconditioner end
 
 """
 `AMGPrecon{T}`: a preconditioner using AMG as the main solver

@@ -6,7 +6,7 @@
 This module implements some basic interatomic potentials in pure Julia, as well
 as provides building blocks and prototypes for further implementations
 The implementation is done in such a way that they can be used either in "raw"
-form or within abstract frameworks.
+form or withinabstractframeworks.
 
 ### Types
 
@@ -31,25 +31,25 @@ export Potential, PairPotential, SitePotential,
      site_energy, site_energy_d, partial_energy, partial_energy_d
 
 """
-`Potential`: generic abstract supertype for all potential-like things
+`Potential`: genericabstractsupertype for all potential-like things
 """
-abstract Potential <: AbstractCalculator
+abstract type Potential <: AbstractCalculator end
 
 
 """
-`PairPotential`: abstract supertype for pair potentials
+`PairPotential`:abstractsupertype for pair potentials
 
 Can also be used as a constructor for analytic pair potentials, e.g.,
 ```julia
 lj = PairPotential( :( r^(-12) - 2 * r^(-6) ) )
 ```
 """
-abstract PairPotential <: Potential
+abstract type PairPotential <: Potential end
 
 """
-`SitePotential`: abstract supertype for generic site potentials
+`SitePotential`:abstractsupertype for generic site potentials
 """
-abstract SitePotential <: Potential
+abstract type SitePotential <: Potential end
 
 
 include("potentials_base.jl")

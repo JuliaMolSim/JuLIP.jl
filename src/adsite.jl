@@ -36,7 +36,7 @@ Notes:
 `ForwardDiff`. Hopefully it can be fixed.
 * TODO: allow arguments `(r, R)` then use chain-rule to combine them.
 """
-abstract FDPotential <: SitePotential
+abstract type FDPotential <: SitePotential end
 
 evaluate(pot::FDPotential, r, R) = ad_evaluate(pot, mat(collect(R)))
 
@@ -44,7 +44,7 @@ evaluate_d(pot::FDPotential, r, R) =
    ForwardDiff.gradient( R_ -> ad_evaluate(pot, R_), mat(collect(R)) ) |> vecs
 
 
-abstract FDPotential_r <: SitePotential
+abstract type FDPotential_r <: SitePotential end
 
 evaluate(pot::FDPotential_r, r, R) = ad_evaluate(pot, collect(r))
 
@@ -57,7 +57,7 @@ end
 # Implementation of a ReverseDiffPrototype site potential
 # ========================================================
 
-abstract RDPotential_r <: SitePotential
+abstract type RDPotential_r <: SitePotential end
 
 evaluate(pot::RDPotential_r, r, R) = ad_evaluate(pot, collect(r))
 
@@ -70,7 +70,7 @@ end
 # # Implementation of a ReverseDiffSource site potential
 # # ========================================================
 #
-# abstract RDSPotential_r <: SitePotential
+#abstractRDSPotential_r <: SitePotential
 #
 # init(pot::RDSPotential_r,
 #

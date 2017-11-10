@@ -9,7 +9,7 @@ export AnalyticPairPotential, AnalyticPotential, WrappedPPotential
 
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper
-typealias F64fun FunctionWrapper{Float64, Tuple{Float64}}
+const F64fun = FunctionWrapper{Float64, Tuple{Float64}}
 
 
 # ===========================================================================
@@ -49,7 +49,7 @@ end
 # TODO: this construction should not be restricted to pair potentials
 #       but need a better model
 
-abstract AnalyticPairPotential <: PairPotential
+abstract type AnalyticPairPotential <: PairPotential end
 
 # documentation attached below
 @pot type AnalyticPotential{F0,F1,F2} <: AnalyticPairPotential
