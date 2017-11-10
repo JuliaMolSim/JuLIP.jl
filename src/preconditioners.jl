@@ -4,7 +4,7 @@ module Preconditioners
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
             constraint, bonds, cutoff, positions, defm, JVecF, forces, mat,
             set_positions!
-using JuLIP.Potentials: PairPotential, AnalyticPotential
+using JuLIP.Potentials: PairPotential, AnalyticPotential, evaluate
 using JuLIP.Constraints: project!, FixedCell
 using JuLIP.ASE: chemical_symbols, rnn
 
@@ -115,7 +115,7 @@ update!(P::PairPrecon, at::AbstractAtoms) =
 
 function force_update!(P::AMGPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
-   P.p = update_inner!(P.p, at)
+   # P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
    Pmat = matrix(P.p, at)
    Pmat + P.stab * speye(size(Pmat, 1))
@@ -131,7 +131,8 @@ end
 
 function force_update!(P::DirectPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
-   P.p = update_inner!(P.p, at)
+   # TODO: can this ever be needed?
+   # P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
    Pmat = matrix(P.p, at)
    Pmat + P.stab * speye(size(Pmat, 1))
@@ -173,7 +174,7 @@ function matrix(p::PairPotential, at::AbstractAtoms)
       # TODO: should experiment with other matrices, e.g., R ⊗ R
       ii = atind2lininds(i)
       jj = atind2lininds(j)
-      z = p(r)
+      z = Base.invokelatest(evaluate, p, r) #(r)   # TODO: WORKAROUND, will be SLOW
       for (a, b) in zip(ii, jj)
          append!(I, [a; a; b; b])
          append!(J, [a; b; a; b])

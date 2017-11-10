@@ -136,7 +136,7 @@ function precon(V::StillingerWeber, r, R)
 
    # three-body terms
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
-   V3 = [V.V3(s) for s in r]
+   V3 = [Base.invokelatest(V.V3, s) for s in r]  # TODO: WORKAROUND
    # gV3 = [ grad(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
    # pV3 = [ precon(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
    for i1 = 1:(n-1), i2 = (i1+1):n
@@ -151,5 +151,5 @@ function precon(V::StillingerWeber, r, R)
       pV[i2, i1] += a * dΘ2 * dΘ1'
    end
 
-   return pV 
+   return pV
 end

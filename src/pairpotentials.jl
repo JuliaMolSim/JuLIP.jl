@@ -165,8 +165,10 @@ evaluate_d(psp::PairSitePotential, r, R) =
 
 # an FF preconditioner for pair potentials
 function precon(V::PairPotential, r, R)
-   dV = @D V(r)
-   hV = @DD V(r)
+   # dV = @D V(r)
+   # hV = @DD V(r)
+   dV = Base.invokelatest(evaluate_d, V, r)    # TODO: WORKAROUND
+   hV = Base.invokelatest(evaluate_dd, V, r)
    S = R/r
    return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (eye(JMatF) - S * S')) +
           0.1 * (abs(hV) + abs(dV / r)) * eye(JMatF)
