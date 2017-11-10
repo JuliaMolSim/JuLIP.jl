@@ -46,7 +46,9 @@ function fdtest(F::Function, dF::Function, x; verbose=true)
    end
    @printf("---------|----------- \n")
    if minimum(errors) <= 1e-3 * maximum(errors)
-      println("passed")
+      if verbose
+         println("passed")
+      end
       return true
    else
       warn("""It seems the finite-difference test has failed, which indicates

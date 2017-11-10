@@ -40,7 +40,7 @@ println("ok")
 
 # now perform the finite-difference test
 set_dofs!(at, x)
-JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
+@test JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
 
 println("Check virial for SW potential")
 si = bulk("Si", cubic=true) * 2
@@ -48,7 +48,7 @@ rattle!(si, 0.1)
 set_defm!(si, defm(si) + 0.03 * rand(JMatF))
 sw = StillingerWeber()
 set_constraint!(si, VariableCell(si))
-JuLIP.Testing.fdtest(calc, si, verbose=true, rattle=0.1)
+@test JuLIP.Testing.fdtest(calc, si, verbose=true, rattle=0.1)
 
 
 println("-------------------------------------------------")
@@ -68,10 +68,9 @@ println("After optimisation, stress/virial should be 0:")
 
 println("-------------------------------------------------")
 println("And now with pressure . . .")
-println("-------------------------------------------------")
 set_constraint!(at, VariableCell(at, pressure=10.0123))
 JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
-at = bulk("Al") * 2   # cubic=true,
+at = bulk("Al") * 2 
 set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at, pressure=0.01))
 JuLIP.Solve.minimise!(at, verbose = 2)

@@ -8,11 +8,11 @@ isCI = haskey(ENV, "CI")
 notCI = !isCI
 
 julip_tests = [
-   ("testaux.jl", "Miscellaneous"),
-   ("testase.jl", "ASE"),
+   # ("testaux.jl", "Miscellaneous"),
+   # ("testase.jl", "ASE"),
    # ("testanalyticpotential.jl", "Analytic Potential"),
    # ("testpotentials.jl", "Potentials"),
-   # ("testvarcell.jl", "Variable Cell"),
+   ("testvarcell.jl", "Variable Cell"),
    # ("testhessian.jl", "Hessian"),
    # ("testsolve.jl", "Solve"),
 ]

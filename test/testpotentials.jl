@@ -20,7 +20,7 @@ for pp in pairpotentials
    println("--------------------------------")
    println(pp)
    println("--------------------------------")
-   fdtest(pp, r, verbose=verbose)
+   @test fdtest(pp, r, verbose=verbose)
 end
 
 # =============================================================
@@ -125,7 +125,7 @@ for (calc, at) in calculators
    println(typeof(calc))
    @show length(at)
    println("--------------------------------")
-   fdtest(calc, at, verbose=true)
+   @test fdtest(calc, at, verbose=true)
 end
 
 
