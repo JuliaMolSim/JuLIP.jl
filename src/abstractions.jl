@@ -103,7 +103,7 @@ end
 export AbstractAtoms,
       positions, get_positions, set_positions!, unsafe_positions,
       momenta, get_momenta, set_momenta!, unsafe_momenta,
-      get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
+      cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       set_data!, get_data, has_data,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
@@ -111,7 +111,7 @@ export AbstractAtoms,
       defm, set_defm!
 
 # length is used for several things
-import Base: length, A_ldiv_B!, A_mul_B!, cell, gradient
+import Base: length, A_ldiv_B!, A_mul_B!, gradient
 
 export AbstractCalculator,
       energy, potential_energy, forces, gradient, hessian,
