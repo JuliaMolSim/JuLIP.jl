@@ -9,7 +9,7 @@ notCI = !isCI
 
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
-   # ("testase.jl", "ASE"),
+   ("testase.jl", "ASE"),
    # ("testanalyticpotential.jl", "Analytic Potential"),
    # ("testpotentials.jl", "Potentials"),
    # ("testvarcell.jl", "Variable Cell"),

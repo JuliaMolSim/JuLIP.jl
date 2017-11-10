@@ -21,7 +21,7 @@ module MatSciPy
 using PyCall
 @pyimport matscipy.neighbours as matscipy_neighbours
 
-using JuLIP:  AbstractNeighbourList, cutoff, JVecs, vecs, pyarrayref
+using JuLIP:  AbstractNeighbourList, cutoff, JVecs, vecs, pyarrayref, cell
 using JuLIP.ASE: ASEAtoms, pyobject
 
 import JuLIP: sites, bonds

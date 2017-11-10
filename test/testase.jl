@@ -35,8 +35,8 @@ end
 println("   ... check the bond-iterator ... ")
 for (i,j,r,R,S) in bonds(nlist)
    @test simple[i,j] == 1
-   @test_approx_eq_eps(norm(X[i]-X[j]), r, 1e-12)
-   @test_approx_eq_eps(X[j]-X[i], R, 1e-12)
+   @test norm(X[i]-X[j]) ≈ r atol = 1e-12
+   @test norm(X[j]-X[i] - R) < 1e-12
    @test norm(S) == 0
    # switch the flag
    simple[i,j] = -1
