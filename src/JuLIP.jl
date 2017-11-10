@@ -30,7 +30,7 @@ Technically not a type but a type-alias, to possibly allow different "backends".
 At the moment, `Atoms = ASE.ASEAtoms`; see its help for more details.
 This will likely remain for the foreseeable future.
 """
-typealias Atoms ASE.ASEAtoms
+const Atoms = ASE.ASEAtoms
 
 # only try to import Visualise, it is not needed for the rest to work.
 try
