@@ -1,16 +1,12 @@
 
-# wait for ReverseDiffSource to be updated to v0.5
-# import ReverseDiffSource
-# import ReverseDiffSource:rdiff
-
+using MacroTools
 using Calculus: differentiate
 
-export AnalyticPairPotential, AnalyticPotential, WrappedPPotential
+export AnalyticPairPotential, @PairPotential
 
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper
-const F64fun = FunctionWrapper{Float64, Tuple{Float64}}
-
+const ScalarFun{T} = FunctionWrapper{T, Tuple{T}}
 
 # ===========================================================================
 #     macro that takes an expression, differentiates it
@@ -30,94 +26,74 @@ function diff2(ex::Expr, sym=:r)
    return eval( :( (r->$ex, r->$ex_d, r->$ex_dd)) )
 end
 
-"""
-`diff2_wrapF64(ex::Expr)` :
-
-takes an expression, differentiates it twice,
-     and returns anonymous functions for the derivatives,
-     wrapped using `FunctionWrappers`.
-"""
-function diff2_wrapF64(ex::Expr, sym=:r)
-   f, f_d, f_dd = diff2(ex, sym)
-   return F64fun(f), F64fun(f_d), F64fun(f_dd)
-end
-
-
 
 # ================== Analytical Potentials ==========================
 #
 # TODO: this construction should not be restricted to pair potentials
-#       but need a better model
-
-abstract type AnalyticPairPotential <: PairPotential end
+#       but need a better model for how to implement this generically
 
 # documentation attached below
-@pot type AnalyticPotential{F0,F1,F2} <: AnalyticPairPotential
+@pot struct AnalyticPairPotential{F0,F1,F2} <: PairPotential
    f::F0
    f_d::F1
    f_dd::F2
-   id::AbstractString
    cutoff::Float64
 end
 
+
 """
-`type AnalyticPotential <: AnalyticPairPotential`
+`type AnalyticPairPotential <: PairPotential`
 
 ### Usage:
 ```julia
-lj = PairPotential(:(r^(-12) - 2.0*r^(-6)), "LennardJones")
-println(lj)   # will output `LennardJones`
+lj = @PairPotential r -> r^(-12) - 2.0*r^(-6)
 A = 4.0; r0 = 1.234
-morse = PairPotential("exp(-2.0*\$A*(r/\$r0-1.0)) - 2.0*exp(-\$A*(r/\$r0-1.0))",
-                           "Morse(A=\$A,r0=\$r0)")
-```
-
-use kwarg `cutoff` to set a cut-off, default is `Inf`
-"""
-AnalyticPotential
-
-# documentation attached below
-@pot type WrappedPPotential <: AnalyticPairPotential
-   f::F64fun
-   f_d::F64fun
-   f_dd::F64fun
-   id::AbstractString
-   cutoff::Float64
+morse = let A = 4.0, r0 = 1.234
+   @PairPotential r -> exp(-2.0*A*(r/r0-1.0)) - 2.0*exp(-A*(r/r0-1.0))
 end
 
+To create a "wrapped" AnalyticPairPotential{F64fun, ...} , use
+```
+lj_wrapped = F64fun(lj)
+```
 """
-`type WrappedPPotential <: AnalyticPairPotential`
+AnalyticPairPotential
 
-similar to `AnalyticPotential`, but using `FunctionWrappers` so that
-these potentials can be stored in an array without performance penalty.
+
 """
-WrappedPPotential
+`F64fun`: `FunctionWrapper` to wrap many different potentials within a single
+type. Can be used as  `F64fun(::Function)` or as
+`F64fun(::AnalyticPairPotential)`
+"""
+const F64fun = ScalarFun{Float64}
 
+F64fun(p::AnalyticPairPotential) =
+   AnalyticPairPotential(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd), cutoff)
 
 
 evaluate(p::AnalyticPairPotential, r::Number) = p.f(r)
-# evaluate(p::AnalyticPairPotential, r::AbstractVector) = [p.f(s) for s in r]
 evaluate_d(p::AnalyticPairPotential, r::Number) = p.f_d(r)
-# evaluate_d(p::AnalyticPairPotential, r::AbstractVector) = [p.f_d(s) for s in r]
 evaluate_dd(p::AnalyticPairPotential, r::Number) = p.f_dd(r)
-# evaluate_dd(p::AnalyticPairPotential, r::AbstractVector) = [p.f_dd(s) for s in r]
-Base.show(io::Base.IO, p::AnalyticPairPotential) = print(io, p.id)
 cutoff(p::AnalyticPairPotential) = p.cutoff
 
+function fdiff( ex )
+   @assert @capture(ex, var_ -> expr_)
+   return :(  $var -> $(differentiate(expr.args[2], var)) )
+end
 
-PairPotential(s::AbstractString; id = s, cutoff=Inf) =
-      PairPotential(parse(s), id=id, cutoff=cutoff)
-
-PairPotential(ex::Expr; id::AbstractString = string(ex), cutoff=Inf) =
-     AnalyticPotential(diff2(ex)..., id, cutoff)
-
-
-WrappedPPotential(s::AbstractString; id = s, cutoff=Inf) =
-      WrappedPPotential(parse(s), id=id, cutoff=cutoff)
-
-WrappedPPotential(ex::Expr; id::AbstractString = string(ex), cutoff=Inf) =
-   WrappedPPotential(diff2_wrapF64(ex)..., id, cutoff)
-
+"""
+`@PairPotential`: generate symbolic pair potentials.
+"""
+macro PairPotential(fexpr)
+   :(
+      AnalyticPairPotential(
+        $(esc(fexpr)),
+        $(esc(fdiff(fexpr))),
+        $(esc(fdiff(fdiff(fexpr)))),
+        Inf
+      )
+   )
+end
 
 
 # this is a hack to make tight-binding work; but it should be reconsidered

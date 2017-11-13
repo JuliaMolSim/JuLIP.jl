@@ -4,7 +4,7 @@ module Preconditioners
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
             constraint, bonds, cutoff, positions, defm, JVecF, forces, mat,
             set_positions!
-using JuLIP.Potentials: PairPotential, AnalyticPotential, evaluate
+using JuLIP.Potentials: PairPotential, AnalyticPairPotential, evaluate
 using JuLIP.Constraints: project!, FixedCell
 using JuLIP.ASE: chemical_symbols, rnn
 
