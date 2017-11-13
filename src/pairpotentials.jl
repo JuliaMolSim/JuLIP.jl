@@ -82,15 +82,12 @@ end
 
 
 """
-`LennardJones:` e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
+`LennardJones(r0, a0)` or `LennardJones(;r0=1.0, e0=1.0)` :
 
-Constructor: `LennardJonesPotential(r0, e0)`
+construct the Lennard-Jones potential e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
 """
-LennardJones(r0, e0) =
-   PairPotential(:($e0 * (($r0/r)^(12) - 2.0 * ($r0/r)^(6))),
-                     id = "LennardJones(r0=$r0, e0=$e0)")
-
-LennardJones() = LennardJones(1.0, 1.0)
+LennardJones(r0, e0) = @PairPotential r -> e0 * ((r0/r)^(12) - 2.0 * (r0/r)^(6))
+LennardJones(;r0=1.0, e0=1.0) = LennardJones(r0, e0)
 
 """
 `lennardjones(; r0=1.0, e0=1.0, rcut = (1.9*r0, 2.7*r0))`
@@ -104,14 +101,12 @@ lennardjones(; r0=1.0, e0=1.0, rcut = (1.9*r0, 2.7*r0)) = (
 
 
 """
-`Morse(A, e0, r0)`: constructs a
+`Morse(A, e0, r0)` or `Morse(;A=4.0, e0=1.0, r0=1.0)`: constructs a
 `PairPotential` for
    e0 ( exp( -2 A (r/r0 - 1) ) - 2 exp( - A (r/r0 - 1) ) )
 """
-Morse(A, e0, r0) =
-   PairPotential(:( $e0 * ( exp(-$(2.0*A) * (r/$r0 - 1.0))
-                                - 2.0 * exp(-$A * (r/$r0 - 1.0)) ) ),
-                     id="MorsePotential(A=$A, e0=$e0, r0=$r0)")
+Morse(A, e0, r0) = @PairPotential(
+   r -> e0 * ( exp(-(2.0*A) * (r/r0 - 1.0)) - 2.0 * exp(-A * (r/r0 - 1.0)) ) )
 Morse(;A=4.0, e0=1.0, r0=1.0) = Morse(A, e0, r0)
 
 """
@@ -125,7 +120,7 @@ morse(;A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0)) = (
          :  SplineCutoff(rcut[1], rcut[2]) * Morse(A, e0, r0) )
 
 
-@pot  type ZeroPairPotential end
+@pot struct ZeroPairPotential end
 """
 `ZeroPairPotential()`: creates a potential that just returns zero
 """ ZeroPairPotential
@@ -140,7 +135,7 @@ cutoff(p::ZeroPairPotential) = 0.0
 
 SitePotential(pp::PairPotential) = PairSitePotential(pp)
 
-@pot type PairSitePotential{P} <: SitePotential
+@pot struct PairSitePotential{P} <: SitePotential
    pp::P
 end
 
@@ -171,7 +166,6 @@ function precon(V::PairPotential, r, R)
    return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (eye(JMatF) - S * S')) +
           0.1 * (abs(hV) + abs(dV / r)) * eye(JMatF)
 end
-
 
 
 # TODO: define a `ComposePotential?`

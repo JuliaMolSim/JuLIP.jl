@@ -13,7 +13,7 @@ const e0 = 0.99
 const r0 = 1.05
 const A = 4.1
 
-morse = @PairPotential( e0 * (exp(-2*A*(r/r0-1.0)) - 2.0*exp(-A*(r/r0-1.0))) )
+morse = @PairPotential( r -> e0 * (exp(-2*A*(r/r0-1.0)) - 2.0*exp(-A*(r/r0-1.0))) )
 @show typeof(morse)
 morseold = Morseold(e0, A, r0)
 

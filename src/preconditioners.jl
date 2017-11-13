@@ -4,7 +4,7 @@ module Preconditioners
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
             constraint, bonds, cutoff, positions, defm, JVecF, forces, mat,
             set_positions!
-using JuLIP.Potentials: PairPotential, AnalyticPairPotential, evaluate
+using JuLIP.Potentials: @PairPotential, AnalyticPairPotential, evaluate, PairPotential
 using JuLIP.Constraints: project!, FixedCell
 using JuLIP.ASE: chemical_symbols, rnn
 
@@ -117,7 +117,7 @@ function force_update!(P::AMGPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
-   Pmat = Base.invokelatest(precon_matrix, P.p, at)
+   Pmat = precon_matrix(P.p, at)
    Pmat + P.stab * speye(size(Pmat, 1))
    A = project!( constraint(at), Pmat )
    # and the AMG solver
@@ -133,7 +133,7 @@ function force_update!(P::DirectPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
     P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
-   Pmat = Base.invokelatest(precon_matrix, P.p, at)
+   Pmat = precon_matrix(P.p, at)
    Pmat + P.stab * speye(size(Pmat, 1))
    P.A = project!( constraint(at), Pmat )
    # remember the atom positions
@@ -209,8 +209,10 @@ function Exp(at::AbstractAtoms;
    e0 = energyscale == :auto ? 1.0 : energyscale
    rcut = r0 * cutoff_mult
    exp_shift = e0 * exp( - A*(rcut/r0 - 1.0) )
-   pot = PairPotential( :($e0 * exp( - $A * (r/$r0 - 1.0)) - $exp_shift),
-                            cutoff = rcut )
+   pot = let e0=e0, A=A, r0=r0, exp_shift = e0 * exp( - A*(rcut/r0 - 1.0) )
+      @PairPotential( r -> e0 * exp( - A * (r/r0 - 1.0)) - exp_shift)
+   end
+   pot = AnalyticPairPotential(pot.f, pot.f_d, pot.f_dd, rcut)   # TODO: workaround!!!
    if solver == :amg
       P = AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)
    elseif solver == :direct
@@ -231,7 +233,7 @@ end
 # want μ * <P v, v> ~ <∇E(x+hv) - ∇E(x), v> / h
 function estimate_energyscale(at, P)
    # get the P-matrix at current configuration
-   A = Base.invokelatest(precon_matrix, P.p, at)
+   A = precon_matrix(P.p, at)
    # determine direction in which the cell is maximal
    F = Matrix(defm(at))
    X0 = positions(at)
