@@ -2,7 +2,7 @@
 using MacroTools
 using Calculus: differentiate
 
-export AnalyticPairPotential, @PairPotential
+export AnalyticPairPotential, @PairPotential, WrappedPPotential
 
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper
@@ -60,6 +60,7 @@ lj_wrapped = F64fun(lj)
 AnalyticPairPotential
 
 
+
 """
 `F64fun`: `FunctionWrapper` to wrap many different potentials within a single
 type. Can be used as  `F64fun(::Function)` or as
@@ -67,8 +68,13 @@ type. Can be used as  `F64fun(::Function)` or as
 """
 const F64fun = ScalarFun{Float64}
 
+"""
+`WrappedPPotential` : aliad for an `F64fun(AnalyticPairPotential)`
+"""
+const WrappedPPotential = AnalyticPairPotential{F64fun, F64fun, F64fun}
+
 F64fun(p::AnalyticPairPotential) =
-   AnalyticPairPotential(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd), cutoff)
+   AnalyticPairPotential(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd), p.cutoff)
 
 
 evaluate(p::AnalyticPairPotential, r::Number) = p.f(r)

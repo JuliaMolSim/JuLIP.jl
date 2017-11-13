@@ -49,7 +49,7 @@ function bondangle_d(S1, S2, r1, r2)
 end
 
 
-@pot type StillingerWeber{P1,P2} <: SitePotential
+@pot struct StillingerWeber{P1,P2} <: SitePotential
    V2::P1
    V3::P2
 end
@@ -80,16 +80,17 @@ cutoff(calc::StillingerWeber) = max(cutoff(calc.V2), cutoff(calc.V3))
 
 # TODO: brittle StillingerWeber
 #       make λ = 42.0
-
-StillingerWeber(; ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
-                  p = 4, a = 1.8, λ=21.0, γ=1.20, PP = PairPotential ) =
-   StillingerWeber(
-      PP(:( $(0.5 * ϵ * A) * ($B * (r/$σ)^(-$p) - 1.0)
-                                 * exp( 1.0 / (r/$σ - $a) ) ),
-                        cutoff = a*σ-1e-2),
-      PP(:( $(sqrt(ϵ * λ)) * exp( $γ / (r/$σ - $a) ) ),
-                        cutoff = a*σ-1e-2)
-   )
+# TODO: implement cutoff for the PairPotential macro
+function StillingerWeber(; brittle = false,
+               ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
+               p = 4, a = 1.8, λ = brittle ? 42.0 : 21.0, γ=1.20 )
+   cutoff = a*σ-1e-2
+   V2 = @PairPotential r -> (0.5 * ϵ * A) * (B * (r/σ)^(-p) - 1.0) * exp( 1.0 / (r/σ - a) )
+   V2 = AnalyticPairPotential(V2.f, V2.f_d, V2.f_dd, cutoff)
+   V3 = @PairPotential r -> sqrt(ϵ * λ) * exp( γ / (r/σ - a) )
+   V3 = AnalyticPairPotential(V3.f, V3.f_d, V3.f_dd, cutoff)
+   return StillingerWeber(V2, V3)
+end
 
 function evaluate(calc::StillingerWeber, r, R)
    Es = 0.0

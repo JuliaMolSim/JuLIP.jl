@@ -96,23 +96,29 @@ function init!(calc::EMTCalculator, at::ASEAtoms)
       sym_to_ind[s] = i
       p = params[s]
       # cut-off: this is a FD function; this is AWFUL! replace with spline
-      Θ = :( 1.0 / (1.0 + exp($acut * (r - $rc) )) )
+      # Θ = :( 1.0 / (1.0 + exp($acut * (r - $rc) )) )
       # pair potential
       n0, κ, s0 = p["n0"], p["κ"], p["s0"]
-      calc.pair[i] = WrappedPPotential(
-               :( $n0 * exp( -$κ * (r / $β - $s0) ) * $Θ ), cutoff=rc+0.5 )
+      calc.pair[i] = (@PairPotential( r -> n0 * exp( -κ * (r / β - s0) )
+               / (1.0 + exp(acut * (r - rc) )) )) |> F64fun
       calc.Cpair[i] = p["Cpair"]
       # radial electron density function
       η2, γ1 = p["η2"], p["γ1"]
-      calc.rho[i] = WrappedPPotential(
-               :( $n0 * exp( -$η2 * (r - $(β*s0)) ) * $Θ ), cutoff=rc+0.5 )
+      calc.rho[i] = (@PairPotential( r -> n0 * exp( -η2 * (r - (β*s0)) )
+               / (1.0 + exp(acut * (r - rc) )) )) |> F64fun
+
       Crho = 1.0 / γ1 / n0    # TODO: get rid of Crho
       # embedding function;  note here that r ≡ ρ̄
       E0, V0, λ = p["E0"], p["V0"], p["λ"]
-      DS = :( - log( $(Crho/12.0) * r ) / $(β * η2) )
-      calc.embed[i] = WrappedPPotential(
-               :( $E0 * ((1.0 + $λ * $DS) * exp(-$λ * $DS) - 1.0)
-                  + 6.0 * $V0 * exp(-$κ * $DS) ) )
+      # DS = :( - log( $(Crho/12.0) * r ) / $(β * η2) )
+      # calc.embed[i] = WrappedPPotential(
+      #          :( $E0 * ((1.0 + $λ * $DS) * exp(-$λ * $DS) - 1.0)
+      #             + 6.0 * $V0 * exp(-$κ * $DS) ) )
+      calc.embed[i] = (@PairPotential( r -> (
+            E0 * ((1.0 - log((Crho/12.0) * r) * (λ/(β * η2))) *
+               exp(log((Crho/12.0) * r) * (λ/(β * η2))) - 1.0)
+               + 6.0 * V0 * exp(log((Crho/12.0) * r) * (κ/(β * η2)))
+         ))) |> F64fun
    end
    # for each atom, determine which index in the potential arrays it
    # corresponds to
