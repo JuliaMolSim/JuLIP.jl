@@ -24,14 +24,17 @@ end
 
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
-
 # ===== some prototype potentials ======
+print("Loading some interatomic potentials . .")
 data = joinpath(dirname(@__FILE__), "..", "data") * "/"
 eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
+print(" .")
 eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
+print(" .")
 if !isCI
    eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
-end 
+end
+println(" done.")
 
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 println("  Starting JuLIP Tests")

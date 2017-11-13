@@ -35,7 +35,7 @@ abstract type PairPrecon <: Preconditioner end
 `AMGPrecon` stores a field `p` which is used to determine the preconditioner
 matrix via
 ```julia
-matrix(P, at::AbstractAtoms)
+precon_matrix(P, at::AbstractAtoms)
 ```
 If `p` should be updated in response to an update of `at` then
 the type can overload `JuLIP.Preconditioners.update_inner!`.
@@ -115,9 +115,9 @@ update!(P::PairPrecon, at::AbstractAtoms) =
 
 function force_update!(P::AMGPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
-   # P.p = update_inner!(P.p, at)
+   P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
-   Pmat = matrix(P.p, at)
+   Pmat = Base.invokelatest(precon_matrix, P.p, at)
    Pmat + P.stab * speye(size(Pmat, 1))
    A = project!( constraint(at), Pmat )
    # and the AMG solver
@@ -131,10 +131,9 @@ end
 
 function force_update!(P::DirectPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
-   # TODO: can this ever be needed?
-   # P.p = update_inner!(P.p, at)
+    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
-   Pmat = matrix(P.p, at)
+   Pmat = Base.invokelatest(precon_matrix, P.p, at)
    Pmat + P.stab * speye(size(Pmat, 1))
    P.A = project!( constraint(at), Pmat )
    # remember the atom positions
@@ -167,14 +166,14 @@ atind2lininds(i::Integer) = (i-1) * 3 + [1;2;3]
 build the preconditioner matrix associated with a pair potential;
 this is related to but not even close to the same as the hessian matrix!
 """
-function matrix(p::PairPotential, at::AbstractAtoms)
+function precon_matrix(p::PairPotential, at::AbstractAtoms)
    I = Int[]; J = Int[]; Z = Float64[]
    for (i, j, r, _, _) in bonds(at, cutoff(p))
       # the next 2 lines add an identity block for each atom
       # TODO: should experiment with other matrices, e.g., R ⊗ R
       ii = atind2lininds(i)
       jj = atind2lininds(j)
-      z = Base.invokelatest(evaluate, p, r) #(r)   # TODO: WORKAROUND, will be SLOW
+      z = p(r)
       for (a, b) in zip(ii, jj)
          append!(I, [a; a; b; b])
          append!(J, [a; b; a; b])
@@ -232,7 +231,7 @@ end
 # want μ * <P v, v> ~ <∇E(x+hv) - ∇E(x), v> / h
 function estimate_energyscale(at, P)
    # get the P-matrix at current configuration
-   A = matrix(P.p, at)
+   A = Base.invokelatest(precon_matrix, P.p, at)
    # determine direction in which the cell is maximal
    F = Matrix(defm(at))
    X0 = positions(at)
