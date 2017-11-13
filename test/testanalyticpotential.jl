@@ -1,5 +1,5 @@
 
-import JuLIP.Potentials: @pot, @D, evaluate, evaluate_d, PairPotential
+import JuLIP.Potentials: @pot, @D, evaluate, evaluate_d, PairPotential, @PairPotential
 
 @pot type Morseold <: PairPotential
    e0::Float64
@@ -13,20 +13,18 @@ const e0 = 0.99
 const r0 = 1.05
 const A = 4.1
 
-lj = JuLIP.Potentials.PairPotential(
-                     "$e0 * (exp(-2*$A*(r/$r0-1.0)) - 2.0*exp(-$A*(r/$r0-1.0)))",
-                     id="Morse(e0=$e0,r0=$r0,A=$A)")
-@show typeof(lj)
-ljold = Morseold(e0, A, r0)
+morse = @PairPotential( e0 * (exp(-2*A*(r/r0-1.0)) - 2.0*exp(-A*(r/r0-1.0))) )
+@show typeof(morse)
+morseold = Morseold(e0, A, r0)
 
 rr = collect(linspace(0.9, 2.1, 100))
-lj_r = lj.(rr)
-ljold_r = ljold.(rr)
-dlj_r = [(@D lj(r)) for r in rr]
-dljold_r = [ (@D ljold(r)) for r in rr ] 
+morse_r = morse.(rr)
+morseold_r = morseold.(rr)
+dmorse_r = [(@D morse(r)) for r in rr]
+dmorseold_r = [ (@D morseold(r)) for r in rr ]
 
-@test vecnorm(lj_r - ljold_r, Inf) < 1e-14
-@test vecnorm(dlj_r - dljold_r, Inf) < 1e-14
+@test vecnorm(morse_r - morseold_r, Inf) < 1e-14
+@test vecnorm(dmorse_r - dmorseold_r, Inf) < 1e-14
 
 function test(N, p)
    r = 1.234
@@ -46,16 +44,16 @@ function testgrad(N, p)
    return s
 end
 
-test(10, lj);
-test(10, ljold);
-testgrad(10, lj);
-testgrad(10, ljold);
+test(10, morse);
+test(10, morseold);
+testgrad(10, morse);
+testgrad(10, morseold);
 
 println("1M evaluations of Analytic Potential")
-@time test(1_000_000, lj)
+@time test(1_000_000, morse)
 println("1M evaluations of old Potential")
-@time test(1_000_000, ljold)
+@time test(1_000_000, morseold)
 println("1M ∇ evaluations of Analytic Potential")
-@time testgrad(1_000_000, lj)
+@time testgrad(1_000_000, morse)
 println("1M ∇ evaluations of old Potential")
-@time testgrad(1_000_000, ljold)
+@time testgrad(1_000_000, morseold)
