@@ -82,12 +82,12 @@ cutoff(calc::StillingerWeber) = max(cutoff(calc.V2), cutoff(calc.V3))
 #       make λ = 42.0
 
 StillingerWeber(; ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
-                  p = 4, a = 1.8, λ=21.0, γ=1.20 ) =
+                  p = 4, a = 1.8, λ=21.0, γ=1.20, PP = PairPotential ) =
    StillingerWeber(
-      PairPotential(:( $(0.5 * ϵ * A) * ($B * (r/$σ)^(-$p) - 1.0)
+      PP(:( $(0.5 * ϵ * A) * ($B * (r/$σ)^(-$p) - 1.0)
                                  * exp( 1.0 / (r/$σ - $a) ) ),
                         cutoff = a*σ-1e-2),
-      PairPotential(:( $(sqrt(ϵ * λ)) * exp( $γ / (r/$σ - $a) ) ),
+      PP(:( $(sqrt(ϵ * λ)) * exp( $γ / (r/$σ - $a) ) ),
                         cutoff = a*σ-1e-2)
    )
 
@@ -136,7 +136,7 @@ function precon(V::StillingerWeber, r, R)
 
    # three-body terms
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
-   V3 = [Base.invokelatest(V.V3, s) for s in r]  # TODO: WORKAROUND
+   V3 = V.V3.(r)
    # gV3 = [ grad(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
    # pV3 = [ precon(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
    for i1 = 1:(n-1), i2 = (i1+1):n
