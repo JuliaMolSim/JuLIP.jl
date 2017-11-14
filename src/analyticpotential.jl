@@ -94,8 +94,8 @@ macro PairPotential(fexpr)
    quote
       AnalyticPairPotential(
         $(Base.FastMath.make_fastmath(esc(fexpr))),
-        $(esc(fdiff(fexpr))),
-        $(esc(fdiff(fdiff(fexpr)))),
+        $(Base.FastMath.make_fastmath(esc(fdiff(fexpr)))),
+        $(Base.FastMath.make_fastmath(esc(fdiff(fdiff(fexpr))))),
         Inf
       )
    end
