@@ -17,12 +17,9 @@ function site_energies(pp::PairPotential, at::AbstractAtoms)
 end
 
 
-# TODO: why is this not in theabstractfile?
 # a simplified way to calculate gradients of pair potentials
-grad(pp::PairPotential, r::Real, R::JVec) =
-            (evaluate_d(pp::PairPotential, r) / r) * R
+grad(pp::PairPotential, r::Real, R::JVec) = (evaluate_d(pp, r) / r) * R
 
-# TODO: rewrite using generator once bug is fixed
 function energy(pp::PairPotential, at::AbstractAtoms)
    E = 0.0
    for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(pp))
@@ -31,14 +28,21 @@ function energy(pp::PairPotential, at::AbstractAtoms)
    return E
 end
 
+# function energy(pp::PairPotential, at::AbstractAtoms)
+#    nlist = neighbourlist(at, cutoff(pp))
+#    return sum(s->pp(s), nlist.r)
+# end
+
+
 function forces(pp::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
    for (i,j,r,R,_) in bonds(at, cutoff(pp))
       # TODO: this should be equivalent, but for some reason using @GRAD is much slower!
       # dE[j] -= 2 * (@GRAD pp(r, R))    # ∇ϕ(|R|) = (ϕ'(r)/r) R
       # dE[j] -= 2 * grad(pp, r, R)
-      dE[i] += grad(pp, r, R)
-      dE[j] -= grad(pp, r, R)
+      f = grad(pp, r, R)
+      dE[i] += f
+      dE[j] -= f
    end
    return dE
 end

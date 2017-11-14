@@ -8,12 +8,13 @@ export @D, @DD, @GRAD, @pot
 #     to the potentials
 # ===========================================================================
 
+# REMARK on @pot:
+# ---------------
 # Julia 0.4 version:
 # call(pp::Potential, varargs...) = evaluate(pp, varargs...)
 # call(pp::Potential, ::Type{Val{:D}}, varargs...) = evaluate_d(pp, varargs...)
 # call(pp::Potential, ::Type{Val{:DD}}, varargs...) = evaluate_dd(pp, varargs...)
 # call(pp::Potential, ::Type{Val{:GRAD}}, varargs...) = grad(pp, varargs...)
-
 # unfortunately, in 0.5 `call` doesn't take anabstractargument anymore,
 # which means that we need to specify for every potential how to
 # create this syntactic sugar. This is what `@pot` is for.
@@ -57,7 +58,7 @@ macro pot(fsig)
    quote
       $(esc(fsig))
       # Docs.@__doc__ $(name_only)
-      ($sym::$tname){$(tparams...)}(args...) = evaluate($sym, args...)
+      @inline ($sym::$tname){$(tparams...)}(args...) = evaluate($sym, args...)
       ($sym::$tname){$(tparams...)}(::Type{Val{:D}}, args...) = evaluate_d($sym, args...)
       ($sym::$tname){$(tparams...)}(::Type{Val{:DD}}, args...) = evaluate_dd($sym, args...)
       ($sym::$tname){$(tparams...)}(::Type{Val{:GRAD}}, args...) = grad($sym, args...)
@@ -143,7 +144,7 @@ end
 ProdPot
 import Base.*
 *(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
-evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
+@inline evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
 evaluate_d(p::ProdPot, r) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
 evaluate_dd(p::ProdPot, r) = (p.p1(r) * (@DD p.p2(r)) +
               2 * (@D p.p1(r)) * (@D p.p2(r)) + (@DD p.p1(r)) * p.p2(r))
