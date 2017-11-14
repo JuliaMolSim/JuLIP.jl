@@ -1,25 +1,59 @@
+export EAM
 
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
 
-@pot type EAM{T1, T2, T3, T4} <: SitePotential
+@pot struct EAM{T1, T2, T3, T4} <: SitePotential
    ϕ::T1    # pair potential
    ρ::T2    # electron density potential
    F::T3    # embedding function
    info::T4
 end
 
+
+"""
+`struct EAM`
+
+Generic Single-species EAM potential, to specify it, one needs to
+specify the pair potential ϕ, the electron density ρ and the embedding
+function F.
+
+The most convenient constructor is likely via tabulated values,
+more below.
+
+# Constructors:
+```
+EAM(pair::PairPotential, eden::PairPotential, embed)
+EAM(fpair::AbstractString, feden::AbstractString, fembed::AbstractString; kwargs...)
+```
+
+## Constructing an EAM potential from tabulated values
+
+At the moment only the .plt format is implemented. Files can e.g. be
+obtained from
+* [NIST](https://www.ctcms.nist.gov/potentials/)
+
+Use the `EAM(fpair, feden, fembed)` constructure. The keyword arguments specify
+details of how the tabulated values are fitted; see
+`?SplinePairPotential` for more details.
+
+TODO: implement other file formats.
+"""
+EAM
+
+
 EAM(ϕ, ρ, F) = EAM(ρ, ρ, F, nothing)
 
 cutoff(V::EAM) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
 evaluate(V::EAM, r, R) =
-    length(r) > 0 ? V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r) : 0.0
+    length(r) == 0 ? V.F(0.0) :
+     V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
 
 # TODO: this creates a lot of unnecessary overhead; probaby better to
 #       define vectorised versions of pair potentials
 function evaluate_d(V::EAM, r, R)
-    if length(r) == 0; return JVecF[]; end
+   if length(r) == 0; return JVecF[]; end
    ρ̄ = sum(V.ρ(s) for s in r)
    dF = @D V.F(ρ̄)
    #         (0.5 * ϕ'          + F' *  ρ')           * ∇r     (where ∇r = R/r)
@@ -27,6 +61,7 @@ function evaluate_d(V::EAM, r, R)
 end
 
 # TODO: which of the two `evaluate_dd` and `hess` should we be using?
+#       probably these two should be equivalent
 evaluate_dd(V::EAM, r, R) = hess(V, r, R)
 hess(V::EAM, r, R) = _hess_(V, r, R, identity)
 
@@ -56,38 +91,6 @@ function _hess_(V::EAM, r, R, fabs)
    end
    return H
 end
-
-
-
-"""
-`type EAM`
-
-Generic Single-species EAM potential, to specify it, one needs to
-specify the pair potential ϕ, the electron density ρ and the embedding
-function F.
-
-The most convenient constructor is likely via tabulated values,
-more below.
-
-# Constructors:
-```
-EAM(pair::PairPotential, eden::PairPotential, embed)
-EAM(fpair::AbstractString, feden::AbstractString, fembed::AbstractString; kwargs...)
-```
-
-## Constructing an EAM potential from tabulated values
-
-At the moment only the .plt format is implemented. Files can e.g. be
-obtained from
-* [NIST](https://www.ctcms.nist.gov/potentials/)
-
-Use the `EAM(fpair, feden, fembed)` constructure. The keyword arguments specify
-details of how the tabulated values are fitted; see
-`?SplinePairPotential` for more details.
-
-TODO: implement other file formats.
-"""
-EAM
 
 
 # implementation of EAM models using data files
@@ -203,4 +206,54 @@ function read_fs(fname)
    ϕfun  = data[Nrho+Nr+1:Nrho+2*Nr]
 
    return F, ρfun, ϕfun, ρ, r, info
+end
+
+
+
+
+# ================= Efficient implementation of EAM forces =======================
+
+import JuLIP: energy, forces
+using JuLIP.ASE.MatSciPy: NeighbourList
+
+# the main justification for these codes is that vectorised evaluation of the
+# splines gives a factor 2 speed-up, probably this is primarily due to
+# the function call overhead (maybe also allocations)
+# In fact, this optimised codes gives a factor 3 speed-up for energy and factor 7
+# for forces 
+# TODO: need a proper julia spline library
+
+function _rhobar(V::EAM, at::ASEAtoms, nlist::NeighbourList)
+   ρ = V.ρ(nlist.r)
+   ρ̄ = zeros(length(at))
+   for n = 1:length(nlist)
+      ρ̄[nlist.i[n]] += ρ[n]
+   end
+   return ρ̄
+end
+
+function energy(V::EAM{SplinePairPotential, SplinePairPotential, T},
+                        at::ASEAtoms) where T
+   nlist = neighbourlist(at, cutoff(V))
+   ρ̄ = _rhobar(V, at, nlist)
+   ϕ = V.ϕ(nlist.r)
+   return sum( V.F(s) for s in ρ̄ ) + 0.5 * sum(ϕ)
+end
+
+function forces(V::EAM{SplinePairPotential, SplinePairPotential, T},
+                        at::ASEAtoms) where T
+   nlist = neighbourlist(at, cutoff(V))
+   ρ̄ = _rhobar(V, at, nlist)
+   dF = [ @D V.F(t)  for t in ρ̄ ]
+   dρ = @D V.ρ(nlist.r)
+   dϕ = @D V.ϕ(nlist.r)
+
+   # compute the forces
+   dE = zerovecs(length(at))
+   for n = 1:length(nlist)
+      f = ((0.5 * dϕ[n] + dF[nlist.i[n]] * dρ[n])/nlist.r[n]) * nlist.R[n]
+      dE[nlist.i[n]] += f
+      dE[nlist.j[n]] -= f
+   end
+   return dE
 end

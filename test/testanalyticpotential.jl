@@ -23,8 +23,8 @@ morseold_r = morseold.(rr)
 dmorse_r = [(@D morse(r)) for r in rr]
 dmorseold_r = [ (@D morseold(r)) for r in rr ]
 
-@test vecnorm(morse_r - morseold_r, Inf) < 1e-14
-@test vecnorm(dmorse_r - dmorseold_r, Inf) < 1e-14
+@test vecnorm(morse_r - morseold_r, Inf) < 1e-12
+@test vecnorm(dmorse_r - dmorseold_r, Inf) < 1e-12
 
 function test(N, p)
    r = 1.234
