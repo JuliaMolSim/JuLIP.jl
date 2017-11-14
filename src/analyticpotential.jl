@@ -91,14 +91,14 @@ end
 `@PairPotential`: generate symbolic pair potentials.
 """
 macro PairPotential(fexpr)
-   :(
+   quote
       AnalyticPairPotential(
-        $(esc(fexpr)),
+        $(Base.FastMath.make_fastmath(esc(fexpr))),
         $(esc(fdiff(fexpr))),
         $(esc(fdiff(fdiff(fexpr)))),
         Inf
       )
-   )
+   end
 end
 
 

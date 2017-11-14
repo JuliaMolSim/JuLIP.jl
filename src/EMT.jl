@@ -119,6 +119,10 @@ function init!(calc::EMTCalculator, at::ASEAtoms)
                exp(log((Crho/12.0) * r) * (λ/(β * η2))) - 1.0)
                + 6.0 * V0 * exp(log((Crho/12.0) * r) * (κ/(β * η2)))
          ))) |> F64fun
+      # DS = r -> - log( (Crho/12.0) * r ) / (β * η2)
+      # calc.embed[i] = F64fun( @PairPotential r ->
+      #             E0 * ((1.0 + λ * DS(r)) * exp(-λ * DS(r)) - 1.0)
+      #             + 6.0 * V0 * exp(-κ * DS(r)) )
    end
    # for each atom, determine which index in the potential arrays it
    # corresponds to

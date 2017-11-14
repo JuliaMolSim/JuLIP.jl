@@ -1,8 +1,6 @@
 
 
-export SWCutoff, ShiftCutoff, SplineCutoff, StepFunction
-
-
+export SWCutoff, ShiftCutoff, SplineCutoff
 
 # this file is include from Potentials.jl
 # i.e. it is part of JuLIP.Potentials
@@ -70,6 +68,7 @@ SWCutoff(; Rc=1.8, Lc=1.0, e0=1.0) = SWCutoff(Rc, Lc, e0)
 
 ######################## Shift-Cutoff: one should not use this!
 # TODO: why is this commented out? probably uncomment and check.
+# TODO: implement higher-order shifts
 
 # """
 # `ShiftCutoff` : takes the pair-potential and shifts and truncates it
@@ -98,9 +97,9 @@ SWCutoff(; Rc=1.8, Lc=1.0, e0=1.0) = SWCutoff(Rc, Lc, e0)
 
 ######################## Quintic Spline cut-off:
 
-function fcut(r, r0, r1)
-    s = 1 - (r-r0) / (r1-r0)
-    return ((s .>= 1) + (0 .<= s .< 1) .* (6 * s.^5 - 15 * s.^4 + 10 * s.^3) )
+@inline function fcut(r, r0, r1)
+    s = 1.0 - (r-r0) / (r1-r0)
+    return (s >= 1.0) + (0.0 < s < 1.0) * (@fastmath 6.0 * s^5 - 15.0 * s^4 + 10.0 * s^3)
 end
 
 "Derivative of `fcut`; see documentation of `fcut`."
@@ -131,30 +130,8 @@ Parameters:
 """
 SplineCutoff
 
-evaluate(p::SplineCutoff, r) = fcut(r, p.r0, p.r1)
+@inline evaluate(p::SplineCutoff, r) = fcut(r, p.r0, p.r1)
 evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)
 evaluate_dd(p::SplineCutoff, r) = fcut_dd(r, p.r0, p.r1)
 cutoff(p::SplineCutoff) = p.r1
 Base.string(p::SplineCutoff) = "SplineCutoff(r0=$(p.r0), r1=$(p.r1))"
-
-
-
-
-@pot type StepFunction <: PairPotential
-   r0::Float64
-end
-
-"""
-`StepFunction(r0=0.0)` or `Heaviside(r0=0.0)` : standard Heaviside step function,
-
-f(x) = (x <= r0)
-"""
-StepFunction
-
-Heaviside = StepFunction
-
-evaluate(p::StepFunction, r::Number) = r < p.r0 ? 1.0 : 0.0
-evaluate_d(p::StepFunction, r::Number) = 0.0
-evaluate_dd(p::StepFunction, r::Number) = 0.0
-cutoff(p::StepFunction) = p.r0
-Base.string(p::StepFunction) = "StepFunction(r0=$(p.r0))"
