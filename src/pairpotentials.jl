@@ -18,26 +18,37 @@ end
 
 
 # a simplified way to calculate gradients of pair potentials
-grad(pp::PairPotential, r::Real, R::JVec) = (evaluate_d(pp, r) / r) * R
+@inline grad(V::PairPotential, r::Real, R::JVec) = (evaluate_d(V, r) / r) * R
 
-function energy(pp::PairPotential, at::AbstractAtoms)
+function energy(V::PairPotential, at::AbstractAtoms)
    E = 0.0
-   for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(pp))
-      E += pp(r)
+   for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(V))
+      E += V(r)
    end
    return E
 end
 
-# function energy(pp::PairPotential, at::AbstractAtoms)
-#    nlist = neighbourlist(at, cutoff(pp))
-#    return sum(pp.(nlist.r))
-# end
+using JuLIP.ASE: ASEAtoms
+
+function energy(V::PairPotential, at::ASEAtoms)
+   nlist = neighbourlist(at, cutoff(V))
+   return sum(V.(nlist.r))
+end
 
 
-function forces(pp::PairPotential, at::AbstractAtoms)
+function forces(V::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
-   for (i,j,r,R,_) in bonds(at, cutoff(pp))
-      dE[i] += 2 * @GRAD pp(r, R)
+   for (i,j,r,R,_) in bonds(at, cutoff(V))
+      dE[i] += 2 * @GRAD V(r, R)
+   end
+   return dE
+end
+
+function forces(V::PairPotential, at::ASEAtoms)
+   nlist = neighbourlist(at, cutoff(V))
+   dE = zerovecs(length(at))
+   @simd for n = 1:length(nlist)
+      @inbounds dE[nlist.i[n]] += 2 * grad(V, nlist.r[n], nlist.R[n])
    end
    return dE
 end
