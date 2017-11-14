@@ -103,16 +103,15 @@ SWCutoff(; Rc=1.8, Lc=1.0, e0=1.0) = SWCutoff(Rc, Lc, e0)
 end
 
 "Derivative of `fcut`; see documentation of `fcut`."
-function fcut_d(r, r0, r1)
+@inline function fcut_d(r, r0, r1)
     s = 1-(r-r0) / (r1-r0)
-    return ( - (30*s.^4 - 60 * s.^3 + 30 * s.^2) / (r1-r0)
-             .* (0 .< s .< 1) )
+    return -(0 < s < 1) * (@fastmath (30*s^4 - 60 * s^3 + 30 * s^2) / (r1-r0))
 end
+
 "Second order derivative of `fcut`; see documentation of `fcut`."
 function fcut_dd(r, r0, r1)
   s = 1-(r-r0) / (r1-r0)
-  return ( (120*s.^3 - 180 * s.^2 + 60 * s) / (r1-r0)^2
-            .*(0 .< s .< 1))
+  return (0 < s < 1) * (@fastmath (120*s^3 - 180 * s^2 + 60 * s) / (r1-r0)^2)
 end
 
 @pot type SplineCutoff <: PairPotential
@@ -131,7 +130,7 @@ Parameters:
 SplineCutoff
 
 @inline evaluate(p::SplineCutoff, r) = fcut(r, p.r0, p.r1)
-evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)
+@inline evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)
 evaluate_dd(p::SplineCutoff, r) = fcut_dd(r, p.r0, p.r1)
 cutoff(p::SplineCutoff) = p.r1
 Base.string(p::SplineCutoff) = "SplineCutoff(r0=$(p.r0), r1=$(p.r1))"

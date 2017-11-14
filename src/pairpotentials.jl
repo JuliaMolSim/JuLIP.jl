@@ -30,19 +30,14 @@ end
 
 # function energy(pp::PairPotential, at::AbstractAtoms)
 #    nlist = neighbourlist(at, cutoff(pp))
-#    return sum(s->pp(s), nlist.r)
+#    return sum(pp.(nlist.r))
 # end
 
 
 function forces(pp::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
    for (i,j,r,R,_) in bonds(at, cutoff(pp))
-      # TODO: this should be equivalent, but for some reason using @GRAD is much slower!
-      # dE[j] -= 2 * (@GRAD pp(r, R))    # ∇ϕ(|R|) = (ϕ'(r)/r) R
-      # dE[j] -= 2 * grad(pp, r, R)
-      f = grad(pp, r, R)
-      dE[i] += f
-      dE[j] -= f
+      dE[i] += 2 * @GRAD pp(r, R)
    end
    return dE
 end
