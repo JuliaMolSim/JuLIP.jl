@@ -43,7 +43,7 @@ function forces(pp::PairPotential, at::AbstractAtoms)
 end
 
 
-# TODO: rewrite using generator once bug is fixed
+# TODO: rewrite using generator once bug is fixed (???or maybe decide not to bother???)
 function virial(pp::PairPotential, at::AbstractAtoms)
    S = zero(JMatF)
    for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
@@ -53,15 +53,12 @@ function virial(pp::PairPotential, at::AbstractAtoms)
 end
 
 
-hess(pp::PairPotential, r::Float64, R::JVecF) = (
-      evaluate_dd(pp, r) * (R/r) * (R/r)'
-         + (evaluate_d(pp, r)/r) * (eye(JMatF) - (R/r) * (R/r)')
-   )
-
-# hess(pp::PairPotential, r::Float64, R::JVecF) = (
-#         (@DD pp(r)) * (R * R')
-#         + (@D pp(r))/r * ((@SMatrix eye(3)) - R * R')
-#     )
+function hess(V::PairPotential, r::Float64, R::JVecF)
+   R̂ = R/r
+   P = R̂ * R̂'
+   dV = (@D V(r))/r
+   return ((@DD V(r)) - dV) * P + dV * eye(JMatF)
+end
 
 
 function hessian_pos(pp::PairPotential, at::AbstractAtoms)
