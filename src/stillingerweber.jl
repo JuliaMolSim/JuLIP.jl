@@ -85,10 +85,8 @@ function StillingerWeber(; brittle = false,
                ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
                p = 4, a = 1.8, λ = brittle ? 42.0 : 21.0, γ=1.20 )
    cutoff = a*σ-1e-2
-   V2 = @PairPotential(r -> (0.5 * ϵ * A) * (B * (r/σ)^(-p) - 1.0) * exp( 1.0 / (r/σ - a) )) * HS(cutoff)
-   # V2 = AnalyticPairPotential(V2.f, V2.f_d, V2.f_dd, cutoff)
+   V2 = @PairPotential(r -> (0.5*ϵ*A) * (B*(r/σ)^(-p) - 1.0) * exp(1.0/(r/σ - a))) * HS(cutoff)
    V3 = @PairPotential(r -> sqrt(ϵ * λ) * exp( γ / (r/σ - a) )) * HS(cutoff)
-   # V3 = AnalyticPairPotential(V3.f, V3.f_d, V3.f_dd, cutoff)
    return StillingerWeber(V2, V3)
 end
 

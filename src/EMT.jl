@@ -8,7 +8,7 @@
 
 
 using JuLIP: AbstractCalculator, neighbourlist
-import JuLIP.Potentials: cutsw, cutsw_d, evaluate, evaluate_d
+import JuLIP.Potentials: cutsw, cutsw_d, evaluate, evaluate_d, HS
 using JuLIP.ASE: ASEAtoms, chemical_symbols
 using PyCall
 
@@ -107,13 +107,13 @@ function init!(calc::EMTCalculator, at::ASEAtoms)
       η2, γ1 = p["η2"], p["γ1"]
       calc.rho[i] = F64fun( @PairPotential(
             r -> n0 * exp( -η2 * (r - (β*s0)) ) * θ,
-            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ) )
+            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ) ) * HS(rc)
       # embedding function
       Crho = 1.0 / γ1 / n0    # TODO: get rid of Crho
       E0, V0, λ = p["E0"], p["V0"], p["λ"]
       calc.embed[i] = F64fun( @PairPotential(
          ρ̄-> E0 * ((1.0 + λ * DS) * exp(-λ * DS) - 1.0) + 6.0 * V0 * exp(-κ * DS),
-         DS = - log( (Crho/12.0) * ρ̄ ) / (β * η2) ) )
+         DS = - log( (Crho/12.0) * ρ̄ ) / (β * η2) ) ) * HS(rc)
    end
    # for each atom, determine which index in the potential arrays it
    # corresponds to
