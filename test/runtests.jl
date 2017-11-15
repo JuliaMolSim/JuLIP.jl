@@ -49,3 +49,10 @@ println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡�
       @testset "$(testid)" begin include(testfile); end
    end
 end
+
+
+# using JuLIP.Potentials
+# using JuLIP.Potentials: HS, Shift
+#
+# V = @PairPotential r -> exp(r)
+# p = V * HS(3.0)
