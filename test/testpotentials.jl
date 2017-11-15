@@ -26,7 +26,7 @@ for pp in pairpotentials
 end
 
 print("testing shift-cutoffs: ")
-V = @PairPotential r -> exp(r)
+V = @analytic r -> exp(r)
 Vhs = V * HS(1.0)
 r1 = linspace(0.0, 1.0-1e-14, 20)
 r2 = linspace(1.0+1e-14, 3.0, 20)

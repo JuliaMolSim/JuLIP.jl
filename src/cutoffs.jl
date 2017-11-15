@@ -80,6 +80,11 @@ TODO: add documentation
 """
 Shift
 
+const HS{TV} = Shift{-1, TV}
+const C0Shift{TV} = Shift{0, TV}
+const C1Shift{TV} = Shift{1, TV}
+const C2Shift{TV} = Shift{2, TV}
+
 cutoff(p::Shift) = p.rcut
 
 # the basic constructors

@@ -4,7 +4,7 @@ module Preconditioners
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
             constraint, bonds, cutoff, positions, defm, JVecF, forces, mat,
             set_positions!
-using JuLIP.Potentials: @PairPotential, AnalyticPairPotential, evaluate, PairPotential, HS
+using JuLIP.Potentials: @analytic, evaluate, PairPotential, HS
 using JuLIP.Constraints: project!, FixedCell
 using JuLIP.ASE: chemical_symbols, rnn
 
@@ -210,7 +210,7 @@ function Exp(at::AbstractAtoms;
    rcut = r0 * cutoff_mult
    exp_shift = e0 * exp( - A*(rcut/r0 - 1.0) )
    pot = let e0=e0, A=A, r0=r0, exp_shift = e0 * exp( - A*(rcut/r0 - 1.0) )
-      (@PairPotential( r -> e0 * exp( - A * (r/r0 - 1.0)) - exp_shift)) * HS(rcut)
+      (@analytic( r -> e0 * exp( - A * (r/r0 - 1.0)) - exp_shift)) * HS(rcut)
    end
    if solver == :amg
       P = AMGPrecon(pot, at, updatedist=0.2 * r0, tol=tol, updatefreq=updatefreq)

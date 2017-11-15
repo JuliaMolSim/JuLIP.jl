@@ -35,13 +35,12 @@ export Potential, PairPotential, SitePotential,
 """
 abstract type Potential <: AbstractCalculator end
 
-
 """
 `PairPotential`:abstractsupertype for pair potentials
 
 Can also be used as a constructor for analytic pair potentials, e.g.,
 ```julia
-lj = @PairPotential r -> r^(-12) - 2 * r^(-6)
+lj = @analytic r -> r^(-12) - 2 * r^(-6)
 ```
 """
 abstract type PairPotential <: Potential end
@@ -126,7 +125,7 @@ site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int
 
 
 include("analyticpotential.jl")
-# * AnalyticPairPotential
+# * AnalyticFunction
 # * WrappedPPotential
 
 include("cutoffs.jl")
