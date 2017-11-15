@@ -93,11 +93,9 @@ function StillingerWeber(; brittle = false,
 end
 
 function evaluate(calc::StillingerWeber, r, R)
-   Es = 0.0
    # two-body contributions
-   for r1 in r
-      Es += calc.V2(r1)
-   end
+   Es = sum(calc.V2, r)
+
    # three-body contributions
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
    V3 = [ calc.V3(r1) for r1 in r ]
@@ -107,31 +105,30 @@ function evaluate(calc::StillingerWeber, r, R)
    return Es
 end
 
-# function energy(calc::StillingerWeber, at::ASEAtoms)
-#    nlist = neighbourlist(at, cutoff(calc))
-#
-#    # 2-body contribution
-#    E = sum( calc.V2(s) for s in nlist.r )
-#
-#    # 3-body contribution
-#    V3 = [calc.V3(r)  for r in nlist.r]
-#    n = 0
-#    for idx = 1:length(at)
-#       n += 1
-#       a = n
-#       while n < length(nlist) && nlist.i[n+1] == idx
-#          n += 1
-#       end
-#       b = n
-#       for i1 = a:b-1, i2 = a+1:b
-#          E += V3[i1] * V3[i2] *
-#             bondangle(nlist.R[i1]/nlist.r[i1], nlist.R[i2]/nlist.r[i2])
-#       end
-#    end
-#
-#    return E
-# end
-#
+function energy(calc::StillingerWeber, at::ASEAtoms)
+   nlist = neighbourlist(at, cutoff(calc))
+
+   # 2-body contribution
+   E = sum(calc.V2, nlist.r)
+
+   # 3-body contribution
+   V3 = [calc.V3(r)  for r in nlist.r]
+   n = 0
+   for idx = 1:length(at)
+      n += 1
+      a = n
+      while n < length(nlist) && nlist.i[n+1] == idx
+         n += 1
+      end
+      b = n
+      for i1 = a:(b-1), i2 = (i1+1):(b)
+         E += V3[i1] * V3[i2] * bondangle(nlist.R[i1]/nlist.r[i1], nlist.R[i2]/nlist.r[i2])
+      end
+   end
+
+   return E
+end
+
 
 function evaluate_d(calc::StillingerWeber, r, R)
    # two-body terms
@@ -149,39 +146,39 @@ function evaluate_d(calc::StillingerWeber, r, R)
 end
 
 
-# function forces(calc::StillingerWeber, at::ASEAtoms)
-#    nlist = neighbourlist(at, cutoff(calc))
-#
-#    # pair potential contribution to forces
-#    dE = zerovecs(length(at))
-#    for n = 1:length(nlist)
-#       dE[nlist.i[n]] += 2 * grad(calc.V2, nlist.r[n], nlist.R[n])
-#    end
-#
-#    # 3-body contribution
-#    V3 = [calc.V3(r)  for r in nlist.r]
-#    dV3 = [(@D calc.V3(r))/r  for r in nlist.r]
-#    n = 0
-#    for idx = 1:length(at)
-#       n += 1
-#       a = n
-#       while n < length(nlist) && nlist.i[n+1] == idx
-#          n += 1
-#       end
-#       b = n
-#       for i1 = a:b-1, i2 = a+1:b
-#          α, b1, b2 = bondangle_d(nlist.R[i1]/nlist.r[i1],
-#                            nlist.R[i2]/nlist.r[i2], nlist.r[i1], nlist.r[i2])
-#          f1 = (V3[i1] * V3[i2]) * b1 + ((V3[i2] * α) * dV3[i1]) * nlist.R[i1]
-#          f2 = (V3[i1] * V3[i2]) * b2 + ((V3[i1] * α) * dV3[i2]) * nlist.R[i2]
-#          dE[nlist.j[i1]] -= f1
-#          dE[nlist.i[i1]] += f1
-#          dE[nlist.j[i2]] -= f2
-#          dE[nlist.i[i2]] += f2
-#       end
-#    end
-#    return dE
-# end
+function forces(calc::StillingerWeber, at::ASEAtoms)
+   nlist = neighbourlist(at, cutoff(calc))
+
+   # pair potential contribution to forces
+   dE = zerovecs(length(at))
+   for n = 1:length(nlist)
+      dE[nlist.i[n]] += 2 * grad(calc.V2, nlist.r[n], nlist.R[n])
+   end
+
+   # 3-body contribution
+   V3 = [calc.V3(r)  for r in nlist.r]
+   dV3 = [(@D calc.V3(r))/r  for r in nlist.r]
+   n = 0
+   for idx = 1:length(at)
+      n += 1
+      a = n
+      while n < length(nlist) && nlist.i[n+1] == idx
+         n += 1
+      end
+      b = n
+      for i1 = a:(b-1), i2 = (i1+1):(b)
+         α, b1, b2 = bondangle_d(nlist.R[i1]/nlist.r[i1],
+                           nlist.R[i2]/nlist.r[i2], nlist.r[i1], nlist.r[i2])
+         f1 = (V3[i1] * V3[i2]) * b1 + ((V3[i2] * α) * dV3[i1]) * nlist.R[i1]
+         f2 = (V3[i1] * V3[i2]) * b2 + ((V3[i1] * α) * dV3[i2]) * nlist.R[i2]
+         dE[nlist.j[i1]] -= f1
+         dE[nlist.i[i1]] += f1
+         dE[nlist.j[i2]] -= f2
+         dE[nlist.i[i2]] += f2
+      end
+   end
+   return dE
+end
 
 
 function precon(V::StillingerWeber, r, R)

@@ -16,6 +16,15 @@ function site_energies(pp::PairPotential, at::AbstractAtoms)
    return Es
 end
 
+import Base.sum
+sum(V::PairPotential, r) = sum( V(s) for s in r )
+function sum(V::PairPotential, r::Vector{T}) where T <: Real
+   E = 0.0
+   @simd for n = 1:length(r)
+      @inbounds E += V(r[n])
+   end
+   return E
+end
 
 # a simplified way to calculate gradients of pair potentials
 @inline grad(V::PairPotential, r::Real, R::JVec) = (evaluate_d(V, r) / r) * R
@@ -148,6 +157,7 @@ end
 
 cutoff(psp::PairSitePotential) = cutoff(psp.pp)
 
+# TODO: get rid of this!
 function _sumpair_(pp, r)
    # cant use a generator here since type is not inferred!
    # Watch out for a bugfix
@@ -177,9 +187,3 @@ end
 
 # TODO: define a `ComposePotential?`
 # and construct e.g. with  F ∘ sitepot = ComposePot(F, sitepot)
-
-
-
-# ======================================================================
-#      Special Preconditioner for Pair Potentials
-# ======================================================================

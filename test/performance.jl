@@ -29,15 +29,15 @@ println("   JuLIP Performance Regression Tests")
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 println()
 
-# perfbm("LENNARD-JONES",
-#          bulk("Al", cubic=true) * (10,10,8),
-#          lennardjones(r0=JuLIP.ASE.rnn("Al")) )
-#
-# data = joinpath(dirname(@__FILE__), "..", "data") * "/"
-# perfbm("EAM (Splines)",
-#          bulk("Fe", cubic=true) * (12,12,8),
-#          EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt") )
+perfbm("LENNARD-JONES",
+         bulk("Al", cubic=true) * (10,10,8),
+         lennardjones(r0=JuLIP.ASE.rnn("Al")) )
+
+data = joinpath(dirname(@__FILE__), "..", "data") * "/"
+perfbm("EAM (Splines)",
+         bulk("Fe", cubic=true) * (12,12,8),
+         EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt") )
 
 perfbm("STILLINGER-WEBER",
          bulk("Si", cubic=true) * (12,15,12),
-         StillingerWeber();  e = true, elist = false, flist = false )
+         StillingerWeber())
