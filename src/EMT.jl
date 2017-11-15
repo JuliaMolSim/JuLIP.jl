@@ -8,7 +8,7 @@
 
 
 using JuLIP: AbstractCalculator, neighbourlist
-import JuLIP.Potentials: cutsw, cutsw_d, evaluate, evaluate_d
+import JuLIP.Potentials: cutsw, cutsw_d, evaluate, evaluate_d, HS
 using JuLIP.ASE: ASEAtoms, chemical_symbols
 using PyCall
 
@@ -17,24 +17,25 @@ using PyCall
 @pyimport ase.calculators.emt as ase_emt
 @pyimport ase.data as ase_data
 
+
 """
 `EMT`: a re-implementation of the `EMT` calculator (a variant of EAM) os ASE
 in Julia, largely for fun and comparison with Python; the goal is to make this
 so efficient that it can compete with ASAP.
 """
 type EMTCalculator <: Potential
-   pair::Vector{WrappedPPotential}
+   pair::Vector{HS{WrappedAnalyticFunction}}
    Cpair::Vector{Float64}
-   rho::Vector{WrappedPPotential}
-   embed::Vector{WrappedPPotential}
+   rho::Vector{HS{WrappedAnalyticFunction}}
+   embed::Vector{WrappedAnalyticFunction}
    ind::Vector{Int}
    rc::Float64
 end
 
 EMTCalculator(n::Int) = EMTCalculator(
-         Vector{WrappedPPotential}(n), Vector{Float64}(n),   # pair, Cpair
-         Vector{WrappedPPotential}(n),
-         Vector{WrappedPPotential}(n), Vector{Int}(0), 0.0 )
+         Vector{HS{WrappedAnalyticFunction}}(n), Vector{Float64}(n),   # pair, Cpair
+         Vector{HS{WrappedAnalyticFunction}}(n),
+         Vector{WrappedAnalyticFunction}(n), Vector{Int}(0), 0.0 )
 
 cutoff(calc::EMTCalculator) = calc.rc + 0.5
 
@@ -95,24 +96,25 @@ function init!(calc::EMTCalculator, at::ASEAtoms)
    for (i, s) in enumerate(unique(symbols))
       sym_to_ind[s] = i
       p = params[s]
-      # cut-off: this is a FD function; this is AWFUL! replace with spline
-      Θ = :( 1.0 / (1.0 + exp($acut * (r - $rc) )) )
+      # cut-off: this is a FD function; this is AWFUL! replace with spline???
+      # Θ = 1.0 / (1.0 + exp($acut * (r - $rc) ))
       # pair potential
       n0, κ, s0 = p["n0"], p["κ"], p["s0"]
-      calc.pair[i] = WrappedPPotential(
-               :( $n0 * exp( -$κ * (r / $β - $s0) ) * $Θ ), cutoff=rc+0.5 )
+      calc.pair[i] = F64fun( @analytic(
+            r -> n0 * exp( -κ * (r / β - s0) ) * θ,
+            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ) ) * HS(rc)
       calc.Cpair[i] = p["Cpair"]
       # radial electron density function
       η2, γ1 = p["η2"], p["γ1"]
-      calc.rho[i] = WrappedPPotential(
-               :( $n0 * exp( -$η2 * (r - $(β*s0)) ) * $Θ ), cutoff=rc+0.5 )
+      calc.rho[i] = F64fun( @analytic(
+            r -> n0 * exp( -η2 * (r - (β*s0)) ) * θ,
+            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ) ) * HS(rc)
+      # embedding function
       Crho = 1.0 / γ1 / n0    # TODO: get rid of Crho
-      # embedding function;  note here that r ≡ ρ̄
       E0, V0, λ = p["E0"], p["V0"], p["λ"]
-      DS = :( - log( $(Crho/12.0) * r ) / $(β * η2) )
-      calc.embed[i] = WrappedPPotential(
-               :( $E0 * ((1.0 + $λ * $DS) * exp(-$λ * $DS) - 1.0)
-                  + 6.0 * $V0 * exp(-$κ * $DS) ) )
+      calc.embed[i] = F64fun( @analytic(
+         ρ̄-> E0 * ((1.0 + λ * DS) * exp(-λ * DS) - 1.0) + 6.0 * V0 * exp(-κ * DS),
+         DS = - log( (Crho/12.0) * ρ̄ ) / (β * η2) ) )
    end
    # for each atom, determine which index in the potential arrays it
    # corresponds to

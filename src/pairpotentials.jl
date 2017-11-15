@@ -16,35 +16,54 @@ function site_energies(pp::PairPotential, at::AbstractAtoms)
    return Es
 end
 
-
-# TODO: why is this not in theabstractfile?
-# a simplified way to calculate gradients of pair potentials
-grad(pp::PairPotential, r::Real, R::JVec) =
-            (evaluate_d(pp::PairPotential, r) / r) * R
-
-# TODO: rewrite using generator once bug is fixed
-function energy(pp::PairPotential, at::AbstractAtoms)
+import Base.sum
+sum(V::PairPotential, r) = sum( V(s) for s in r )
+function sum(V::PairPotential, r::Vector{T}) where T <: Real
    E = 0.0
-   for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(pp))
-      E += pp(r)
+   @simd for n = 1:length(r)
+      @inbounds E += V(r[n])
    end
    return E
 end
 
-function forces(pp::PairPotential, at::AbstractAtoms)
+# a simplified way to calculate gradients of pair potentials
+@inline grad(V::PairPotential, r::Real, R::JVec) = (evaluate_d(V, r) / r) * R
+
+function energy(V::PairPotential, at::AbstractAtoms)
+   E = 0.0
+   for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(V))
+      E += V(r)
+   end
+   return E
+end
+
+using JuLIP.ASE: ASEAtoms
+
+function energy(V::PairPotential, at::ASEAtoms)
+   nlist = neighbourlist(at, cutoff(V))
+   return sum(V.(nlist.r))
+end
+
+
+function forces(V::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
-   for (i,j,r,R,_) in bonds(at, cutoff(pp))
-      # TODO: this should be equivalent, but for some reason using @GRAD is much slower!
-      # dE[j] -= 2 * (@GRAD pp(r, R))    # ∇ϕ(|R|) = (ϕ'(r)/r) R
-      # dE[j] -= 2 * grad(pp, r, R)
-      dE[i] += grad(pp, r, R)
-      dE[j] -= grad(pp, r, R)
+   for (i,j,r,R,_) in bonds(at, cutoff(V))
+      dE[i] += 2 * @GRAD V(r, R)
+   end
+   return dE
+end
+
+function forces(V::PairPotential, at::ASEAtoms)
+   nlist = neighbourlist(at, cutoff(V))
+   dE = zerovecs(length(at))
+   @simd for n = 1:length(nlist)
+      @inbounds dE[nlist.i[n]] += 2 * grad(V, nlist.r[n], nlist.R[n])
    end
    return dE
 end
 
 
-# TODO: rewrite using generator once bug is fixed
+# TODO: rewrite using generator once bug is fixed (???or maybe decide not to bother???)
 function virial(pp::PairPotential, at::AbstractAtoms)
    S = zero(JMatF)
    for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
@@ -54,15 +73,12 @@ function virial(pp::PairPotential, at::AbstractAtoms)
 end
 
 
-hess(pp::PairPotential, r::Float64, R::JVecF) = (
-      evaluate_dd(pp, r) * (R/r) * (R/r)'
-         + (evaluate_d(pp, r)/r) * (eye(JMatF) - (R/r) * (R/r)')
-   )
-
-# hess(pp::PairPotential, r::Float64, R::JVecF) = (
-#         (@DD pp(r)) * (R * R')
-#         + (@D pp(r))/r * ((@SMatrix eye(3)) - R * R')
-#     )
+function hess(V::PairPotential, r::Float64, R::JVecF)
+   R̂ = R/r
+   P = R̂ * R̂'
+   dV = (@D V(r))/r
+   return ((@DD V(r)) - dV) * P + dV * eye(JMatF)
+end
 
 
 function hessian_pos(pp::PairPotential, at::AbstractAtoms)
@@ -82,15 +98,12 @@ end
 
 
 """
-`LennardJones:` e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
+`LennardJones(r0, a0)` or `LennardJones(;r0=1.0, e0=1.0)` :
 
-Constructor: `LennardJonesPotential(r0, e0)`
+construct the Lennard-Jones potential e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
 """
-LennardJones(r0, e0) =
-   PairPotential(:($e0 * (($r0/r)^(12) - 2.0 * ($r0/r)^(6))),
-                     id = "LennardJones(r0=$r0, e0=$e0)")
-
-LennardJones() = LennardJones(1.0, 1.0)
+LennardJones(r0, e0) = @analytic r -> e0 * ((r0/r)^(12) - 2.0 * (r0/r)^(6))
+LennardJones(;r0=1.0, e0=1.0) = LennardJones(r0, e0)
 
 """
 `lennardjones(; r0=1.0, e0=1.0, rcut = (1.9*r0, 2.7*r0))`
@@ -104,14 +117,12 @@ lennardjones(; r0=1.0, e0=1.0, rcut = (1.9*r0, 2.7*r0)) = (
 
 
 """
-`Morse(A, e0, r0)`: constructs a
+`Morse(A, e0, r0)` or `Morse(;A=4.0, e0=1.0, r0=1.0)`: constructs a
 `PairPotential` for
    e0 ( exp( -2 A (r/r0 - 1) ) - 2 exp( - A (r/r0 - 1) ) )
 """
-Morse(A, e0, r0) =
-   PairPotential(:( $e0 * ( exp(-$(2.0*A) * (r/$r0 - 1.0))
-                                - 2.0 * exp(-$A * (r/$r0 - 1.0)) ) ),
-                     id="MorsePotential(A=$A, e0=$e0, r0=$r0)")
+Morse(A, e0, r0) = @analytic(
+   r -> e0 * ( exp(-(2.0*A) * (r/r0 - 1.0)) - 2.0 * exp(-A * (r/r0 - 1.0)) ) )
 Morse(;A=4.0, e0=1.0, r0=1.0) = Morse(A, e0, r0)
 
 """
@@ -125,7 +136,7 @@ morse(;A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0)) = (
          :  SplineCutoff(rcut[1], rcut[2]) * Morse(A, e0, r0) )
 
 
-@pot  type ZeroPairPotential end
+@pot struct ZeroPairPotential end
 """
 `ZeroPairPotential()`: creates a potential that just returns zero
 """ ZeroPairPotential
@@ -140,12 +151,13 @@ cutoff(p::ZeroPairPotential) = 0.0
 
 SitePotential(pp::PairPotential) = PairSitePotential(pp)
 
-@pot type PairSitePotential{P} <: SitePotential
+@pot struct PairSitePotential{P} <: SitePotential
    pp::P
 end
 
 cutoff(psp::PairSitePotential) = cutoff(psp.pp)
 
+# TODO: get rid of this!
 function _sumpair_(pp, r)
    # cant use a generator here since type is not inferred!
    # Watch out for a bugfix
@@ -173,12 +185,5 @@ function precon(V::PairPotential, r, R)
 end
 
 
-
 # TODO: define a `ComposePotential?`
 # and construct e.g. with  F ∘ sitepot = ComposePot(F, sitepot)
-
-
-
-# ======================================================================
-#      Special Preconditioner for Pair Potentials
-# ======================================================================
