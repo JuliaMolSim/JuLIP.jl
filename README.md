@@ -5,7 +5,10 @@
 A package for rapid implementation and testing of new interatomic potentials and
 molecular simulation algorithms. Requires v0.5 or v0.6 of Julia.
 
-**(WARNING: v0.6 compatibility is work in progress!)**
+**NOTE ON v0.6:** The conversion to Julia v0.6 is fairly recent. It is likely there are
+bugs, if you encounter a problem, please file an issue. The main change is
+the construction of analytic pair potentials, which is now achieved with the
+macro `@analytic`; see also the example below.
 
 The structure of JuLIP is heavily inspired by [ASE](https://gitlab.com/ase/ase)
 but uses more "Julian" notation.  JuLIP relies on ASE for much of the
@@ -19,24 +22,24 @@ At present, JuLIP is very much a work in progress. It provides
 infrastructure to rapidly implement and test some simple potentials, and to
 explore new molecular simulation algorithms.
 
-In the foreseeable future we plan to implement better optimised
+Contributions are welcome.
+
+<!-- In the foreseeable future we plan to implement better optimised
 calculators, create links to electronic structure packages, possibly
-include potentials for molecules (the focus at the moment is materials).
-
-
+include potentials for molecules (the focus at the moment is materials). -->
 <!-- The long-term vision for JuLIP is that it can be used in two ways: (1) as a
 Julia version of ASE, using ASE in a minimal fashion; or (2) as a selection of
 efficient calculators for ASE. -->
 
 
-
 # Installation
 
 JuLIP relies on [ASE](https://gitlab.com/ase/ase) and
- [matscipy](https://github.com/libAtoms/matscipy); they should both be straightforward
-to install; please follow instructions on the respective websites.
+ [matscipy](https://github.com/libAtoms/matscipy). Most likely, they will
+ be automatically installed the first time you import `JuLIP`. If not, then
+ please follow the instructions on the respective websites.
 
-Afterwards, install JuLIP, from the Julia REPL:
+Install JuLIP, from the Julia REPL:
 ```julia
 Pkg.add("JuLIP")
 ```
@@ -45,14 +48,6 @@ and run
 Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. If a test fails, please open an issue.
-
-<!-- At the moment, best to use master for `JuLIP, Optim` and `LineSearches`, i.e., from the Julia REPL run
-```
-Pkg.checkout("JuLIP")
-Pkg.checkout("Optim")
-Pkg.checkout("LineSearches")
-```
-(though for Optim and LineSearches this requirement should very soon drop) -->
 
 
 ## `imolecule` and dependencies
@@ -69,7 +64,7 @@ pip install imolecule
 ```
 
 
-## Automatic Differentiation
+<!-- ## Automatic Differentiation
 
 There is some experimental AD support implemented; see `src/adsite.jl`, which
 require `ForwardDiff` and `ReverseDiffPrototype`. These can be installed via
@@ -77,7 +72,7 @@ require `ForwardDiff` and `ReverseDiffPrototype`. These can be installed via
 Pkg.add("ForwardDiff")
 Pkg.clone("https://github.com/jrevels/ReverseDiffPrototype.jl.git")
 ```
-If the packages are missing then the AD functionality is simply turned off.
+If the packages are missing then the AD functionality is simply turned off. -->
 
 
 # Examples
@@ -95,11 +90,10 @@ deleteat!(at, 1)
 set_calculator!(at, JuLIP.Potentials.StillingerWeber())
 set_constraint!(at, FixedCell(at))
 JuLIP.Solve.minimise!(at)
-JuLIP.Visualise.display(at)   # (this will only work in a ipynb)
+JuLIP.Visualise.draw(at)   # (this will only work in a ipynb)
 ```
 see the `BulkSilicon.ipynb` notebook under `examples` for an extended
 example.
-
 
 ## Construction of a Buckingham potential
 
@@ -107,13 +101,16 @@ example.
 using JuLIP
 using JuLIP.Potentials
 r0 = JuLIP.ASE.rnn("Al")
-A = 4.0;  # stiffness paramter
-pot = PairPotential( :( 6.0 * exp(- $A * (r/$r0 - 1.)) - $A * ($r0/r)^6 ) )
-pot = pot * SplineCutoff(2.1*r0, 3.5*r0)
+pot = let A = 4.0, r0 = r0
+   @analytic r -> 6.0 * exp(- A * (r/r0 - 1.0)) - A * (r0/r)^6
+end
+pot = pot * SplineCutoff(2.1 * r0, 3.5 * r0)
 # `pot` can now be used as a calculator to do something interesting ...
 ```
 
 ## An Example with TightBinding
+
+**THIS IS PROBABLY BROKEN ON JULIA v0.6**
 
 Similar to vacancy example but with a Tight-Binding Model. First install
 `TightBinding.jl`:

@@ -1,126 +1,109 @@
 
-# wait for ReverseDiffSource to be updated to v0.5
-# import ReverseDiffSource
-# import ReverseDiffSource:rdiff
-
+using MacroTools: @capture, prewalk
 using Calculus: differentiate
 
-export AnalyticPairPotential, AnalyticPotential, WrappedPPotential
+export AnalyticFunction, @Analytic
 
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper
-const F64fun = FunctionWrapper{Float64, Tuple{Float64}}
+const ScalarFun{T} = FunctionWrapper{T, Tuple{T}}
 
-
-# ===========================================================================
-#     macro that takes an expression, differentiates it
-#     and returns anonymous functions for the derivatives
-# ===========================================================================
+"""
+`F64fun`: `FunctionWrapper` to wrap many different potentials within a single
+type. Can be used as  `F64fun(::Function)` or as
+`F64fun(::AnalyticFunction)`
+"""
+const F64fun = ScalarFun{Float64}
 
 
 """
-`diff2(ex::Expr)` :
-
-takes an expression, differentiates it twice,
-     and returns anonymous functions for the derivatives
+take an expression of the form `r -> f(r)` and return the expression
+`r -> f'(r)`
 """
-function diff2(ex::Expr, sym=:r)
-   ex_d = differentiate(ex, sym)
-   ex_dd = differentiate(ex_d, sym)
-   return eval( :( (r->$ex, r->$ex_d, r->$ex_dd)) )
+function fdiff( ex )
+   @assert @capture(ex, var_ -> expr_)
+   return :(  $var -> $(differentiate(expr.args[2], var)) )
 end
 
 """
-`diff2_wrapF64(ex::Expr)` :
-
-takes an expression, differentiates it twice,
-     and returns anonymous functions for the derivatives,
-     wrapped using `FunctionWrappers`.
+auxiliary function to allow expression substitution from `@Analytic`;
+see `?@Analytic` for more detail
 """
-function diff2_wrapF64(ex::Expr, sym=:r)
-   f, f_d, f_dd = diff2(ex, sym)
-   return F64fun(f), F64fun(f_d), F64fun(f_dd)
+function substitute(args)
+    subs = Dict{Symbol,Union{Expr, Symbol}}()
+    for i = 2:length(args)
+        @assert @capture(args[i], var_ = sub_)
+        subs[var] = sub
+    end
+    prewalk(expr -> get(subs, expr, expr), args[1])
 end
-
-
 
 # ================== Analytical Potentials ==========================
-#
-# TODO: this construction should not be restricted to pair potentials
-#       but need a better model
-
-abstract type AnalyticPairPotential <: PairPotential end
 
 # documentation attached below
-@pot type AnalyticPotential{F0,F1,F2} <: AnalyticPairPotential
+@pot struct AnalyticFunction{F0,F1,F2} <: PairPotential
    f::F0
    f_d::F1
    f_dd::F2
-   id::AbstractString
-   cutoff::Float64
 end
 
 """
-`type AnalyticPotential <: AnalyticPairPotential`
+`struct AnalyticFunction`: described an analytic function, allowing to
+evaluate at least 2 derivatives.
+
+Formally, `AnalyticFunction <: PairPotential`, which simplifies dispatch,
+but it an `AnalyticFunction` should normally **not be used as a Calculator**!
+This type hierarchy may need to be revisited.
 
 ### Usage:
 ```julia
-lj = PairPotential(:(r^(-12) - 2.0*r^(-6)), "LennardJones")
-println(lj)   # will output `LennardJones`
-A = 4.0; r0 = 1.234
-morse = PairPotential("exp(-2.0*\$A*(r/\$r0-1.0)) - 2.0*exp(-\$A*(r/\$r0-1.0))",
-                           "Morse(A=\$A,r0=\$r0)")
-```
-
-use kwarg `cutoff` to set a cut-off, default is `Inf`
-"""
-AnalyticPotential
-
-# documentation attached below
-@pot type WrappedPPotential <: AnalyticPairPotential
-   f::F64fun
-   f_d::F64fun
-   f_dd::F64fun
-   id::AbstractString
-   cutoff::Float64
+lj = @analytic r -> r^(-12) - 2.0*r^(-6)
+morse = let A = 4.0, r0 = 1.234
+   @analytic r -> exp(-2.0*A*(r/r0-1.0)) - 2.0*exp(-A*(r/r0-1.0))
 end
 
+To create a "wrapped" AnalyticFunction{F64fun, ...} , use
+```
+lj_wrapped = F64fun(lj)
+```
+
+if an formula for an analytic function contains a sub-expression that
+occurs multiple time, then this can be constructed as follows:
+```
+V = @analytic( r -> exp(s) * s, s = r^2 )
+# is the same as
+V = @analytic r -> exp(r^2) * r^2
+```
 """
-`type WrappedPPotential <: AnalyticPairPotential`
+AnalyticFunction
 
-similar to `AnalyticPotential`, but using `FunctionWrappers` so that
-these potentials can be stored in an array without performance penalty.
+const WrappedAnalyticFunction = AnalyticFunction{F64fun, F64fun, F64fun}
+
+F64fun(p::AnalyticFunction) =
+   AnalyticFunction(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd))
+
+evaluate(p::AnalyticFunction, r::Number) = p.f(r)
+evaluate_d(p::AnalyticFunction, r::Number) = p.f_d(r)
+evaluate_dd(p::AnalyticFunction, r::Number) = p.f_dd(r)
+cutoff(V::AnalyticFunction) = Inf
+
+
 """
-WrappedPPotential
-
-
-
-evaluate(p::AnalyticPairPotential, r::Number) = p.f(r)
-# evaluate(p::AnalyticPairPotential, r::AbstractVector) = [p.f(s) for s in r]
-evaluate_d(p::AnalyticPairPotential, r::Number) = p.f_d(r)
-# evaluate_d(p::AnalyticPairPotential, r::AbstractVector) = [p.f_d(s) for s in r]
-evaluate_dd(p::AnalyticPairPotential, r::Number) = p.f_dd(r)
-# evaluate_dd(p::AnalyticPairPotential, r::AbstractVector) = [p.f_dd(s) for s in r]
-Base.show(io::Base.IO, p::AnalyticPairPotential) = print(io, p.id)
-cutoff(p::AnalyticPairPotential) = p.cutoff
-
-
-PairPotential(s::AbstractString; id = s, cutoff=Inf) =
-      PairPotential(parse(s), id=id, cutoff=cutoff)
-
-PairPotential(ex::Expr; id::AbstractString = string(ex), cutoff=Inf) =
-     AnalyticPotential(diff2(ex)..., id, cutoff)
-
-
-WrappedPPotential(s::AbstractString; id = s, cutoff=Inf) =
-      WrappedPPotential(parse(s), id=id, cutoff=cutoff)
-
-WrappedPPotential(ex::Expr; id::AbstractString = string(ex), cutoff=Inf) =
-   WrappedPPotential(diff2_wrapF64(ex)..., id, cutoff)
-
+`@analytic`: generate C2 function from symbol
+"""
+macro analytic(args...)
+   fexpr = substitute(args)
+   quote
+      AnalyticFunction(
+        $(Base.FastMath.make_fastmath(esc(fexpr))),
+        $(Base.FastMath.make_fastmath(esc(fdiff(fexpr)))),
+        $(Base.FastMath.make_fastmath(esc(fdiff(fdiff(fexpr)))))
+      )
+   end
+end
 
 
 # this is a hack to make tight-binding work; but it should be reconsidered
 # right now I am thinking it is actually ok as is!
-evaluate(p::AnalyticPairPotential, r, R) = evaluate(p, r)
-evaluate_d(p::AnalyticPairPotential, r, R) = evaluate_d(p, r)
+evaluate(p::AnalyticFunction, r, R) = evaluate(p, r)
+evaluate_d(p::AnalyticFunction, r, R) = evaluate_d(p, r)

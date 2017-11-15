@@ -35,13 +35,12 @@ export Potential, PairPotential, SitePotential,
 """
 abstract type Potential <: AbstractCalculator end
 
-
 """
 `PairPotential`:abstractsupertype for pair potentials
 
 Can also be used as a constructor for analytic pair potentials, e.g.,
 ```julia
-lj = PairPotential( :( r^(-12) - 2 * r^(-6) ) )
+lj = @analytic r -> r^(-12) - 2 * r^(-6)
 ```
 """
 abstract type PairPotential <: Potential end
@@ -126,8 +125,7 @@ site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int
 
 
 include("analyticpotential.jl")
-# * AnalyticPotential
-# * AnalyticPairPotential
+# * AnalyticFunction
 # * WrappedPPotential
 
 include("cutoffs.jl")
@@ -262,7 +260,7 @@ end
 
 
 # implementation of a generic assembly of a global block-hessian from
-# local site-hessians 
+# local site-hessians
 function hessian_pos(V::SitePotential, at::AbstractAtoms)
    nlist = neighbourlist(at, cutoff(V))
    I, J, Z = Int[], Int[], JMatF[]
