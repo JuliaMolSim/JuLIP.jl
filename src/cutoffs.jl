@@ -1,6 +1,6 @@
 
 import Base.*
-export SWCutoff, ShiftCutoff, SplineCutoff
+export SWCutoff, SplineCutoff, Shift, HS, C0Shift, C1Shift, C2Shift
 
 # this file is include from Potentials.jl
 # i.e. it is part of JuLIP.Potentials
@@ -93,6 +93,7 @@ Shift(V, p::Shift{0}) = Shift(p.ord, V, p.rcut, V(p.rcut), 0.0, 0.0)
 Shift(V, p::Shift{1}) = Shift(p.ord, V, p.rcut, V(p.rcut), (@D V(p.rcut)), 0.0)
 Shift(V, p::Shift{2}) = Shift(p.ord, V, p.rcut, V(p.rcut), (@D V(p.rcut)), (@DD V(p.rcut)))
 *{ORD}(V::PairPotential, p::Shift{ORD, Void}) = Shift(V, p)
+*{ORD}(p::Shift{ORD, Void}, V::PairPotential) = Shift(V, p)
 
 
 # """

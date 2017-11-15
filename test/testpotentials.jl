@@ -10,18 +10,42 @@ pairpotentials = [
    Morse(4.0,1.0,1.0);
    SWCutoff(1.0, 3.0) * LennardJones(1.0,1.0);
    SplineCutoff(2.0, 3.0) * LennardJones(1.0,1.0);
+   LennardJones(1.0, 1.0) * C2Shift(2.0);
 ]
 
 println("============================================")
 println("  Testing pair potential implementations ")
 println("============================================")
-r = linspace(0.8, 4.0, 100)
+r = linspace(0.8, 4.0, 100) |> collect
+push!(r, 2.0-1e-12)
 for pp in pairpotentials
    println("--------------------------------")
    println(pp)
    println("--------------------------------")
    @test fdtest(pp, r, verbose=verbose)
 end
+
+print("testing shift-cutoffs: ")
+V = @PairPotential r -> exp(r)
+Vhs = V * HS(1.0)
+r1 = linspace(0.0, 1.0-1e-14, 20)
+r2 = linspace(1.0+1e-14, 3.0, 20)
+print("HS")
+@test Vhs.(r1) == exp.(r1)
+@test norm(Vhs.(r2)) == 0.0
+print(", V0")
+V0 = V * C0Shift(1.0)
+@test V0.(r1) ≈ exp.(r1) - exp(1.0)
+@test norm(V0.(r2)) == 0.0
+print(", V1")
+V1 = V * C1Shift(1.0)
+@test V1.(r1) ≈ exp.(r1) - exp(1.0) - exp(1.0) * (r1-1.0)
+@test norm(V1.(r2)) == 0.0
+println(", V2")
+V2 = V * C2Shift(1.0)
+@test V2.(r1) ≈ exp.(r1) - exp(1.0) - exp(1.0) * (r1-1.0) - 0.5 * exp(1.0) * (r1-1.0).^2
+@test norm(V2.(r2)) == 0.0
+
 
 # =============================================================
 
