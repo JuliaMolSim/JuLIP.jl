@@ -1,5 +1,5 @@
 
-using MacroTools
+using MacroTools: @capture, prewalk
 using Calculus: differentiate
 
 export AnalyticPairPotential, @PairPotential, WrappedPPotential
@@ -14,18 +14,66 @@ const ScalarFun{T} = FunctionWrapper{T, Tuple{T}}
 # ===========================================================================
 
 
-"""
-`diff2(ex::Expr)` :
+# """
+# `diff2(ex::Expr)` :
+#
+# takes an expression, differentiates it twice,
+#      and returns anonymous functions for the derivatives
+# """
+# function diff2(ex::Expr, sym=:r)
+#    ex_d = differentiate(ex, sym)
+#    ex_dd = differentiate(ex_d, sym)
+#    return eval( :( (r->$ex, r->$ex_d, r->$ex_dd)) )
+# end
 
-takes an expression, differentiates it twice,
-     and returns anonymous functions for the derivatives
-"""
-function diff2(ex::Expr, sym=:r)
-   ex_d = differentiate(ex, sym)
-   ex_dd = differentiate(ex_d, sym)
-   return eval( :( (r->$ex, r->$ex_d, r->$ex_dd)) )
+function fdiff( ex )
+   @assert @capture(ex, var_ -> expr_)
+   return :(  $var -> $(differentiate(expr.args[2], var)) )
 end
 
+function substitute(args)
+    subs = Dict{Symbol,Union{Expr, Symbol}}()
+    for i = 2:length(args)
+        @assert @capture(args[i], var_ = sub_)
+        subs[var] = sub
+    end
+    prewalk(expr -> get(subs, expr, expr), args[1])
+end
+
+# macro substitute(args...)
+#     esc(substitute(args...))
+# end
+
+# function analyse_pp(args)
+#    ex = args[1]  # the main expression that we now want to manipulate
+#    rcut = nothing    # if we find cutoff info, store it here
+#    # 1. make substitutions
+#    subs = Dict{Symbol,Union{Expr, Symbol}}()
+#    for i = 2:length(args)
+#       @assert @capture(args[i], var_ = sub_)
+#       if var == :rcut
+#          rcut = sub
+#       else
+#          subs[var] = sub
+#       end
+#    end
+#    prewalk(expr -> get(subs, expr, expr), ex)
+#    # 2. differentiate
+#    d_ex = fdiff(ex)
+#    dd_ex = fdiff(d_ex)
+#    # 3. apply fast_math
+#    ex = Base.FastMath.make_fastmath(esc(ex))
+#    d_ex = Base.FastMath.make_fastmath(esc(d_ex))
+#    dd_ex = Base.FastMath.make_fastmath(esc(dd_ex))
+#    # 4. apply cut-off
+#    if isa(rcut, Real)
+#       @assert @capture(ex, var_ -> expr_)
+#       ex = :( $ex * ($var < $rcut) )
+#       d_ex = :( $d_ex * ($var < $rcut) )
+#       dd_ex = :( $dd_ex * ($var < $rcut) )
+#    end
+#    return ex, d_ex, dd_ex, rcut
+# end
 
 # ================== Analytical Potentials ==========================
 #
@@ -82,15 +130,12 @@ evaluate_d(p::AnalyticPairPotential, r::Number) = p.f_d(r)
 evaluate_dd(p::AnalyticPairPotential, r::Number) = p.f_dd(r)
 cutoff(p::AnalyticPairPotential) = p.cutoff
 
-function fdiff( ex )
-   @assert @capture(ex, var_ -> expr_)
-   return :(  $var -> $(differentiate(expr.args[2], var)) )
-end
 
 """
 `@PairPotential`: generate symbolic pair potentials.
 """
-macro PairPotential(fexpr)
+macro PairPotential(args...)
+   fexpr = substitute(args)
    quote
       AnalyticPairPotential(
         $(Base.FastMath.make_fastmath(esc(fexpr))),
