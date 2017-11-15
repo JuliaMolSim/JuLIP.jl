@@ -8,13 +8,13 @@ isCI = haskey(ENV, "CI")
 notCI = !isCI
 
 julip_tests = [
-   # ("testaux.jl", "Miscellaneous"),
-   # ("testase.jl", "ASE"),
-   # ("testanalyticpotential.jl", "Analytic Potential"),
+   ("testaux.jl", "Miscellaneous"),
+   ("testase.jl", "ASE"),
+   ("testanalyticpotential.jl", "Analytic Potential"),
    ("testpotentials.jl", "Potentials"),
-   # ("testvarcell.jl", "Variable Cell"),
-   # ("testhessian.jl", "Hessian"),
-   # ("testsolve.jl", "Solve"),
+   ("testvarcell.jl", "Variable Cell"),
+   ("testhessian.jl", "Hessian"),
+   ("testsolve.jl", "Solve"),
 ]
 
 # remove testsolve if on Travis
@@ -31,6 +31,7 @@ eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.p
 print(" .")
 eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
 print(" .")
+# TODO: remove this test, or make a separate flag for it!
 if !isCI
    eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
 end
