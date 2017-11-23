@@ -1,8 +1,6 @@
 
-
-export SWCutoff, ShiftCutoff, SplineCutoff, StepFunction
-
-
+import Base.*
+export SWCutoff, SplineCutoff, Shift, HS, C0Shift, C1Shift, C2Shift
 
 # this file is include from Potentials.jl
 # i.e. it is part of JuLIP.Potentials
@@ -56,10 +54,6 @@ evaluate(p::SWCutoff, r) = p.e0 * cutsw(r, p.Rc, p.Lc)
 evaluate_d(p::SWCutoff, r) = p.e0 * cutsw_d(r, p.Rc, p.Lc)
 cutoff(p::SWCutoff) = p.Rc
 
-# TODO: hack to make TB work (reconsider this)
-evaluate(p::SWCutoff, r, R) = evaluate(p, r)
-evaluate_d(p::SWCutoff, r, R) = evaluate_d(p, r)
-
 # simplified constructor to ensure compatibility
 SWCutoff(Rc, Lc) = SWCutoff(Rc, Lc, 1.0)
 
@@ -68,52 +62,93 @@ SWCutoff(; Rc=1.8, Lc=1.0, e0=1.0) = SWCutoff(Rc, Lc, e0)
 
 
 
-######################## Shift-Cutoff: one should not use this!
-# TODO: why is this commented out? probably uncomment and check.
+######################## Shift-Cutoff:
+
+
+@pot struct Shift{ORD, TV} <: PairPotential
+   ord::Val{ORD}
+   V::TV
+   rcut::Float64
+   Vcut::Float64
+   dVcut::Float64
+   ddVcut::Float64
+end
+
+"""
+`Shift{ORD}` : a shift-cutoff function
+TODO: add documentation
+"""
+Shift
+
+const HS{TV} = Shift{-1, TV}
+const C0Shift{TV} = Shift{0, TV}
+const C1Shift{TV} = Shift{1, TV}
+const C2Shift{TV} = Shift{2, TV}
+
+cutoff(p::Shift) = p.rcut
+
+# the basic constructors
+HS(r::Float64) = Shift(-1, r)
+C0Shift(r::Float64) = Shift(0, r)
+C1Shift(r::Float64) = Shift(1, r)
+C2Shift(r::Float64) = Shift(2, r)
+Shift(o::Int, r::Float64) = Shift(Val(o), nothing, r, 0.0, 0.0, 0.0)
+Shift(V, p::Shift{-1}) = Shift(p.ord, V, p.rcut, 0.0, 0.0, 0.0)
+Shift(V, p::Shift{0}) = Shift(p.ord, V, p.rcut, V(p.rcut), 0.0, 0.0)
+Shift(V, p::Shift{1}) = Shift(p.ord, V, p.rcut, V(p.rcut), (@D V(p.rcut)), 0.0)
+Shift(V, p::Shift{2}) = Shift(p.ord, V, p.rcut, V(p.rcut), (@D V(p.rcut)), (@DD V(p.rcut)))
+*{ORD}(V::PairPotential, p::Shift{ORD, Void}) = Shift(V, p)
+*{ORD}(p::Shift{ORD, Void}, V::PairPotential) = Shift(V, p)
+
 
 # """
-# `ShiftCutoff` : takes the pair-potential and shifts and truncates it
-#     f_cut(r) = (f(r) - f(rcut)) .* (r <= rcut)
+# `HS`: heaviside function; technically an alias for `Shift{-1}`
 #
-# Note this is not constructed by multiplying the cutoff potential with the
-# actual potential, but it is constructed by
-# ```julia
-#     ShiftCutoff(Rc, pp)
-# ```
-#
-# **WARNING:** this creates potentials that are not even C^1, which can
-# cause all sorts of hell.
+# `HS(r)` construct the characteristic function for (-∞, r). if $V$ is a
+# twice differentiable function then `V * HS(r)` wraps `V` inside a new
+# `HS` type.
 # """
-# @pot type ShiftCutoff{T <: PairPotential} <: PairPotential
-#     pp::T
-#     Rc::Float64
-#     Jc::Float64
-# end
-# ShiftCutoff(pp, Rc) = ShiftCutoff(pp, Rc, pp(Rc))
-# evaluate(p::ShiftCutoff, r) = (p.pp(r) - p.Jc) .* (r .<= p.Rc)
-# evaluate_d(p::ShiftCutoff, r) = (@D p.pp(r)) .* (r .<= p.Rc)
-# cutoff(p::SWCutoff) = p.Rc
+
+@inline evaluate(p::Shift{-1}, r) = r < p.rcut ? p.V(r) : 0.0
+@inline evaluate_d(p::Shift{-1}, r) = r < p.rcut ? (@D p.V(r)) : 0.0
+@inline evaluate_dd(p::Shift{-1}, r) = r < p.rcut ? (@DD p.V(r)) : 0.0
+
+@inline evaluate(p::Shift{0}, r) = r < p.rcut ? (p.V(r) - p.Vcut) : 0.0
+@inline evaluate_d(p::Shift{0}, r) = r < p.rcut ? (@D p.V(r)) : 0.0
+@inline evaluate_dd(p::Shift{0}, r) = r < p.rcut ? (@DD p.V(r)) : 0.0
+
+@inline evaluate(p::Shift{1}, r) = r >= p.rcut ? 0.0 :
+      (p.V(r) - p.Vcut - p.dVcut * (r - p.rcut))
+@inline evaluate_d(p::Shift{1}, r) = r < p.rcut ? ((@D p.V(r)) - p.dVcut) : 0.0
+@inline evaluate_dd(p::Shift{1}, r) = r < p.rcut ? (@DD p.V(r)) : 0.0
+
+@inline evaluate(p::Shift{2}, r) = r >= p.rcut ? 0.0 :
+   (p.V(r) - p.Vcut - p.dVcut * (r - p.rcut) - 0.5 * p.ddVcut * (r-p.rcut)^2)
+@inline evaluate_d(p::Shift{2}, r) = r >= p.rcut ? 0.0 :
+   ((@D p.V(r)) - p.dVcut - p.ddVcut * (r - p.rcut))
+@inline evaluate_dd(p::Shift{2}, r) = r >= p.rcut ? 0.0 :
+   ((@DD p.V(r)) - p.ddVcut)
+
 
 
 
 ######################## Quintic Spline cut-off:
 
-function fcut(r, r0, r1)
-    s = 1 - (r-r0) / (r1-r0)
-    return ((s .>= 1) + (0 .<= s .< 1) .* (6 * s.^5 - 15 * s.^4 + 10 * s.^3) )
+@inline function fcut(r, r0, r1)
+    s = 1.0 - (r-r0) / (r1-r0)
+    return (s >= 1.0) + (0.0 < s < 1.0) * (@fastmath 6.0 * s^5 - 15.0 * s^4 + 10.0 * s^3)
 end
 
 "Derivative of `fcut`; see documentation of `fcut`."
-function fcut_d(r, r0, r1)
+@inline function fcut_d(r, r0, r1)
     s = 1-(r-r0) / (r1-r0)
-    return ( - (30*s.^4 - 60 * s.^3 + 30 * s.^2) / (r1-r0)
-             .* (0 .< s .< 1) )
+    return -(0 < s < 1) * (@fastmath (30*s^4 - 60 * s^3 + 30 * s^2) / (r1-r0))
 end
+
 "Second order derivative of `fcut`; see documentation of `fcut`."
 function fcut_dd(r, r0, r1)
   s = 1-(r-r0) / (r1-r0)
-  return ( (120*s.^3 - 180 * s.^2 + 60 * s) / (r1-r0)^2
-            .*(0 .< s .< 1))
+  return (0 < s < 1) * (@fastmath (120*s^3 - 180 * s^2 + 60 * s) / (r1-r0)^2)
 end
 
 @pot type SplineCutoff <: PairPotential
@@ -131,30 +166,8 @@ Parameters:
 """
 SplineCutoff
 
-evaluate(p::SplineCutoff, r) = fcut(r, p.r0, p.r1)
-evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)
+@inline evaluate(p::SplineCutoff, r) = fcut(r, p.r0, p.r1)
+@inline evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)
 evaluate_dd(p::SplineCutoff, r) = fcut_dd(r, p.r0, p.r1)
 cutoff(p::SplineCutoff) = p.r1
 Base.string(p::SplineCutoff) = "SplineCutoff(r0=$(p.r0), r1=$(p.r1))"
-
-
-
-
-@pot type StepFunction <: PairPotential
-   r0::Float64
-end
-
-"""
-`StepFunction(r0=0.0)` or `Heaviside(r0=0.0)` : standard Heaviside step function,
-
-f(x) = (x <= r0)
-"""
-StepFunction
-
-Heaviside = StepFunction
-
-evaluate(p::StepFunction, r::Number) = r < p.r0 ? 1.0 : 0.0
-evaluate_d(p::StepFunction, r::Number) = 0.0
-evaluate_dd(p::StepFunction, r::Number) = 0.0
-cutoff(p::StepFunction) = p.r0
-Base.string(p::StepFunction) = "StepFunction(r0=$(p.r0))"
