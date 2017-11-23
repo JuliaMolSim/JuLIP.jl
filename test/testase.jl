@@ -33,26 +33,37 @@ for n = 2:length(at), m = 1:n-1
    end
 end
 println("   ... check the bond-iterator ... ")
+pass_bonds_test = true
 for (i,j,r,R,S) in bonds(nlist)
-   @test simple[i,j] == 1
-   @test norm(X[i]-X[j]) ≈ r atol = 1e-12
-   @test norm(X[j]-X[i] - R) < 1e-12
-   @test norm(S) == 0
+   if !( (simple[i,j] == 1) && (abs(norm(X[i]-X[j]) - r) < 1e-12) &&
+         (norm(X[j]-X[i] - R) < 1e-12) && (norm(S) == 0) )
+      pass_bonds_test = false
+      break
+   end
    # switch the flag
    simple[i,j] = -1
 end
+@test pass_bonds_test
 # check that all pairs have been found
 @test maximum(simple) == 0
 # revert to original
 simple *= -1
 println("   ... check the site iterator ... ")
+pass_site_test = true
 for (i,j,r,R,S) in sites(nlist)
    for n = 1:length(j)
-      @test simple[i,j[n]] == 1
+      if simple[i,j[n]] != 1
+         pass_site_test = false
+         break
+      end
       simple[i,j[n]] = -1
    end
-   @test maximum(simple[i,:]) == 0
+   if maximum(simple[i,:]) != 0
+      pass_site_test = false
+      break
+   end
 end
+@test pass_site_test
 @test maximum(simple) == 0
 
 # ======================================================================
