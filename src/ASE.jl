@@ -346,8 +346,10 @@ creates 3 x 3 x 3 unit cells of carbon.
 """
 repeat(a::ASEAtoms, n::NTuple{3, Int64}) = ASEAtoms(a.po[:repeat](n))
 
+repeat(a::ASEAtoms, n::AbstractArray) = repeat(a, tuple(n...))
+
 import Base.*
-*(at::ASEAtoms, n::NTuple{3, Int64}) = repeat(at, n)
+*(at::ASEAtoms, n) = repeat(at, n)
 *(n::NTuple{3, Int64}, at::ASEAtoms) = repeat(at, n)
 *(at::ASEAtoms, n::Integer) = repeat(at, (n,n,n))
 *(n::Integer, at::ASEAtoms) = repeat(at, (n,n,n))
