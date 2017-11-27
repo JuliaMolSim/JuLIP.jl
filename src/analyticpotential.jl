@@ -2,7 +2,7 @@
 using MacroTools: @capture, prewalk
 using Calculus: differentiate
 
-export AnalyticFunction, @Analytic
+export AnalyticFunction, @analytic
 
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper

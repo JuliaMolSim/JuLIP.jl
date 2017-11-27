@@ -518,7 +518,7 @@ write(filename::AbstractString, at::ASEAtoms, mode=:write) =
 write(filehandle::PyObject, at::ASEAtoms) = ase_io.write(filehandle, at.po, format="xyz")
 
 # open and close files from Python (to get a python filehandle)
-pyopenf(filename::AbstractString, mode::AbstractString) = pyeval("open('$(filename)', '$(mode)')")
+pyopenf(filename::AbstractString, mode::AbstractString) = py"open($(filename), $(mode))"
 pyclosef(filehandle) = filehandle[:close]()
 
 function write(filename::AbstractString, at::ASEAtoms, xs::AbstractVector{Dofs}, mode=:write)
