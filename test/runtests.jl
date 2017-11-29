@@ -6,7 +6,7 @@ using JuLIP.Testing
 verbose=true
 isCI = haskey(ENV, "CI")
 notCI = !isCI
-
+eam_W4 = nothing 
 
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
