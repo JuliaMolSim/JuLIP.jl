@@ -7,6 +7,7 @@ verbose=true
 isCI = haskey(ENV, "CI")
 notCI = !isCI
 
+
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
    ("testase.jl", "ASE"),
@@ -31,9 +32,10 @@ eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.p
 print(" .")
 eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
 print(" .")
-# TODO: remove this test, or make a separate flag for it!
-if !isCI
+try
    eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
+catch
+   eam_W4 = nothing
 end
 println(" done.")
 

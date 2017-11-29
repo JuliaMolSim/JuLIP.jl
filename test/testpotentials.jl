@@ -132,7 +132,7 @@ at9 = set_pbc!( bulk("Fe", cubic = true), false ) * (2,1,1)
 eam = eam_Fe
 push!(calculators, (eam, at9))
 
-if notCI
+if eam_W4 != nothing
    # [10] Another EAM Potential
    at10 = set_pbc!( bulk("W", cubic = true), false ) * (2,1,2)
    eam4 = eam_W4
