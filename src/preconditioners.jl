@@ -3,7 +3,7 @@ module Preconditioners
 
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
             constraint, bonds, cutoff, positions, defm, JVecF, forces, mat,
-            set_positions!
+            set_positions!, julipwarn
 using JuLIP.Potentials: @analytic, evaluate, PairPotential, HS
 using JuLIP.Constraints: project!, FixedCell
 using JuLIP.ASE: chemical_symbols, rnn
@@ -11,7 +11,7 @@ using JuLIP.ASE: chemical_symbols, rnn
 try
    using PyAMG: RugeStubenSolver
 catch
-   JuLIP.julipwarn("failed to load `PyAMG`")
+   julipwarn("failed to load `PyAMG`")
 end
 
 import JuLIP.Potentials: precon
