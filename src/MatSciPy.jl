@@ -57,6 +57,7 @@ function __neighbour_list__(atoms::ASEAtoms,
    cell(atoms)   # TODO: this is a workaround for a weird bug in matscipy (or ase?)
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
+   print(quantities)
    results = pycall(matscipy_neighbours.neighbour_list,
                      NTuple{length(quantities), PyArray}, quantities,
                      pyobject(atoms), cutoff)
