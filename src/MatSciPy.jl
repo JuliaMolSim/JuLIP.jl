@@ -19,7 +19,8 @@ generate a `MatSciPy` neighbourlist.
 module MatSciPy
 
 using PyCall
-@pyimport matscipy.neighbours as matscipy_neighbours
+# @pyimport matscipy.neighbours as matscipy_neighbours
+matscipy_neighbours = pyimport("matscipy.neighbours")
 
 using JuLIP:  AbstractNeighbourList, cutoff, JVecs, vecs, pyarrayref, cell
 using JuLIP.ASE: ASEAtoms, pyobject
@@ -60,13 +61,13 @@ function __neighbour_list__(atoms::ASEAtoms,
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
 
-   # >>>>>>>>> START DEBUG >>>>>>>>
-   __nlist_ctr__ += 1
-   if __nlist_ctr__ > 100
-      gc()
-      __nlist_ctr__ = 0
-   end
-   # <<<<<<<<< END DEBUG <<<<<<<<<
+   # # >>>>>>>>> START DEBUG >>>>>>>>
+   # __nlist_ctr__ += 1
+   # if __nlist_ctr__ > 100
+   #    gc()
+   #    __nlist_ctr__ = 0
+   # end
+   # # <<<<<<<<< END DEBUG <<<<<<<<<
 
    results = pycall(matscipy_neighbours.neighbour_list,
                      NTuple{length(quantities), PyArray}, quantities,
