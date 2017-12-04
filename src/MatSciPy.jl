@@ -57,10 +57,12 @@ function __neighbour_list__(atoms::ASEAtoms,
    cell(atoms)   # TODO: this is a workaround for a weird bug in matscipy (or ase?)
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
-   print(quantities)
+   # print(quantities)
+   gc()
    results = pycall(matscipy_neighbours.neighbour_list,
                      NTuple{length(quantities), PyArray}, quantities,
                      pyobject(atoms), cutoff)
+   gc()
    # create Julia arrays referencing the same memory
    jresults = [pyarrayref(r) for r in results]
    # fix the arrays for later use
