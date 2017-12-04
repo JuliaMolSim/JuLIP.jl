@@ -29,7 +29,7 @@ import JuLIP: sites, bonds
 # to implement the iterators
 import Base: start, done, next
 
-const __nlist_ctr__ = 0
+const _nlist_ctr_ = 0::Int
 
 
 # renamed neighbour_list to __neighbour_list__ to make it clear this is
@@ -61,13 +61,14 @@ function __neighbour_list__(atoms::ASEAtoms,
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
 
-   # # >>>>>>>>> START DEBUG >>>>>>>>
-   # __nlist_ctr__ += 1
-   # if __nlist_ctr__ > 100
+   # >>>>>>>>> START DEBUG >>>>>>>>
+   # _nlist_ctr_ += 1
+   # if _nlist_ctr_ > 100
+   #    print("*")
    #    gc()
-   #    __nlist_ctr__ = 0
+   #    _nlist_ctr_ = 0
    # end
-   # # <<<<<<<<< END DEBUG <<<<<<<<<
+   # <<<<<<<<< END DEBUG <<<<<<<<<
 
    results = pycall(matscipy_neighbours.neighbour_list,
                      NTuple{length(quantities), PyArray}, quantities,
