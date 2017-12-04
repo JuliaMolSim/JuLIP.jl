@@ -66,6 +66,7 @@ function __neighbour_list__(atoms::ASEAtoms,
    global _nlist_ctr_
    _nlist_ctr_ += 1
    if _nlist_ctr_ > 100
+      print("*")
       gc()
       _nlist_ctr_ = 0
    end
