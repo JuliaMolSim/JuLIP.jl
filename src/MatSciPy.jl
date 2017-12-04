@@ -65,7 +65,7 @@ function __neighbour_list__(atoms::ASEAtoms,
    # >>>>>>>>> START DEBUG >>>>>>>>
    global _nlist_ctr_
    _nlist_ctr_ += 1
-   print(_nlist_ctr_)
+   @show _nlist_ctr_
    if _nlist_ctr_ > 100
       print("*")
       gc()
