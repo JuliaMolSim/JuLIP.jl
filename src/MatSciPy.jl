@@ -28,6 +28,8 @@ import JuLIP: sites, bonds
 # to implement the iterators
 import Base: start, done, next
 
+const __nlist_ctr__ = 0
+
 
 # renamed neighbour_list to __neighbour_list__ to make it clear this is
 # an internal function now; this is due to the fact that we don't
@@ -57,10 +59,17 @@ function __neighbour_list__(atoms::ASEAtoms,
    cell(atoms)   # TODO: this is a workaround for a weird bug in matscipy (or ase?)
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
-   # print(quantities)
-   # rand() < 0.01 && gc()
+
+   # >>>>>>>>> START DEBUG >>>>>>>>
+   __nlist_ctr__ += 1
+   if __nlist_ctr__ > 100
+      gc()
+      __nlist_ctr__ = 0
+   end
+   # <<<<<<<<< END DEBUG <<<<<<<<<
+
    results = pycall(matscipy_neighbours.neighbour_list,
-                     NTuple{5, PyArray}, "ijdDS",
+                     NTuple{length(quantities), PyArray}, quantities,
                      pyobject(atoms), cutoff)
    # create Julia arrays referencing the same memory
    jresults = [pyarrayref(r) for r in results]
