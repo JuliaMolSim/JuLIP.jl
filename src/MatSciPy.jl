@@ -29,7 +29,7 @@ import JuLIP: sites, bonds
 # to implement the iterators
 import Base: start, done, next
 
-const _nlist_ctr_ = 0::Int
+global _nlist_ctr_ = 0::Int
 
 
 # renamed neighbour_list to __neighbour_list__ to make it clear this is
@@ -65,7 +65,6 @@ function __neighbour_list__(atoms::ASEAtoms,
    # >>>>>>>>> START DEBUG >>>>>>>>
    global _nlist_ctr_
    _nlist_ctr_ += 1
-   @show _nlist_ctr_
    if _nlist_ctr_ > 100
       print("*")
       gc()
