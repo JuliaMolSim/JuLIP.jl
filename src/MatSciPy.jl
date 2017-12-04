@@ -35,6 +35,7 @@ const _nlist_ctr_ = 0::Int
 # renamed neighbour_list to __neighbour_list__ to make it clear this is
 # an internal function now; this is due to the fact that we don't
 # copy the neighbourlist arrays anymore
+
 """
 `neighbour_list(atoms::ASEAtoms, cutoff::Float64, quantities::AbstractString)`
 `neighbour_list(atoms::ASEAtoms, cutoff::Float64)`
@@ -62,9 +63,9 @@ function __neighbour_list__(atoms::ASEAtoms,
    # PyArrays, i.e., just references, no copies
 
    # >>>>>>>>> START DEBUG >>>>>>>>
+   global _nlist_ctr_
    _nlist_ctr_ += 1
    if _nlist_ctr_ > 100
-      print("*")
       gc()
       _nlist_ctr_ = 0
    end
