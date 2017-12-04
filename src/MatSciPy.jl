@@ -58,9 +58,9 @@ function __neighbour_list__(atoms::ASEAtoms,
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
    # print(quantities)
-   rand() < 0.01 && gc()
+   # rand() < 0.01 && gc()
    results = pycall(matscipy_neighbours.neighbour_list,
-                     NTuple{length(quantities), PyArray}, quantities,
+                     NTuple{5, PyArray}, "ijdDS",
                      pyobject(atoms), cutoff)
    # create Julia arrays referencing the same memory
    jresults = [pyarrayref(r) for r in results]
