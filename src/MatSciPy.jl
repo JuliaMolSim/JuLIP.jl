@@ -61,14 +61,14 @@ function __neighbour_list__(atoms::ASEAtoms,
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
 
-   >>>>>>>>> START DEBUG >>>>>>>>
+   # >>>>>>>>> START DEBUG >>>>>>>>
    _nlist_ctr_ += 1
    if _nlist_ctr_ > 100
       print("*")
       gc()
       _nlist_ctr_ = 0
    end
-   <<<<<<<<< END DEBUG <<<<<<<<<
+   # <<<<<<<<< END DEBUG <<<<<<<<<
 
    results = pycall(matscipy_neighbours["neighbour_list"],
                      NTuple{length(quantities), PyArray}, quantities,
