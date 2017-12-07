@@ -19,7 +19,8 @@ generate a `MatSciPy` neighbourlist.
 module MatSciPy
 
 using PyCall
-@pyimport matscipy.neighbours as matscipy_neighbours
+# @pyimport matscipy.neighbours as matscipy_neighbours
+matscipy_neighbours = pyimport("matscipy.neighbours")
 
 using JuLIP:  AbstractNeighbourList, cutoff, JVecs, vecs, pyarrayref, cell
 using JuLIP.ASE: ASEAtoms, pyobject
@@ -28,10 +29,17 @@ import JuLIP: sites, bonds
 # to implement the iterators
 import Base: start, done, next
 
+# >>>>>>>>> START DEBUG >>>>>>>>
+# TODO: remove once the memory overwrite bug has been fixed
+global _nlist_ctr_ = 0::Int
+# <<<<<<<<< END DEBUG <<<<<<<<<
+
+
 
 # renamed neighbour_list to __neighbour_list__ to make it clear this is
 # an internal function now; this is due to the fact that we don't
 # copy the neighbourlist arrays anymore
+
 """
 `neighbour_list(atoms::ASEAtoms, cutoff::Float64, quantities::AbstractString)`
 `neighbour_list(atoms::ASEAtoms, cutoff::Float64)`
@@ -54,10 +62,22 @@ function __neighbour_list__(atoms::ASEAtoms,
                         cutoff::Float64,
                         quantities="ijdDS";
                         convertarrays=true)
-   cell(atoms)   # TODO: this is a workaround for a weird bug in matscipy (or ase?)
+   cell(atoms) # TODO: this is a workaround for a weird bug in matscipy (or ase?)
+               #       possibly related to Gideon's bug?
+
    # compute the neighbourlist via matscipy, get the data as
    # PyArrays, i.e., just references, no copies
-   results = pycall(matscipy_neighbours.neighbour_list,
+
+   # >>>>>>>>> START DEBUG >>>>>>>>
+   global _nlist_ctr_
+   _nlist_ctr_ += 1
+   if _nlist_ctr_ > 100
+      gc()
+      _nlist_ctr_ = 0
+   end
+   # <<<<<<<<< END DEBUG <<<<<<<<<
+
+   results = pycall(matscipy_neighbours["neighbour_list"],
                      NTuple{length(quantities), PyArray}, quantities,
                      pyobject(atoms), cutoff)
    # create Julia arrays referencing the same memory
@@ -101,6 +121,7 @@ type NeighbourList <: AbstractNeighbourList
     pyarrays
     length::Int
 end
+
 # the last field is a hack to make sure the python arrays are not freed
 # TODO: should study this again and maybe file an issue with PyCall
 
