@@ -48,7 +48,9 @@ end
 function forces(V::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
    for (i,j,r,R,_) in bonds(at, cutoff(V))
-      dE[i] += 2 * @GRAD V(r, R)
+      f = @GRAD V(r, R)
+      dE[i] += f
+      dR[j] -= f
    end
    return dE
 end
@@ -57,7 +59,9 @@ function forces(V::PairPotential, at::ASEAtoms)
    nlist = neighbourlist(at, cutoff(V))
    dE = zerovecs(length(at))
    @simd for n = 1:length(nlist)
-      @inbounds dE[nlist.i[n]] += 2 * grad(V, nlist.r[n], nlist.R[n])
+      f = grad(V, nlist.r[n], nlist.R[n])
+      @inbounds dE[nlist.i[n]] += f
+      @inbounds dE[nlist.j[n]] -= f
    end
    return dE
 end
