@@ -92,7 +92,7 @@ end
 
 function evaluate(calc::StillingerWeber, r, R)
    # two-body contributions
-   Es = sum(calc.V2, r)
+   Es = 2 * sum(calc.V2, r)
 
    # three-body contributions
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
@@ -107,7 +107,7 @@ function energy(calc::StillingerWeber, at::ASEAtoms)
    nlist = neighbourlist(at, cutoff(calc))
 
    # 2-body contribution
-   E = sum(calc.V2, nlist.r)
+   E = 2 * sum(calc.V2, nlist.r)
 
    # 3-body contribution
    V3 = [calc.V3(r)  for r in nlist.r]
