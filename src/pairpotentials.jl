@@ -11,7 +11,7 @@ export ZeroPairPotential, PairSitePotential,
 function site_energies(pp::PairPotential, at::AbstractAtoms)
    Es = zeros(length(at))
    for (i,_2,r,_3,_4) in bonds(at, cutoff(pp))
-      Es[i] += pp(r)
+      Es[i] += 0.5 * pp(r)
    end
    return Es
 end
@@ -23,7 +23,7 @@ function sum(V::PairPotential, r::Vector{T}) where T <: Real
    @simd for n = 1:length(r)
       @inbounds E += V(r[n])
    end
-   return E
+   return 0.5 * E
 end
 
 # a simplified way to calculate gradients of pair potentials
@@ -34,23 +34,21 @@ function energy(V::PairPotential, at::AbstractAtoms)
    for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(V))
       E += V(r)
    end
-   return E
+   return 0.5 * E
 end
 
 using JuLIP.ASE: ASEAtoms
 
 function energy(V::PairPotential, at::ASEAtoms)
    nlist = neighbourlist(at, cutoff(V))
-   return sum(V.(nlist.r))
+   return 0.5 * sum(V.(nlist.r))
 end
 
 
 function forces(V::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
    for (i,j,r,R,_) in bonds(at, cutoff(V))
-      f = @GRAD V(r, R)
-      dE[i] += f
-      dR[j] -= f
+      dE[i] += @GRAD V(r, R)
    end
    return dE
 end
@@ -59,9 +57,7 @@ function forces(V::PairPotential, at::ASEAtoms)
    nlist = neighbourlist(at, cutoff(V))
    dE = zerovecs(length(at))
    @simd for n = 1:length(nlist)
-      f = grad(V, nlist.r[n], nlist.R[n])
-      @inbounds dE[nlist.i[n]] += f
-      @inbounds dE[nlist.j[n]] -= f
+      @inbounds dE[nlist.i[n]] += grad(V, nlist.r[n], nlist.R[n])
    end
    return dE
 end
@@ -71,7 +67,7 @@ end
 function virial(pp::PairPotential, at::AbstractAtoms)
    S = zero(JMatF)
    for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
-      S -= grad(pp, r, R) * R'  # (((@D pp(r)) / r) * R) * R'
+      S -= 0.5 * grad(pp, r, R) * R'  # (((@D pp(r)) / r) * R) * R'
    end
    return S
 end
@@ -90,7 +86,7 @@ function hessian_pos(pp::PairPotential, at::AbstractAtoms)
    I, J, Z = Int[], Int[], JMatF[]
    for C in (I, J, Z); sizehint!(C, 2*length(nlist)); end
    for (i, j, r, R, _) in bonds(nlist)
-      h = hess(pp, r, R)
+      h = 0.5 * hess(pp, r, R)
       append!(I, (i,  i,  j, j))
       append!(J, (i,  j,  i, j))
       append!(Z, (h, -h, -h, h))
@@ -106,7 +102,7 @@ end
 
 construct the Lennard-Jones potential e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
 """
-LennardJones(r0, e0) = @analytic r -> e0 * ((r0/r)^(12) - 2.0 * (r0/r)^(6))
+LennardJones(r0, e0) = @analytic r -> e0 * 4.0 * ((r0/r)^(12) - (r0/r)^(6))
 LennardJones(;r0=1.0, e0=1.0) = LennardJones(r0, e0)
 
 """
@@ -173,16 +169,16 @@ function _sumpair_(pp, r)
 end
 
 # special implementation of site energy and forces for a plain pair potential
-evaluate(psp::PairSitePotential, r, R) = _sumpair_(psp.pp, r)
+evaluate(psp::PairSitePotential, r, R) = 0.5 * _sumpair_(psp.pp, r)
 
 evaluate_d(psp::PairSitePotential, r, R) =
-            [ grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
+            [ 0.5 * grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
 
 
 # an FF preconditioner for pair potentials
 function precon(V::PairPotential, r, R)
-   dV = @D V(r)
-   hV = @DD V(r)
+   dV = 0.5 * (@D V(r))
+   hV = 0.5 * (@DD V(r))
    S = R/r
    return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (eye(JMatF) - S * S')) +
           0.1 * (abs(hV) + abs(dV / r)) * eye(JMatF)
