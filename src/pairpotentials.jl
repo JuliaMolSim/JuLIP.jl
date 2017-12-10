@@ -138,10 +138,10 @@ In addition to the `kwargs` of `LennardJones`, this accepts also
 * `rcut` : default `:auto` which gives `rcut = (1.9*σ, 2.7*σ)`. Use
 `nothing` or `Inf` to specify no cutoff, or specify a tuple or
 array with two elements specifying the lower and upper cut-off radii to be
-used with `SplineCutoff`. 
+used with `SplineCutoff`.
 """
 function lennardjones(; rcut = :auto, kwargs...)
-   σ, e0 = ljparams(kwargs...)
+   σ, e0 = ljparams(; kwargs...)
    if (rcut == nothing || rcut == Inf)
       return LennardJones(σ, e0)
    elseif rcut == :auto
