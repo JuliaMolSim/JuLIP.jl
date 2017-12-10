@@ -124,7 +124,7 @@ println("--------------------------------------------------")
 println(" E_pp - E_psp = ", energy(pp, at8) - energy(psp, at8))
 println(" |Frc_pp - Frc_psp = ", maxnorm(forces(pp, at8) - forces(psp, at8)))
 println("--------------------------------------------------")
-@test abs(energy(pp, at8) - energy(psp, at8)) < 1e-12
+@test abs(energy(pp, at8) - energy(psp, at8)) < 1e-11
 
 
 # [9] EAM Potential
