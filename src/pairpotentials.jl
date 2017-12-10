@@ -98,23 +98,57 @@ end
 
 
 """
-`LennardJones(r0, a0)` or `LennardJones(;r0=1.0, e0=1.0)` :
+`LennardJones(σ, e0):` constructs the 6-12 Lennard-Jones potential [wiki](https://en.wikipedia.org/wiki/Lennard-Jones_potential)
 
-construct the Lennard-Jones potential e0 * ( (r0/r)¹² - 2 (r0/r)⁶ )
+   e0 * 4 * ( (σ/r)¹² - (σ/r)⁶ )
+
+Constructor with kw arguments: `LennardJones(; kwargs...)`
+
+* `e0, σ` : standard LJ parameters, default `e0 = 1.0, σ = 1.0`
+* `r0` : equilibrium distance - if `r0` is specified then `σ` is ignored
+* `a0` : FCC lattice parameter, if `a0` is specified then `σ` is ignored
+
+(`r0, a0` cannot both be specified at the same time)
 """
-LennardJones(r0, e0) = @analytic r -> e0 * 4.0 * ((r0/r)^(12) - (r0/r)^(6))
-LennardJones(;r0=1.0, e0=1.0) = LennardJones(r0, e0)
+LennardJones(σ, e0) = @analytic r -> e0 * 4.0 * ((σ/r)^(12) - (σ/r)^(6))
+
+function ljparams(; σ=1.0, e0=1.0, r0 = nothing, a0 = nothing)
+   if r0 != nothing && a0 != nothing
+      error("`LenndardJones`: cannot specify both `r0` and `a0`")
+   end
+   if a0 != nothing    # r0 = nn-dist = a0/sqrt(2) in FCC
+      r0 = a0 / sqrt(2)
+   end
+   if r0 != nothing    # standard LJ is minimised at r = 2^(1/6)
+      σ =  r0 / 2^(1/6)
+   end
+   return σ, e0
+end
+
+LennardJones(; kwargs...) = LennardJones(ljparams(;kwargs...)...)
+
 
 """
-`lennardjones(; r0=1.0, e0=1.0, rcut = (1.9*r0, 2.7*r0))`
+`lennardjones(; kwargs...)`
 
-simplified constructor for `LennardJones` (type unstable)
+simplified constructor for `LennardJones` (note this is type unstable!)
+
+In addition to the `kwargs` of `LennardJones`, this accepts also
+
+* `rcut` : default `:auto` which gives `rcut = (1.9*σ, 2.7*σ)`. Use
+`nothing` or `Inf` to specify no cutoff, or specify a tuple or
+array with two elements specifying the lower and upper cut-off radii to be
+used with `SplineCutoff`. 
 """
-lennardjones(; r0=1.0, e0=1.0, rcut = (1.9*r0, 2.7*r0)) = (
-   (rcut == nothing || rcut == Inf)
-         ?  LennardJones(r0, e0)
-         :  SplineCutoff(rcut[1], rcut[2]) * LennardJones(r0, e0) )
-
+function lennardjones(; rcut = :auto, kwargs...)
+   σ, e0 = ljparams(kwargs...)
+   if (rcut == nothing || rcut == Inf)
+      return LennardJones(σ, e0)
+   elseif rcut == :auto
+      rcut = (1.9*σ, 2.7*σ)
+   end
+   return SplineCutoff(rcut[1], rcut[2]) * LennardJones(σ, e0)
+end
 
 """
 `Morse(A, e0, r0)` or `Morse(;A=4.0, e0=1.0, r0=1.0)`: constructs a
