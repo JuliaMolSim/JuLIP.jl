@@ -17,13 +17,15 @@ function site_energies(pp::PairPotential, at::AbstractAtoms)
 end
 
 import Base.sum
+
 sum(V::PairPotential, r) = sum( V(s) for s in r )
+
 function sum(V::PairPotential, r::Vector{T}) where T <: Real
    E = 0.0
    @simd for n = 1:length(r)
       @inbounds E += V(r[n])
    end
-   return 0.5 * E
+   return E
 end
 
 # a simplified way to calculate gradients of pair potentials
@@ -41,7 +43,7 @@ using JuLIP.ASE: ASEAtoms
 
 function energy(V::PairPotential, at::ASEAtoms)
    nlist = neighbourlist(at, cutoff(V))
-   return 0.5 * sum(V.(nlist.r))
+   return 0.5 * sum(V, nlist.r)
 end
 
 
