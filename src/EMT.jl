@@ -46,10 +46,10 @@ function emt_default_parameters()
    Bohr = ase_emt.Bohr
    # get_atomic_numbers(id::AbstractString) = ase_data.atomic_numbers[id]
    ase_parameters = ase_emt.parameters
+   beta = ase_emt.beta
    # convert ASE style Dict to a new Dict where parameters
    # are stored in a type instead of tuple.
    params = Dict{String, Dict{String,Float64}}()
-   beta = 1.809
    maxseq = maximum([par[2] for par in values(ase_parameters)]) * Bohr  # ✓
    rc = beta * maxseq * 0.5 * (sqrt(3) + sqrt(4))   # ✓
    rr = rc * 2 * sqrt(4) / (sqrt(3) + sqrt(4))   # ✓
@@ -88,6 +88,7 @@ function init!(calc::EMTCalculator, at::ASEAtoms)
    # load all the parameters
    params, acut, rc, β = emt_default_parameters()
    calc.rc = rc
+   rcplus = cutoff(calc)
    # get a list of all chemical symbols existing in this atoms object
    #  (don't worry about computing them twice)
    symbols = chemical_symbols(at)
@@ -102,13 +103,13 @@ function init!(calc::EMTCalculator, at::ASEAtoms)
       n0, κ, s0 = p["n0"], p["κ"], p["s0"]
       calc.pair[i] = F64fun( @analytic(
             r -> n0 * exp( -κ * (r / β - s0) ) * θ,
-            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ) ) * HS(rc)
+            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ) ) * HS(rcplus)
       calc.Cpair[i] = p["Cpair"]
       # radial electron density function
       η2, γ1 = p["η2"], p["γ1"]
       calc.rho[i] = F64fun( @analytic(
             r -> n0 * exp( -η2 * (r - (β*s0)) ) * θ,
-            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ) ) * HS(rc)
+            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ) ) * HS(rcplus)
       # embedding function
       Crho = 1.0 / γ1 / n0    # TODO: get rid of Crho
       E0, V0, λ = p["E0"], p["V0"], p["λ"]

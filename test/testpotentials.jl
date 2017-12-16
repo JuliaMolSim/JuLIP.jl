@@ -130,13 +130,18 @@ end
 # ========== Test correct implementation of site_energy ============
 #            and of partial_energy
 
-println("Testing `site_energy` ...")
+println("--------------------------------------------------")
+println("Testing `site_energy` and `partial_energy` ...")
+println("--------------------------------------------------")
 at = bulk("Si", pbc=true, cubic=true) * 3
 sw = StillingerWeber()
 atsm = bulk("Si", pbc = true)
-println(" ... passed site_energy identity, now testing derivative ...")
-@test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm)/2 ) < 1e-10
+println("checking site energy identity . . .")
+@test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm) / 2 ) < 1e-10
+rattle!(at, 0.01)
+@test abs( energy(sw, at) - sum(site_energies(sw, at)) ) < 1e-10
 
+println("fd test for site_energy")
 # finite-difference test
 set_constraint!(at, FixedCell(at))
 f(x) = JuLIP.Potentials.site_energy(sw, set_dofs!(at, x), 1)
@@ -144,7 +149,7 @@ df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1) |> mat)[:]
 @test fdtest(f, df, dofs(at); verbose=true)
 
 
-println("Testing `partial_energy` ...")
+println("fd test for partial_energy")
 Idom = [2,4,10]
 f(x) = JuLIP.Potentials.partial_energy(sw, set_dofs!(at, x), Idom)
 df(x) = (JuLIP.Potentials.partial_energy_d(sw, set_dofs!(at, x), Idom) |> mat)[:]
