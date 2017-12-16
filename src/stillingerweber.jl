@@ -130,7 +130,7 @@ end
 
 function evaluate_d(calc::StillingerWeber, r, R)
    # two-body terms
-   dEs = [ grad(calc.V2, ri, Ri) for (ri, Ri) in zip(r, R) ]
+   dEs = 2 * [ grad(calc.V2, ri, Ri) for (ri, Ri) in zip(r, R) ]
    # three-body terms
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
    V3 = [calc.V3(s) for s in r]

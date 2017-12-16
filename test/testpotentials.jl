@@ -84,32 +84,6 @@ sw = StillingerWeber()
 set_calculator!(at3, sw)
 push!(calculators, (sw, at3))
 
-# ================================================================
-# # [5] a simple FDPotential
-# @pot type FDPot <: FDPotential end
-# fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
-# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot, R::Matrix{T}) =
-#                sum( fdpot(Base.LinAlg.vecnorm2(R[:,i])) for i = 1:size(R,2) )
-# JuLIP.cutoff(::FDPot) = 4.0
-# at5 = set_pbc!(bulk("Si") * (3,3,1), false)
-# push!(calculators, (FDPot(), at5))
-#
-# # [6] a simple FDPotential
-# @pot type FDPot_r <: FDPotential_r end
-# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot_r, r::Vector{T}) = sum( fdpot.(r) )
-# JuLIP.cutoff(::FDPot_r) = 4.0
-# at6 = set_pbc!(bulk("Si") * (3,3,1), false)
-# push!(calculators, (FDPot_r(), at6))
-#
-# # [7] a simple RDPotential
-# @pot type RDPot_r <: RDPotential_r end
-# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::RDPot_r, r::Vector{T}) = sum( fdpot.(r) )
-# JuLIP.cutoff(::RDPot_r) = 4.0
-# at7 = set_pbc!(bulk("Si") * (3,3,1), false)
-# push!(calculators, (RDPot_r(), at7))
-# ================================================================
-
-
 # [8] PairSitePotential
 at8 = set_pbc!( bulk("Al", cubic=true), false ) * 2
 pp = lennardjones(r0=rnn("Al"))
@@ -152,19 +126,56 @@ for (calc, at) in calculators
    @test fdtest(calc, at, verbose=true)
 end
 
-quit()
 
 # ========== Test correct implementation of site_energy ============
+#            and of partial_energy
 
 println("Testing `site_energy` ...")
 at = bulk("Si", pbc=true, cubic=true) * 3
 sw = StillingerWeber()
 atsm = bulk("Si", pbc = true)
 println(" ... passed site_energy identity, now testing derivative ...")
-@test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm) / 2 ) < 1e-10
+@test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm)/2 ) < 1e-10
 
 # finite-difference test
 set_constraint!(at, FixedCell(at))
 f(x) = JuLIP.Potentials.site_energy(sw, set_dofs!(at, x), 1)
 df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1) |> mat)[:]
 @test fdtest(f, df, dofs(at); verbose=true)
+
+
+println("Testing `partial_energy` ...")
+Idom = [2,4,10]
+f(x) = JuLIP.Potentials.partial_energy(sw, set_dofs!(at, x), Idom)
+df(x) = (JuLIP.Potentials.partial_energy_d(sw, set_dofs!(at, x), Idom) |> mat)[:]
+@test fdtest(f, df, dofs(at); verbose=true)
+
+
+
+
+
+#  TODO: put these back in at some point . . .
+# ================================================================
+# # [5] a simple FDPotential
+# @pot type FDPot <: FDPotential end
+# fdpot(r) = exp(-0.3*r) * JuLIP.Potentials.cutsw(r, 4.0, 1.0)
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot, R::Matrix{T}) =
+#                sum( fdpot(Base.LinAlg.vecnorm2(R[:,i])) for i = 1:size(R,2) )
+# JuLIP.cutoff(::FDPot) = 4.0
+# at5 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (FDPot(), at5))
+#
+# # [6] a simple FDPotential
+# @pot type FDPot_r <: FDPotential_r end
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::FDPot_r, r::Vector{T}) = sum( fdpot.(r) )
+# JuLIP.cutoff(::FDPot_r) = 4.0
+# at6 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (FDPot_r(), at6))
+#
+# # [7] a simple RDPotential
+# @pot type RDPot_r <: RDPotential_r end
+# JuLIP.Potentials.ad_evaluate{T<:Real}(pot::RDPot_r, r::Vector{T}) = sum( fdpot.(r) )
+# JuLIP.cutoff(::RDPot_r) = 4.0
+# at7 = set_pbc!(bulk("Si") * (3,3,1), false)
+# push!(calculators, (RDPot_r(), at7))
+# ================================================================
