@@ -105,7 +105,7 @@ export AbstractAtoms,
       positions, get_positions, set_positions!, unsafe_positions,
       momenta, get_momenta, set_momenta!, unsafe_momenta,
       cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
-      set_data!, get_data, has_data,
+      # set_data!, get_data, has_data,
       set_calculator!, calculator, get_calculator!,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
@@ -208,37 +208,36 @@ get_pbc = pbc
 "determines whether a cubic cell is used (i.e. cell is a diagonal matrix)"
 is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 
-"""
-`set_data!(at, name, value)`:
-associate some data with `at`; to be stored in a Dict within `at`
-
-if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
-for `set_data!`.
-"""
-@protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
-Base.setindex!(at::AbstractAtoms, value,
-               name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
+# """
+# `set_data!(at, name, value)`:
+# associate some data with `at`; to be stored in a Dict within `at`
+#
+# if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
+# for `set_data!`.
+# """
+# @protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
+# Base.setindex!(at::AbstractAtoms, value,
+#                name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
 # `positions` is a special version of `get_data`; others are
 # `momenta` see above, `velocities`, `masses`, ...others?...
 
 
 
+# """
+# `get_data(a, name)`:
+# obtain some data stored with `set_data!`
+#
+# if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
+# for `get_data`.
+# """
+# @protofun get_data(a::AbstractAtoms, name::Any)
 
+# Base.getindex(at::AbstractAtoms,
+#                name::Union{Symbol, AbstractString}) = get_data(at, name)
 
-"""
-`get_data(a, name)`:
-obtain some data stored with `set_data!`
-
-if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
-for `get_data`.
-"""
-@protofun get_data(a::AbstractAtoms, name::Any)
-Base.getindex(at::AbstractAtoms,
-               name::Union{Symbol, AbstractString}) = get_data(at, name)
-
-"check whether some data with id `name` is already stored"
-@protofun has_data(a::AbstractAtoms, name::Any)
+# "check whether some data with id `name` is already stored"
+# @protofun has_data(a::AbstractAtoms, name::Any)
 
 "delete an atom"
 @protofun deleteat!(a::AbstractAtoms, n::Integer)
