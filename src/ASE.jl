@@ -23,7 +23,7 @@ import JuLIP:
       positions, set_positions!,  unsafe_positions,  # ✓
       cell, set_cell!,             # ✓
       pbc, set_pbc!,               # ✓
-      set_data!, get_data, has_data,  # ✓
+      # set_data!, get_data, has_data,  # ✓
       calculator, set_calculator!, # ✓
       constraint, set_constraint!, # ✓
       neighbourlist,                # ✓
@@ -216,10 +216,10 @@ end
 has_array(a::ASEAtoms, name) = haskey(PyDict(a.po["arrays"]), name)
 get_array(a::ASEAtoms, name) = a.po[:get_array](string(name))
 function set_array!(a::ASEAtoms, name, value::Array)
-   if has_transient(a, name) || has_info(a, name)
-      error("""cannot set_array!(..., $(name), ...)" since this key already
-               exists in either `transient` or `info`""")
-   end
+   # if has_transient(a, name) || has_info(a, name)
+   #    error("""cannot set_array!(..., $(name), ...)" since this key already
+   #             exists in either `transient` or `info`""")
+   # end
    a.po[:set_array](string(name), value)
    return a
 end
@@ -228,10 +228,10 @@ end
 has_info(a::ASEAtoms, name) = haskey(PyDict(a.po["info"]), name)
 get_info(a::ASEAtoms, name) = PyDict(a.po["info"])[string(name)]
 function set_info!(a::ASEAtoms, name, value::Any)
-   if has_transient(a, name) || has_array(a, name)
-      error("""cannot set_info!(..., $(name), ...)" since this key already
-               exists in either `transient` or `arrays`""")
-   end
+   # if has_transient(a, name) || has_array(a, name)
+   #    error("""cannot set_info!(..., $(name), ...)" since this key already
+   #             exists in either `transient` or `arrays`""")
+   # end
    PyDict(a.po["info"])[string(name)] = value
    return a
 end
@@ -269,45 +269,45 @@ Two examples where `max_change > 0`:
  * Preconditioner is updated only when atom positions change significantly
 """
 function set_transient!(a::ASEAtoms, name, value, max_change=0.0)
-   if has_array(a, name) || has_info(a, name)
-      error("""cannot set_transient!(..., $(name), ...)" since this key already
-               exists in either `arrays` or `info`""")
-   end
+   # if has_array(a, name) || has_info(a, name)
+   #    error("""cannot set_transient!(..., $(name), ...)" since this key already
+   #             exists in either `arrays` or `info`""")
+   # end
    a.transient[name] = TransientData(max_change, 0.0, value)
    return a
 end
 
-# teach the generic set_data! where to put the data
-has_data(at::ASEAtoms, name) =
-   has_array(at, name) || has_info(at, name) || has_transient(at, name)
-
-set_data!(at::ASEAtoms, name, value::Any) =
-   set_info!(at, name, value)
-set_data!(at::ASEAtoms, name, value::Any, max_change) =
-   set_transient!(at, name, value, max_change)
-set_data!(at::ASEAtoms, name, value::Matrix) =
-   size(value, 2) == length(at) ? set_array!(at, name, value) : set_info!(at, name, value)
-set_data!{T <: Number}(at::ASEAtoms, name, value::Vector{T}) =
-   set_array!(at, name, value)
-set_data!{N,T}(at::ASEAtoms, name, value::Vector{SVec{N,T}}) =
-   set_array(at, name, value >> mat)
-
-function get_data(at::ASEAtoms, name)
-   # there are three different places where it could be stored, just try all three.
-   if has_array(at, name)
-      d = get_array(at, name)
-      # convert the data to a vector of short vectors
-      if length(size(d)) > 1
-         d = vecs(d)
-      end
-      return d
-   elseif has_info(at, name)
-      return get_info(at, name)
-   elseif has_transient(at, name)
-      return get_transient(at, name)
-   end
-   error("`get_data`: key $(name) not found")
-end
+# # teach the generic set_data! where to put the data
+# has_data(at::ASEAtoms, name) =
+#    has_array(at, name) || has_info(at, name) || has_transient(at, name)
+#
+# set_data!(at::ASEAtoms, name, value::Any) =
+#    set_info!(at, name, value)
+# set_data!(at::ASEAtoms, name, value::Any, max_change) =
+#    set_transient!(at, name, value, max_change)
+# set_data!(at::ASEAtoms, name, value::Matrix) =
+#    size(value, 2) == length(at) ? set_array!(at, name, value) : set_info!(at, name, value)
+# set_data!{T <: Number}(at::ASEAtoms, name, value::Vector{T}) =
+#    set_array!(at, name, value)
+# set_data!{N,T}(at::ASEAtoms, name, value::Vector{SVec{N,T}}) =
+#    set_array(at, name, value >> mat)
+#
+# function get_data(at::ASEAtoms, name)
+#    # there are three different places where it could be stored, just try all three.
+#    if has_array(at, name)
+#       d = get_array(at, name)
+#       # convert the data to a vector of short vectors
+#       if length(size(d)) > 1
+#          d = vecs(d)
+#       end
+#       return d
+#    elseif has_info(at, name)
+#       return get_info(at, name)
+#    elseif has_transient(at, name)
+#       return get_transient(at, name)
+#    end
+#    error("`get_data`: key $(name) not found")
+# end
 
 
 # special arrays: momenta, velocities, masses, chemical_symbols
