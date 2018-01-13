@@ -15,9 +15,6 @@ include("arrayconversions.jl")
 # define types and abstractions of generic functions
 include("abstractions.jl")
 
-# a few auxiliary routines
-include("utils.jl")
-
 # implementation of some key functionality via ASE
 include("ASE.jl")
 @reexport using JuLIP.ASE
@@ -31,6 +28,9 @@ At the moment, `Atoms = ASE.ASEAtoms`; see its help for more details.
 This will likely remain for the foreseeable future.
 """
 const Atoms = ASE.ASEAtoms
+
+# a few auxiliary routines
+include("utils.jl")
 
 # only try to import Visualise, it is not needed for the rest to work.
 try

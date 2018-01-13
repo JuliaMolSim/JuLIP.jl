@@ -129,3 +129,9 @@ function _project_pbc_(F, Finv, bcrem, x)
    λp = JVecF(rem(λ[1], bcrem[1]), rem(λ[2], bcrem[2]), rem(λ[3], bcrem[3]))
    return F * λp     # convert back to real coordinates
 end
+
+"""
+simple way to construct an atoms object from just positions
+"""
+Atoms(s::Symbol, X::Vector{JVecF}) = ASEAtoms("$(s)$(length(X))", X)
+Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
