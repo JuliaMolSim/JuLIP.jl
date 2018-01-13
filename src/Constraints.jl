@@ -9,7 +9,8 @@ module Constraints
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
          mat, vecs, JVecs, JVecsF, JMatF, JMat,
          set_positions!, set_cell!, virial, defm, set_defm!,
-         forces, unsafe_positions, momenta, set_momenta!
+         forces, unsafe_positions, momenta, set_momenta!,
+         constraint
 
 # temporary hack - we may need to rethink this
 using JuLIP.Potentials: hessian_pos
