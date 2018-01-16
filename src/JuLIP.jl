@@ -5,7 +5,6 @@ module JuLIP
 
 using PyCall, Reexport
 
-export Atoms
 
 # TODO: correctly use import versus using throughout this package!
 
@@ -19,15 +18,9 @@ include("abstractions.jl")
 include("ASE.jl")
 @reexport using JuLIP.ASE
 
-# define the default atoms object
-"""
-`type Atoms`
+# the main atoms type
+include("atoms.jl")
 
-Technically not a type but a type-alias, to possibly allow different "backends".
-At the moment, `Atoms = ASE.ASEAtoms`; see its help for more details.
-This will likely remain for the foreseeable future.
-"""
-const Atoms = ASE.ASEAtoms
 
 # a few auxiliary routines
 include("utils.jl")
