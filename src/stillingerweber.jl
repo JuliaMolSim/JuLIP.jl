@@ -8,15 +8,17 @@
 # ---------------------------------------------------
 # v2 = ϵ f2(r_ij / σ); f2(r) = A (B r^{-p} - r^{-q}) exp( (r-a)^{-1} )
 # v3 = ϵ f3(ri/σ, rj/σ, rk/σ); f3 = h(rij, rij, Θjik) + ... + ...
-# h(rij, rik, Θjik) = λ exp[ γ (rij-a)^{-1} + γ (rik-a)^{-1} ] * (cos Θjik + 1/3)^2
+# h(rij, rik, Θjik) = λ exp[ γ (rij-a)^{-1} + γ (rik-a)^{-1} ] * (cosΘjik+1/3)^2
 #       >>>
 # V2 = 0.5 * ϵ * A (B r^{-p} - r^{-q}) * exp( (r-a)^{-1} )
 # V3 = √ϵ * λ exp[ γ (r-a)^{-1} ]
 #
 # Parameters from QUIP database:
 # -------------------------------
-# <per_pair_data atnum_i="14" atnum_j="14" AA="7.049556277" BB="0.6022245584" p="4" q="0" a="1.80" sigma="2.0951" eps="2.1675" />
-# <per_triplet_data atnum_c="14" atnum_j="14" atnum_k="14" lambda="21.0" gamma="1.20" eps="2.1675" />
+# <per_pair_data atnum_i="14" atnum_j="14" AA="7.049556277" BB="0.6022245584"
+         # p="4" q="0" a="1.80" sigma="2.0951" eps="2.1675" />
+# <per_triplet_data atnum_c="14" atnum_j="14" atnum_k="14" lambda="21.0"
+         # gamma="1.20" eps="2.1675" />
 
 
 using ForwardDiff
@@ -48,19 +50,25 @@ function bondangle_d(S1, S2, r1, r2)
    return (d+1./3.)^2, 2.0*(d+1./3.)*b1, 2.0*(d+1./3.)*b2
 end
 
-function _ad_bondangle_d_(S)
-   R1, R2 = S[1:3], S[4:6]
+
+function _ad_bondangle_(R)
+   R1, R2 = R[1:3], R[4:6]
    r1, r2 = norm(R1), norm(R2)
-   _, d1, d2 = bondangle_d(R1, R2, r1, r2)
-   return Vector([d1; d2])
+   return bondangle(R1/r1, R2/r2)
 end
 
+# TODO: need a faster implementation of bondangle_dd
 function bondangle_dd(R1, R2)
    R = [R1; R2]
-   hh = ForwardDiff.jacobian(_ad_bondangle_d_, R)
-   return [ JMatF(hh[1:3,1:3]) JMatF(hh[1:3, 4:6])
-            JMatF(hh[4:6,1:3]) JMatF(hh[4:6, 4:6]) ]
+   hh = ForwardDiff.hessian(_ad_bondangle_, R)
+   h = zeros(JMatF, 2,2)
+   h[1,1] = JMatF(hh[1:3,1:3])
+   h[1,2] = JMatF(hh[1:3, 4:6])
+   h[2,1] = JMatF(hh[4:6,1:3])
+   h[2,2] = JMatF(hh[4:6, 4:6])
+   return h
 end
+
 
 
 @pot struct StillingerWeber{P1,P2} <: SitePotential
@@ -92,14 +100,14 @@ StillingerWeber
 
 cutoff(calc::StillingerWeber) = max(cutoff(calc.V2), cutoff(calc.V3))
 
-# TODO: brittle StillingerWeber
-#       make λ = 42.0
-# TODO: implement cutoff for the PairPotential macro
+# TODO: brittle StillingerWeber, make λ = 42.0
+
 function StillingerWeber(; brittle = false,
                ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
                p = 4, a = 1.8, λ = brittle ? 42.0 : 21.0, γ=1.20 )
    cutoff = a*σ-1e-2
-   V2 = @analytic(r -> (0.5*ϵ*A) * (B*(r/σ)^(-p) - 1.0) * exp(1.0/(r/σ - a))) * HS(cutoff)
+   V2 = @analytic(r -> (0.5*ϵ*A) * (B*(r/σ)^(-p) - 1.0) * exp(1.0/(r/σ - a))) *
+         HS(cutoff)
    V3 = @analytic(r -> sqrt(ϵ * λ) * exp( γ / (r/σ - a) )) * HS(cutoff)
    return StillingerWeber(V2, V3)
 end
@@ -116,28 +124,29 @@ function evaluate(calc::StillingerWeber, r, R)
    return Es
 end
 
-function energy(calc::StillingerWeber, at::ASEAtoms)
-   nlist = neighbourlist(at, cutoff(calc))
-   # 2-body contribution
-   E = sum(calc.V2, nlist.r)
-   # 3-body contribution
-   V3 = [calc.V3(r)  for r in nlist.r]
-   n = 0
-   for idx = 1:length(at)
-      n += 1
-      a = n
-      while n < length(nlist) && nlist.i[n+1] == idx
-         n += 1
-      end
-      b = n
-      for i1 = a:(b-1), i2 = (i1+1):(b)
-         E += V3[i1] * V3[i2] *
-               1.0 # bondangle(nlist.R[i1]/nlist.r[i1], nlist.R[i2]/nlist.r[i2])
-      end
-   end
-
-   return E
-end
+# function energy(calc::StillingerWeber, at::ASEAtoms)
+#    nlist = neighbourlist(at, cutoff(calc))
+#    # 2-body contribution
+#    # E = sum(calc.V2, nlist.r)
+#    E = 0.0
+#    # 3-body contribution
+#    V3 = [calc.V3(r)  for r in nlist.r]
+#    n = 0
+#    for idx = 1:length(at)
+#       n += 1
+#       a = n    # TODO: this should be built into the neighbourlist datastructure
+#       while n < length(nlist) && nlist.i[n+1] == idx
+#          n += 1
+#       end
+#       b = n
+#       for i1 = a:(b-1), i2 = (i1+1):(b)
+#          E += V3[i1] * V3[i2] *
+#                1.0 # bondangle(nlist.R[i1]/nlist.r[i1], nlist.R[i2]/nlist.r[i2])
+#       end
+#    end
+#
+#    return E
+# end
 
 
 function evaluate_d(calc::StillingerWeber, r, R)
@@ -156,51 +165,51 @@ function evaluate_d(calc::StillingerWeber, r, R)
 end
 
 
-function forces(calc::StillingerWeber, at::ASEAtoms)
-   nlist = neighbourlist(at, cutoff(calc))
-
-   # pair potential contribution to forces
-   dE = zerovecs(length(at))
-   # for n = 1:length(nlist)
-   #    dE[nlist.i[n]] += 2 * grad(calc.V2, nlist.r[n], nlist.R[n])
-   # end
-
-   # 3-body contribution
-   V3 = [calc.V3(r)  for r in nlist.r]
-   dV3 = [(@D calc.V3(r))/r  for r in nlist.r]
-   n = 0
-   for idx = 1:length(at)
-      n += 1
-      a = n
-      while n < length(nlist) && nlist.i[n+1] == idx
-         n += 1
-      end
-      b = n
-      for i1 = a:(b-1), i2 = (i1+1):(b)
-         α, b1, b2 = bondangle_d(nlist.R[i1]/nlist.r[i1],
-                           nlist.R[i2]/nlist.r[i2], nlist.r[i1], nlist.r[i2])
-         # f1 = (V3[i1] * V3[i2]) * b1 + ((V3[i2] * α) * dV3[i1]) * nlist.R[i1]
-         # f2 = (V3[i1] * V3[i2]) * b2 + ((V3[i1] * α) * dV3[i2]) * nlist.R[i2]
-         f1 = ((V3[i2] * α) * dV3[i1]) * nlist.R[i1]
-         f2 = ((V3[i1] * α) * dV3[i2]) * nlist.R[i2]
-         dE[nlist.j[i1]] -= f1
-         dE[nlist.i[i1]] += f1
-         dE[nlist.j[i2]] -= f2
-         dE[nlist.i[i2]] += f2
-      end
-   end
-   return dE
-end
+# function forces(calc::StillingerWeber, at::ASEAtoms)
+#    nlist = neighbourlist(at, cutoff(calc))
+#
+#    # pair potential contribution to forces
+#    dE = zerovecs(length(at))
+#    # for n = 1:length(nlist)
+#    #    dE[nlist.i[n]] += 2 * grad(calc.V2, nlist.r[n], nlist.R[n])
+#    # end
+#
+#    # 3-body contribution
+#    V3 = [calc.V3(r)  for r in nlist.r]
+#    dV3 = [(@D calc.V3(r))/r  for r in nlist.r]
+#    n = 0
+#    for idx = 1:length(at)
+#       n += 1
+#       a = n
+#       while n < length(nlist) && nlist.i[n+1] == idx
+#          n += 1
+#       end
+#       b = n
+#       for i1 = a:(b-1), i2 = (i1+1):(b)
+#          α, b1, b2 = bondangle_d(nlist.R[i1]/nlist.r[i1],
+#                            nlist.R[i2]/nlist.r[i2], nlist.r[i1], nlist.r[i2])
+#          # f1 = (V3[i1] * V3[i2]) * b1 + ((V3[i2] * α) * dV3[i1]) * nlist.R[i1]
+#          # f2 = (V3[i1] * V3[i2]) * b2 + ((V3[i1] * α) * dV3[i2]) * nlist.R[i2]
+#          f1 = ((V3[i2] * α) * dV3[i1]) * nlist.R[i1]
+#          f2 = ((V3[i1] * α) * dV3[i2]) * nlist.R[i2]
+#          dE[nlist.j[i1]] -= f1
+#          dE[nlist.i[i1]] += f1
+#          dE[nlist.j[i2]] -= f2
+#          dE[nlist.i[i2]] += f2
+#       end
+#    end
+#    return dE
+# end
 
 
 function hess(V::StillingerWeber, r, R)
    n = length(r)
    hV = zeros(JMatF, n, n)
 
-   # # two-body contributions
-   # for (i, (r_i, R_i)) in enumerate(zip(r, R))
-   #    hV[i,i] += hess(V.V2, r_i, R_i)
-   # end
+   # two-body contributions
+   for (i, (r_i, R_i)) in enumerate(zip(r, R))
+      hV[i,i] += hess(V.V2, r_i, R_i)
+   end
 
    # three-body terms
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
@@ -210,33 +219,22 @@ function hess(V::StillingerWeber, r, R)
 
    for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
       # Es += V3[i1] * V3[i2] * bondangle(S[i1], S[i2])
-      # Es_i1 = ∇V3(R_i1) V3(R_i2) ψ + V3 V3 ∇_i1 ψ
-      # Es_i1i1 = ∇²V3_i1 V2_i2 ψ + ∇V3_i1 V3_i2 ∇_i1 ψ
-      #      + (∇V3_i1 V3_i2 ∇_i1 ψ)' + V3_i1 V3_i2 ∇_i1² ψ
-      # Es_i1i2 = ∇V3_i1 ∇V3_i2 ψ + V3_i1 ∇V3_i2 ∇_i1 ψ
-      #      + ∇V3_i1 V3_i2 ∇_i2 ψ + V3_i1 V3_i2 ∇_i1∇_i2 ψ
-
       # precompute quantities
       ψ, Dψ_i1, Dψ_i2 = bondangle_d(S[i1], S[i2], r[i1], r[i2])
-      Hψ = bondangle_dd(R[i1], R[i2])
-      ψ = 1.0
-
-      hV[i1,i1] += hV3[i1] * V3[i2] * ψ
-      hV[i2,i2] += V3[i2] * hV3[i2] * ψ
-      hV[i1,i2] += dV3[i1] * dV3[i2]' * ψ
-      hV[i2, i1] += dV3[i2] * dV3[i1]' * ψ
-      # hV[i1,i1] +=
-      #    hV3[i1] * V3[i2] * ψ       +   dV3[i1] * V3[i2] * Dψ_i1' +
-      #    Dψ_i1 * V3[i2] * dV3[i1]'  +   V3[i1] * V3[i2] * Hψ[i1,i1]
-      # hV[i2,i2] +=
-      #    V3[i2] * hV3[i2] * ψ       +   V3[i1] * dV3[i2] * Dψ_i2' +
-      #    Dψ_i2 * V3[i1] * dV3[i2]'  +   V3[i1] * V3[i2] * Hψ[i2,i2]
-      # hV[i1,i2] +=
-      #    dV3[i1] * dV3[i2]' * ψ     +   V3[i1] * Dψ_i1 * dV3[i2]' +
-      #    dV3[i1] * V3[i2] * Dψ_i2'  +   V3[i1] * V3[i2] * Hψ[i1,i2]
-      # hV[i2, i1] +=
-      #    dV3[i2] * dV3[i1]' * ψ     +   V3[i1] * Dψ_i2 * dV3[i1]' +
-      #    dV3[i2] * V3[i1] * Dψ_i1'  +   V3[i1] * V3[i2] * Hψ[i2,i1]
+      Hψ = bondangle_dd(R[i1], R[i2])  # <<<< this should be SLOW (AD)
+      # assemble local hessian contributions
+      hV[i1,i1] +=
+         hV3[i1] * V3[i2] * ψ       +   dV3[i1] * V3[i2] * Dψ_i1' +
+         Dψ_i1 * V3[i2] * dV3[i1]'  +   V3[i1] * V3[i2] * Hψ[1,1]
+      hV[i2,i2] +=
+         V3[i2] * hV3[i2] * ψ       +   V3[i1] * dV3[i2] * Dψ_i2' +
+         Dψ_i2 * V3[i1] * dV3[i2]'  +   V3[i1] * V3[i2] * Hψ[2,2]
+      hV[i1,i2] +=
+         dV3[i1] * dV3[i2]' * ψ     +   V3[i1] * Dψ_i1 * dV3[i2]' +
+         dV3[i1] * V3[i2] * Dψ_i2'  +   V3[i1] * V3[i2] * Hψ[1,2]
+      hV[i2, i1] +=
+         dV3[i2] * dV3[i1]' * ψ     +   V3[i1] * Dψ_i2 * dV3[i1]' +
+         dV3[i2] * V3[i1] * Dψ_i1'  +   V3[i1] * V3[i2] * Hψ[2,1]
    end
    return hV
 end
