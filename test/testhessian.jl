@@ -118,42 +118,6 @@ set_constraint!(at, FixedCell(at))
 sw = StillingerWeber()
 set_calculator!(at, sw)
 
-# println("test a single stencil")
-# r = []
-# R = []
-# for (_1, _2, r1, R1, _3) in sites(at, cutoff(sw))
-#    r = r1
-#    R = R1
-#    break
-# end
-#
-# r = r[1:3]
-# R = R[1:3]
-#
-# # evaluate site gradient and hessian
-# dVs = evaluate_d(sw, r, R)
-# hVs = hess(sw, r, R)
-# # and convert them to vector form
-# dV = mat(dVs)[:]
-# hV = zeros(3*size(hVs,1), 3*size(hVs,2))
-# for i = 1:size(hVs,1), j = 1:size(hVs,2)
-#    hV[3*(i-1)+(1:3), 3*(j-1)+(1:3)] = hVs[i,j]
-# end
-# matR = mat(R)
-#
-# for p = 3:9
-#    h = 0.1^p
-#    hVh = zeros(hV)
-#    for n = 1:length(matR)
-#       matR[n] += h
-#       r = norm.(R)
-#       dVh = mat(evaluate_d(eam, r, R))[:]
-#       hVh[:, n] = (dVh - dV) / h
-#       matR[n] -= h
-#    end
-#    @printf("%1.1e | %4.2e \n", h, vecnorm(hVh - hV, Inf))
-# end
-
 println("full finite-difference test")
 fdtest( x -> energy(at, x), x -> gradient(at, x), dofs(at) )
 fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) )
