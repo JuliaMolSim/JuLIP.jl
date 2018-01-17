@@ -23,6 +23,11 @@ using JuLIP.Preconditioners: Exp
 using JuLIP.Constraints: FixedCell
 
 
+# TODO: move to Optim 0.11, and exploit the new alphaguess functionality of
+#       Linesearches. This gives awful error messages.
+
+
+
 export minimise!
 
 
