@@ -45,7 +45,7 @@ for R in ( [0.0,-3.61,-3.61], [-1.805,-1.805,-3.61] )
    @printf("-------|--------- \n")
 end
 
-println("full finite-difference test for `gradient` and `hessian`")
+println("full finite-difference test for pairpot `hessian`")
 at = at * 2
 set_pbc!(at, false)
 set_constraint!(at, FixedCell(at))
@@ -102,4 +102,20 @@ for p = 3:9
 end
 
 println("full finite-difference test")
+fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) )
+
+
+println("============================================")
+println("  Testing Stillinger-Weber hessian ")
+println("============================================")
+
+# setup a geometry
+at = bulk("Si", cubic=true) * 2
+set_pbc!(at, false)
+set_constraint!(at, FixedCell(at))
+sw = StillingerWeber()
+set_calculator!(at, sw)
+
+println("full finite-difference test")
+# fdtest( x -> energy(at, x), x -> gradient(at, x), dofs(at) )
 fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) )
