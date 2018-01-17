@@ -6,16 +6,16 @@ using JuLIP.Testing
 verbose=true
 isCI = haskey(ENV, "CI")
 notCI = !isCI
-eam_W4 = nothing 
+eam_W4 = nothing
 
 julip_tests = [
-   ("testaux.jl", "Miscellaneous"),
-   ("testase.jl", "ASE"),
-   ("testanalyticpotential.jl", "Analytic Potential"),
-   ("testpotentials.jl", "Potentials"),
-   ("testvarcell.jl", "Variable Cell"),
+   # ("testaux.jl", "Miscellaneous"),
+   # ("testase.jl", "ASE"),
+   # ("testanalyticpotential.jl", "Analytic Potential"),
+   # ("testpotentials.jl", "Potentials"),
+   # ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
-   ("testsolve.jl", "Solve"),
+   # ("testsolve.jl", "Solve"),
 ]
 
 # remove testsolve if on Travis
