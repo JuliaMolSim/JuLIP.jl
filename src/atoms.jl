@@ -28,7 +28,8 @@ The
    X::JVecs{T} = JVecs{T}[]   # positions
    P::JVecs{T} = JVecs{T}[]   # momenta (or velocities?)
    M::JVecs{T} = JVecs{T}[]   # masses
-   cell::JMat{T} = zero(JMat{T})   # cell
+   cell::JMat{T} = zero(JMat{T})                  # cell
+   pbc::NTuple{3, Bool} = (false, false, false)   # boundary condition
    calc::AbstractCalculator = NullCalculator()
    cons::AbstractConstraint = NullConstraint()
    data::Dict{Any,JData{T}} = Dict{Any,JData{T}}()
@@ -42,8 +43,8 @@ length(at::Atoms) = length(at.X)
 
 # access to struct fields
 # ------------------------
-symbols = (:X, :P, :M, :cell, :calc, :cons)
-names = ("positions", "momenta", "masses", "cell", "calculator", "constraint")
+symbols = (:X, :P, :M, :cell, :calc, :cons, :pbc)
+names = ("positions", "momenta", "masses", "cell", "calculator", "constraint", "pbc")
 
 for (S, name) in zip(symbols, names)
    set_name = parse("set_$(name)!")
@@ -83,7 +84,6 @@ end
 # ----------------------
 
 
-      momenta, get_momenta, set_momenta!, unsafe_momenta,
       cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       # set_data!, get_data, has_data,
       set_calculator!, calculator, get_calculator!,
