@@ -1,3 +1,4 @@
+
 # TODO: rename `unsafe_***` >>> `***_ref`
 
 
@@ -12,7 +13,7 @@ export Atoms
 some data which needs to be updated if the configuration (positions only!) has
 changed too much.
 """
-mutable struct JData{T}
+mutable struct JData{T <: AbstractFloat}
    max_change::T     # how much X may change before recomputing
    accum_change::T   # how much has it changed already
    data::Any
@@ -25,11 +26,11 @@ end
 The
 """
 @with_kw mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms
-   X::JVecs{T} = JVecs{T}[]   # positions
-   P::JVecs{T} = JVecs{T}[]   # momenta (or velocities?)
-   M::JVecs{T} = JVecs{T}[]   # masses
-   cell::JMat{T} = zero(JMat{T})                  # cell
-   pbc::NTuple{3, Bool} = (false, false, false)   # boundary condition
+   X::JVecs{T} = JVecs{T}[]          # positions
+   P::JVecs{T} = JVecs{T}[]          # momenta (or velocities?)
+   M::JVecs{T} = JVecs{T}[]          # masses
+   cell::JMat{T} = zero(JMat{T})                   # cell
+   pbc::NTuple{3, Bool} = (false, false, false)    # boundary condition
    calc::AbstractCalculator = NullCalculator()
    cons::AbstractConstraint = NullConstraint()
    data::Dict{Any,JData{T}} = Dict{Any,JData{T}}()
