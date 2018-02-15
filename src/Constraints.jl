@@ -297,6 +297,6 @@ project!(at::AbstractAtoms, cons::VariableCell) = at
 # include("expcell.jl")
 
 # convenience function to return DoFs associated with a particular atom
-atomdofs(a::AbstractAtoms, I::Integer) = findin(constraint(a).ifree, 3*I-3:3*I)
+atomdofs(a::AbstractAtoms, I::Integer) = findin(constraint(a).ifree, 3*I-2:3*I)
 
 end # module
