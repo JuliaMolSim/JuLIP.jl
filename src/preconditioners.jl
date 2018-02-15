@@ -17,7 +17,7 @@ end
 import JuLIP.Potentials: precon
 
 import JuLIP: update!
-import Base: A_ldiv_B!, A_mul_B!, dot, *, \
+import Base: A_ldiv_B!, A_mul_B!, dot, *, \, size
 
 
 # ================ AMGPrecon =====================
@@ -103,6 +103,9 @@ dot(x, P::Union{DirectPrecon, AMGPrecon}, y) = dot(x, P * y)
 *(P::AMGPrecon, x::AbstractVector) = P.amg * x
 \(P::DirectPrecon, x::AbstractVector) = P.A \ x
 \(P::AMGPrecon, x::AbstractVector) = P.amg \ x
+
+Base.size(P::AMGPrecon) = size(P.amg.A)
+Base.size(P::DirectPrecon) = size(P.A)
 
 
 need_update(P::PairPrecon, at::AbstractAtoms) =
