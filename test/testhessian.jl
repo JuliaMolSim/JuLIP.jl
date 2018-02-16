@@ -1,3 +1,4 @@
+using Base.Test
 using JuLIP
 using JuLIP.Potentials
 using JuLIP.Testing
@@ -111,11 +112,12 @@ println("============================================")
 
 # setup a geometry
 at = bulk("Si", cubic=true) * 2
+rattle!(at, 0.02)
 set_pbc!(at, false)
 set_constraint!(at, FixedCell(at))
 sw = StillingerWeber()
 set_calculator!(at, sw)
 
 println("full finite-difference test")
-# fdtest( x -> energy(at, x), x -> gradient(at, x), dofs(at) )
-fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) )
+@test fdtest( x -> energy(at, x), x -> gradient(at, x), dofs(at) )
+@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) )
