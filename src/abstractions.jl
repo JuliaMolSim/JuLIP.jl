@@ -1,4 +1,3 @@
-export xyz
 
 # here we define and document the prototypes that are implemented
 
@@ -102,7 +101,7 @@ end
 
 # function defined primarily on AbstractAtoms
 export AbstractAtoms,
-      positions, get_positions, set_positions!, unsafe_positions,
+      positions, get_positions, set_positions!, unsafe_positions, xyz, 
       momenta, get_momenta, set_momenta!, unsafe_momenta,
       cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
       # set_data!, get_data, has_data,
