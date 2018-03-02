@@ -143,15 +143,12 @@ export Preconditioner, preconditioner
 "alias for `positions`"
 get_positions = positions
 
-"return a reference to positions"
-@protofun unsafe_positions(::AbstractAtoms)
+"Set positions of all atoms"
+@protofun set_positions!(::AbstractAtoms, ::Any)
 
-"Set positions of all atoms as a `3 x N` array."
-@protofun set_positions!(::AbstractAtoms, ::JVecs)
-
-# TODO: move allAbstractypes to the beginning of the module
 set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
 set_positions!(at::AbstractAtoms, x, y, z) = set_positions!(at, [x'; y'; z'])
+
 xyz(at::AbstractAtoms) = xyz(positions(at))
 
 
@@ -161,11 +158,8 @@ xyz(at::AbstractAtoms) = xyz(positions(at))
 "alias for `momenta`"
 get_momenta = momenta
 
-"return a reference to momenta"
-@protofun unsafe_momenta(::AbstractAtoms)
-
 "Set momenta of all atoms as a `3 x N` array."
-@protofun set_momenta!(::AbstractAtoms, ::JVecs)
+@protofun set_momenta!(::AbstractAtoms, ::Any)
 
 set_momenta!(at::AbstractAtoms, p::Matrix) = set_momenta!(at, vecs(p))
 
@@ -176,28 +170,29 @@ set_momenta!(at::AbstractAtoms, p::Matrix) = set_momenta!(at, vecs(p))
 get_cell = cell
 
 "set computational cell"
-@protofun set_cell!(::AbstractAtoms, ::Matrix)
+@protofun set_cell!(::AbstractAtoms, ::AbstractMatrix)
 
-"deformation matrix; `defm(at) = cell(at)'`"
-defm(at::AbstractAtoms) = JMat(cell(at)')
-
-"""
-`set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false) -> at`
-
-set the deformation matrix
-"""
-function set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false)
-   if updatepositions
-      A = JMatF(F * inv(defm(at)))
-      X = [A * x for x in unsafe_positions(at)]
-      set_positions!(at, X)
-   end
-   set_cell!(at, Matrix(F'))
-end
+# TODO: deprecate these!
+# "deformation matrix; `defm(at) = cell(at)'`"
+# defm(at::AbstractAtoms) = JMat(cell(at)')
+#
+# """
+# `set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false) -> at`
+#
+# set the deformation matrix
+# """
+# function set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false)
+#    if updatepositions
+#       A = JMatF(F * inv(defm(at)))
+#       X = [A * x for x in unsafe_positions(at)]
+#       set_positions!(at, X)
+#    end
+#    set_cell!(at, Matrix(F'))
+# end
 
 
 "set periodic boundary conditions"
-@protofun set_pbc!(::AbstractAtoms, ::NTuple{3,Bool})
+@protofun set_pbc!(::AbstractAtoms, ::Any)
 
 "get array (or tuple) determining which directions are periodic"
 @protofun pbc(::AbstractAtoms)
@@ -207,6 +202,7 @@ get_pbc = pbc
 
 "determines whether a cubic cell is used (i.e. cell is a diagonal matrix)"
 is_cubic(a::AbstractAtoms) = isdiag(cell(a))
+
 
 # """
 # `set_data!(at, name, value)`:
@@ -263,7 +259,7 @@ delete_atom! = deleteat!
 construct a suitable neighbourlist for this atoms object. `rcut` should
 be allowed to be either a scalar or a vector.
 """
-@protofun neighbourlist(a::AbstractAtoms, rcut::Float64)
+@protofun neighbourlist(a::AbstractAtoms, rcut::AbstractFloat)
 
 
 
@@ -333,6 +329,8 @@ type  NullCalculator <: AbstractCalculator end
 
 "Returns the cut-off radius of the potential."
 @protofun cutoff(::AbstractCalculator)
+
+cutoff(at::AbstractAtoms) = cutoff(calculator(at))
 
 """
 `energy`: can be called in various ways

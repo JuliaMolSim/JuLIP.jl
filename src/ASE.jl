@@ -20,7 +20,7 @@ module ASE
 
 # the functions to be implemented
 import JuLIP:
-      positions, set_positions!,  unsafe_positions,  # ✓
+      positions, set_positions!,
       cell, set_cell!,             # ✓
       pbc, set_pbc!,               # ✓
       # set_data!, get_data, has_data,  # ✓
@@ -36,7 +36,7 @@ import Base.length, Base.deleteat!, Base.write, Base.deepcopy,         # ✓
 # from arrayconversions:
 using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
       AbstractAtoms, AbstractConstraint, NullConstraint,
-      AbstractCalculator, NullCalculator, defm, maxdist, SVec,
+      AbstractCalculator, NullCalculator, maxdist, SVec,
       Dofs, set_dofs!
 
 # extra ASE functionality:
@@ -146,18 +146,18 @@ positions(at::ASEAtoms) = Matrix{Float64}(at.po[:positions])' |> vecs
 # end
 
 
-"""
-return a reference to the positions array stored in `at.po[:positions]`,
-manipulating this array will change the stored positions, hence use with care.
-Normally, `unsafe_positions` should only be used when it is certain that the
-data will only be *read* but not manipulated.
+# """
+# return a reference to the positions array stored in `at.po[:positions]`,
+# manipulating this array will change the stored positions, hence use with care.
+# Normally, `unsafe_positions` should only be used when it is certain that the
+# data will only be *read* but not manipulated.
+#
+# Note also the `unsafe_positions` will not check the storage order (row-major
+#    or columns-major) of the positions array in Python
+# """
+# unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
 
-Note also the `unsafe_positions` will not check the storage order (row-major
-   or columns-major) of the positions array in Python
-"""
-unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
-
-Base.getindex(at::ASEAtoms, idx::Integer) = (unsafe_positions(at))[idx]
+# Base.getindex(at::ASEAtoms, idx::Integer) = (unsafe_positions(at))[idx]
 
 function set_positions!(a::ASEAtoms, p::JVecsF)
    pold = positions(a)
@@ -449,7 +449,7 @@ energy(calc::AbstractASECalculator, at::ASEAtoms) = calc.po[:get_potential_energ
 
 function virial(calc::AbstractASECalculator, at::ASEAtoms)
     s = calc.po[:get_stress](at.po)
-    vol = det(defm(at))
+    vol = det(cell(at))
     if size(s) == (6,)
       # unpack stress from compressed Voigt vector form
       s11, s22, s33, s23, s13, s12 = s
@@ -547,7 +547,7 @@ read(filename::AbstractString) = ASEAtoms(ase_io.read(filename))
 `rnn(species)` : returns the nearest-neighbour distance for a given species
 """
 function rnn(species::AbstractString)
-   X = unsafe_positions(bulk(species) * 2)
+   X = positions(bulk(species) * 2)
    return minimum( norm(X[n]-X[m]) for n = 1:length(X) for m = n+1:length(X) )
 end
 
