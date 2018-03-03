@@ -1,6 +1,4 @@
 
-# the positions test is also a test for the py-reference thing
-
 
 using JuLIP
 using Base.Test
@@ -23,6 +21,14 @@ for n in [ (2,1,1), (2,2,1), (2,3,4), (2,3,1) ]
    @test (at * n) == (bulk(:Si, repeat = n)) == repeat(at, n)
 end
 
+println("   check correct repeat of momenta ...")
+at_ase = JuLIP.ASE.bulk("Si")
+P = rand(JVecF, 2)
+set_momenta!(at_ase, P)
+set_momenta!(at, P)
+@test Atoms(at_ase) == Atoms(at)
+@test Atoms(at_ase * (2,4,3)) == (at * (2,4,3))
+
 println("Check setindex! and getindex ...")
 at = bulk(:Si, cubic=true)
 x = at[2]
@@ -34,9 +40,21 @@ X = positions(at)
 @test X[2] == x
 
 
+println("set_positions ...")
+at = bulk(:Si, cubic=true) * 2
+X = positions(at)
+@test !(X === at.X)
+@test X == at.X
+X += 0.1 * rand(JVecF, length(at))
+@test X != at.X
+set_positions!(at, X)
+@test X == at.X
+@test !(X === at.X)
 
+# TODO: set_momenta, set_masses, set_numbers
 
-
+@test chemical_symbols(at) == fill(:Si, 64)
+@test chemical_symbols(bulk(:W)) == [:W]
 
 
 

@@ -15,14 +15,14 @@ include("abstractions.jl")
 # implementation of some key functionality via ASE
 include("ASE.jl")
 
-# include("chemistry.jl")
+include("chemistry.jl")
 
 # the main atoms type
 include("atoms.jl")
 
 
-# # a few auxiliary routines
-# include("utils.jl")
+# a few auxiliary routines
+include("utils.jl")
 
 # # only try to import Visualise, it is not needed for the rest to work.
 # try
