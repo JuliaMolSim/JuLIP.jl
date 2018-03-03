@@ -131,7 +131,7 @@ function set_cell!(at::Atoms{T}, C::AbstractMatrix) where T
    at.cell = JMat{T}(C)
    return at
 end
-function set_pbc(at::Atoms, p)
+function set_pbc!(at::Atoms, p::Union{AbstractVector, Tuple})
    at.pbc = JVec{Bool}(p...)
    return at
 end
@@ -198,14 +198,15 @@ end
 cell_vecs(at::Atoms) = at.cell[1,:], at.cell[2,:], at.cell[3,:]
 
 
-function neighbourlist(at::Atoms{T}, cutoff::T; recompute=false) where T
+function neighbourlist(at::Atoms{T}, cutoff::T; recompute=false) where T <: AbstractFloat
    # TODO: re-design this from scratch . . .
-   if !has_data(at, (:nlist, cutoff)) || recompute
-      set_transient!(at, (:nlist, cutoff),
-            CellList(positions(at), cutoff, cell(at), pbc(at))
-         )
-   end
-   return get_data(at, (:nlist, cutoff))
+   CellList(positions(at), cutoff, cell(at), pbc(at))
+   # if !has_data(at, (:nlist, cutoff)) || recompute
+   #    set_transient!(at, (:nlist, cutoff),
+   #          CellList(positions(at), cutoff, cell(at), pbc(at))
+   #       )
+   # end
+   # return get_data(at, (:nlist, cutoff))
 end
 
 neighbourlist(at::Atoms) = neighbourlist(at, cutoff(at))
@@ -357,6 +358,7 @@ import Base.*
 
 # ------------------ Conversion from ASE Objects -----------------
 
+# should this move to ASE?
 Atoms(at_ase::ASE.ASEAtoms) =
    Atoms( positions(at_ase),
           momenta(at_ase),
@@ -367,5 +369,6 @@ Atoms(at_ase::ASE.ASEAtoms) =
           calculator(at_ase),
           constraint(at_ase) )
 
+# should this move to utils? chemistry?
 bulk(s::Symbol; pbc = (true, true, true), cubic=false, repeat = (1,1,1)) =
       Atoms(set_pbc!(ASE.bulk(string(s), cubic=cubic), pbc) * repeat)

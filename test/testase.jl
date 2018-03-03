@@ -133,3 +133,23 @@ write(fname, at)
 at2 = read(fname)
 @assert positions(at) == positions(at2)
 rm(fname)
+
+
+
+# IMPORTED FROM TESTPOTENTIALS:
+
+# # [2] ASE's EMT calculator
+# emt = JuLIP.ASE.EMTCalculator()
+# at = rattle!( set_pbc!( bulk("Cu", cubic=true) * 2, (true,false,false) ), 0.1 )
+# set_calculator!(at, emt)
+# if notCI
+#    push!(calculators, (emt, at))
+# end
+
+# println("--------------------------------------------------")
+# println(" EMT Consistency test: ")
+# println("--------------------------------------------------")
+# println(" E_ase - E_jl = ", energy(at) - energy(at2))
+# println(" |Frc_ase - Frc_jl = ", maxnorm(forces(at) - forces(at2)))
+# println("--------------------------------------------------")
+# @test abs(energy(at) - energy(at2)) < 1e-10

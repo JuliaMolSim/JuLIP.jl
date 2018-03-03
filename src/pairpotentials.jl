@@ -2,7 +2,7 @@
 # part of the module JuLIP.Potentials
 
 using JuLIP: zerovecs, JVecsF, JVecF, JMatF
-using JuLIP.ASE.MatSciPy: NeighbourList
+using NeighbourLists
 
 export ZeroPairPotential, PairSitePotential,
          LennardJones, lennardjones,
@@ -10,7 +10,7 @@ export ZeroPairPotential, PairSitePotential,
 
 function site_energies(pp::PairPotential, at::AbstractAtoms)
    Es = zeros(length(at))
-   for (i,_2,r,_3,_4) in bonds(at, cutoff(pp))
+   for (i,_2,r,_3) in pairs(at, cutoff(pp))
       Es[i] += 0.5 * pp(r)
    end
    return Es
@@ -33,7 +33,7 @@ end
 
 function energy(V::PairPotential, at::AbstractAtoms)
    E = 0.0
-   for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(V))
+   for (_₁, _₂, r, _₃) in pairs(at, cutoff(V))
       E += V(r)
    end
    return 0.5 * E
@@ -49,7 +49,7 @@ end
 
 function forces(V::PairPotential, at::AbstractAtoms)
    dE = zerovecs(length(at))
-   for (i,j,r,R,_) in bonds(at, cutoff(V))
+   for (i,j,r,R) in pairs(at, cutoff(V))
       dE[i] += @GRAD V(r, R)
    end
    return dE
@@ -68,7 +68,7 @@ end
 # TODO: rewrite using generator once bug is fixed (???or maybe decide not to bother???)
 function virial(pp::PairPotential, at::AbstractAtoms)
    S = zero(JMatF)
-   for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
+   for (_₁, _₂, r, R) in pairs(at, cutoff(pp))
       S -= 0.5 * grad(pp, r, R) * R'  # (((@D pp(r)) / r) * R) * R'
    end
    return S
@@ -86,8 +86,8 @@ end
 function hessian_pos(pp::PairPotential, at::AbstractAtoms)
    nlist = neighbourlist(at, cutoff(pp))
    I, J, Z = Int[], Int[], JMatF[]
-   for C in (I, J, Z); sizehint!(C, 2*length(nlist)); end
-   for (i, j, r, R, _) in bonds(nlist)
+   for C in (I, J, Z); sizehint!(C, 2*npairs(nlist)); end
+   for (i, j, r, R) in pairs(nlist)
       h = 0.5 * hess(pp, r, R)
       append!(I, (i,  i,  j, j))
       append!(J, (i,  j,  i, j))
