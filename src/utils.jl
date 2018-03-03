@@ -110,13 +110,15 @@ function dist{T}(at::AbstractAtoms,
                  X1::Vector{JVec{T}}, X2::Vector{JVec{T}},
                  p = Inf)
    @assert length(X1) == length(X2)
-   F = defm(at)
+   F = cell(at)'
    Finv = inv(F)
    bcrem = [ p ? 1.0 : Inf for p in pbc(at) ]
-   d = [ norm(_project_pbc_(F, Finv, bcrem, x1 - x2))  # - _project_pbc_(F, Finv, bcrem, x2))
+   d = [ norm(_project_pbc_(F, Finv, bcrem, x1 - x2))
          for (x1, x2) in zip(X1, X2) ]
    return norm(d, p)
 end
+
+dist(at::AbstractAtoms, X::Vector) = dist(at, positions(at), X)
 
 function dist(at1::AbstractAtoms, at2::AbstractAtoms, p = Inf)
    @assert vecnorm(cell(at1) - cell(at2), Inf) < 1e-14
@@ -133,5 +135,5 @@ end
 """
 simple way to construct an atoms object from just positions
 """
-Atoms(s::Symbol, X::Vector{JVecF}) = ASEAtoms("$(s)$(length(X))", X)
+Atoms(s::Symbol, X::Vector{JVecF}) = Atoms(ASEAtoms("$(s)$(length(X))", X))
 Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))

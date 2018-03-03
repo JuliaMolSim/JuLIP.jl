@@ -26,7 +26,8 @@
 
 export Atoms,
        bulk,
-       cell_vecs
+       cell_vecs,
+       chemical_symbols
 
 
 """
@@ -102,6 +103,8 @@ cell(at::Atoms) = at.cell
 pbc(at::Atoms) = at.pbc
 calculator(at::Atoms) = at.calc
 constraint(at::Atoms) = at.cons
+
+chemical_symbols(at::Atoms) = Chemistry.chemical_symbol.(at.Z)
 
 # ----- setters
 
@@ -278,7 +281,7 @@ increment the change counter in all stored data and delete the
 expired ones.
 """
 function update_data!(at::Atoms, r::Real)
-   for (key, t) in a.data
+   for (key, t) in at.data
       t.accum_change += r
       if t.accum_change >= t.max_change
          delete!(at.data, key)

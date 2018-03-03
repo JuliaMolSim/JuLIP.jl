@@ -124,17 +124,17 @@ elements_table = [
 
 const _symbols = Vector{Symbol}(elements_table[:, 2])
 const _names = Vector{String}(elements_table[:, 3])
-const _masses = Vector{Float64}(elements[:, 4])
+const _masses = Vector{Float64}(elements_table[:, 4])
 const _numbers = Dict{Symbol, Int}()
 
-for (n, sym) in enumerate(symbols)
+for (n, sym) in enumerate(_symbols)
    _numbers[sym] = n
 end
 
 
-atomic_number(sym::Symbol) = _numbers[sym]]
+atomic_number(sym::Symbol) = _numbers[sym]
 
-chemical_symbol(z::Integer) = _symbols[n]
+chemical_symbol(z::Integer) = _symbols[z]
 
 atomic_mass(z::Integer) = _masses[n]
 atomic_mass(sym::Symbol) = atomic_mass(atomic_number(sym))
