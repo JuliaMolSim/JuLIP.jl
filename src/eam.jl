@@ -62,6 +62,18 @@ function evaluate_d(V::EAM, r, R)
    return [ ((0.5 * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S  for (s, S) in zip(r, R) ]
 end
 
+
+function evaluate_d!(out, V::EAM, rs, Rs)
+   if length(rs) == 0; return out; end
+   ρ̄ = sum(V.ρ(s) for s in rs)
+   dF = @D V.F(ρ̄)
+   for (i, (r, R)) in enumerate(zip(rs, Rs))
+      out[i] += ((0.5 * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
+   end
+   return out
+end
+
+
 # TODO: which of the two `evaluate_dd` and `hess` should we be using?
 #       probably these two should be equivalent
 evaluate_dd(V::EAM, r, R) = hess(V, r, R)

@@ -12,7 +12,7 @@ import Optim
 import LineSearches
 
 using Optim: OnceDifferentiable, optimize, ConjugateGradient, LBFGS
-# using LineSearches: BackTracking
+using LineSearches: BackTracking
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
             dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
@@ -21,6 +21,11 @@ using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
 using JuLIP.Potentials: SitePotential
 using JuLIP.Preconditioners: Exp
 using JuLIP.Constraints: FixedCell
+
+
+# TODO: move to Optim 0.11, and exploit the new alphaguess functionality of
+#       Linesearches. This gives awful error messages.
+
 
 
 export minimise!
@@ -100,16 +105,16 @@ function minimise!(at::AbstractAtoms;
    # choose the optimisation method Optim.jl
    if method == :auto
       if isa(precond, Identity)
-         optimiser = Optim.ConjugateGradient(linesearch = LineSearches.BackTracking(order=2))
+         optimiser = ConjugateGradient(linesearch = BackTracking(order=2))
       else
-         optimiser = Optim.ConjugateGradient( P = precond,
+         optimiser = ConjugateGradient( P = precond,
                            precondprep = (P, x) -> update!(P, at, x),
-                           linesearch = LineSearches.BackTracking(order=2) )
+                           linesearch = BackTracking(order=2) )
       end
    elseif method == :lbfgs
-      optimiser = Optim.LBFGS( P = precond, extrapolate=true,
+      optimiser = LBFGS( P = precond, extrapolate=true,
                         precondprep = (P, x) -> update!(P, at, x),
-                        linesearch = LineSearches.BackTracking(order=2) )
+                        linesearch = BackTracking(order=2) )
    else
       error("JulIP.Solve.minimise!: unknown `method` option")
    end

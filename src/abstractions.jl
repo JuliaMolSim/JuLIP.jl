@@ -1,4 +1,3 @@
-export xyz
 
 # here we define and document the prototypes that are implemented
 
@@ -47,7 +46,7 @@ Preconditioners need to implement the following three functions:
 * `A_mul_B!(out::Dof, P, x::Dof)`
 * `A_ldiv_B!(out::Dof, P, f::Dof)`
 """
-abstract type Preconditioner <: AbstractMatrix{Float64} end
+abstract type Preconditioner end # <: AbstractMatrix{Float64} end
 
 
 

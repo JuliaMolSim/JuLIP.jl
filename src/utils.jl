@@ -1,7 +1,7 @@
 
 export rattle!, r_sum, r_dot,
       swapxy!, swapxz!, swapyz!,
-      dist, rnn
+      dist, rnn, displacement
 
 
 ############################################################
@@ -131,6 +131,37 @@ function _project_pbc_(F, Finv, bcrem, x)
    λp = JVecF(rem(λ[1], bcrem[1]), rem(λ[2], bcrem[2]), rem(λ[3], bcrem[3]))
    return F * λp     # convert back to real coordinates
 end
+
+
+function _project_coord_min_(λ, p)
+   if !p
+      return λ
+   end
+   λ = mod(λ, 1.0)   # project to cell
+   if λ > 0.5        # periodic image with minimal length
+      λ = 1.0 - λ
+   end
+   return λ
+end
+
+function _project_pbc_min_(F, Finv, p, x)
+   λ = Finv * x     # convex coordinates
+   # convex coords projected to the unit
+   λp = _project_coord_min_.(λ, JVec{Bool}(p...))
+   return F * λp     # convert back to real coordinates
+end
+
+
+function displacement{T}(at::AbstractAtoms, X1::Vector{JVec{T}}, X2::Vector{JVec{T}})
+   @assert length(X1) == length(X2)
+   F = defm(at)
+   Finv = inv(F)
+   p = pbc(at)
+   U = [ _project_pbc_min_(F, Finv, p, x2-x1)
+         for (x1, x2) in zip(X1, X2) ]
+   return U
+end
+
 
 """
 simple way to construct an atoms object from just positions
