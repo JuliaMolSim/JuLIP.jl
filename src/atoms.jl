@@ -1,16 +1,32 @@
-
 # TODO:
-#       defm, set_defm!   >>> decide what to do about those
-#       Base.read, Base.write   >>> rename as read_xyz, write_xyz
-
-
-
-using Parameters
+# * defm, set_defm!   >>> decide what to do about those
+# * Base.read, Base.write   >>> rename as read_xyz, write_xyz
+# * if we make Atoms immutable, then we could make the calculator
+#   etc a type parameter, but it has the disadvantage that we would need
+#   to create a new object every time we change it significantly.
+#   maybe a good thing.
+#
+# * `JData` has a hard-coded floating point type. this seems necessary
+#       because otherwise the kw-constructor doesn't work. probably this is
+#       not important, but could be fixed at some point (low priority)
+#
+# * the kwconstructor only allows Float64, this is a bad shortcoming that
+#   needs to be fixed I think
+#
+# * `Conversion from ASE Objects` should be moved into an ASE sub-module
+#
+# * decide whether == should check equality of data
+#
+# * implement a softer `isequal` which checks for "physical" equality, i.e.,
+#   it accounts for PBC, ignores any data, and allows for a controllable
+#   error in the positions, momenta and masses
+#
+# * add fields for charges and magnetic moments?
+#
 
 export Atoms,
        bulk,
        cell_vecs
-
 
 
 """
@@ -19,9 +35,9 @@ export Atoms,
 some data which needs to be updated if the configuration (positions only!) has
 changed too much.
 """
-mutable struct JData{T <: AbstractFloat}
-   max_change::T     # how much X may change before recomputing
-   accum_change::T   # how much has it changed already
+mutable struct JData
+   max_change::Float64     # how much X may change before recomputing
+   accum_change::Float64   # how much has it changed already
    data::Any
 end
 
@@ -55,18 +71,21 @@ TODO
 * `get_data`, `set_data!`
 """
 @with_kw mutable struct Atoms{T <: AbstractFloat, TI <: Integer} <: AbstractAtoms
-   X::JVecs{T} = JVecs{T}[]       # positions
-   P::JVecs{T} = JVecs{T}[]       # momenta (or velocities?)
-   M::Vector{T} = T[]             # masses
-   Z::Vector{TI} = TI[]           # atomic numbers
-   cell::JMat{T} = zero(JMat{T})                   # cell
+   X::Vector{JVec{T}} = JVec{Float64}[]       # positions
+   P::Vector{JVec{T}} = JVec{Float64}[]       # momenta (or velocities?)
+   M::Vector{T} = Float64[]             # masses
+   Z::Vector{TI} = Int[]           # atomic numbers
+   cell::JMat{T} = zero(JMat{Float64})                   # cell
    pbc::JVec{Bool} = JVec(false, false, false)     # boundary condition
    calc::AbstractCalculator = NullCalculator()
    cons::AbstractConstraint = NullConstraint()
-   data::Dict{Any,JData{T}} = Dict{Any,JData{T}}()
+   data::Dict{Any,JData} = Dict{Any,JData}()
 end
 
-Atoms() = Atoms{Float64}()
+
+Atoms(X, P, M, Z, cell, pbc, calc=NullCalculator(),
+      cons = NullConstraint(), data = Dict{Any,JData}()) =
+   Atoms(X, P, M, Z, cell, pbc, calc, cons, data)
 
 # derived properties
 length(at::Atoms) = length(at.X)
@@ -122,13 +141,50 @@ function set_constraint!(at::Atoms, cons::AbstractConstraint)
    return at
 end
 
+# --------------- equality tests -------------------
+
+# we need to sort vectors of vectors to test equality of configurations
+# note this is a strict notion of equality
+function Base.isless(x::JVec, y::JVec)
+   if x[1] < y[1]
+      return true
+   elseif x[1] == y[1]
+      if x[2] < y[2]
+         return true
+      elseif x[2] == y[2]
+         if x[3] < y[3]
+            return true
+         end
+      end
+   end
+   return false
+end
+
+import Base.==
+function =={T,TI}(at1::Atoms{T,TI}, at2::Atoms{T,TI})
+   if length(at1) != length(at2)
+      return false
+   end
+   p1 = sortperm(at1.X)
+   p2 = sortperm(at2.X)
+   return (at1.X[p1] == at2.X[p2]) &&
+          (at1.P[p1] == at2.P[p2]) &&
+          (at1.M[p1] == at2.M[p2]) &&
+          (at1.Z[p1] == at2.Z[p2]) &&
+          (at1.cell == at2.cell) &&
+          (at1.pbc == at2.pbc) &&
+          (at1.calc == at2.calc) &&
+          (at1.cons == at2.cons) &&
+          (at1.data == at2.data)
+end
+
 
 # --------------- some aliases for easier / direct access --------------
 #                 and some access not covered above
 
 # access positions by direct indexing
 Base.getindex(at::Atoms, i::Integer) = at.X[i]
-function Base.setindex!(at::Atoms{T}, i::Integer, x::JVec) where T <: AbstractFloat
+function Base.setindex!(at::Atoms{T}, x::JVec, i::Integer) where T <: AbstractFloat
    at.X[i] = JVec{T}(x)
    return at.X[i]
 end
@@ -137,7 +193,6 @@ end
 `cell_vecs(at::Atoms)` : return the three cell vectors
 """
 cell_vecs(at::Atoms) = at.cell[1,:], at.cell[2,:], at.cell[3,:]
-
 
 
 function neighbourlist(at::Atoms{T}, cutoff::T; recompute=false) where T
@@ -271,16 +326,30 @@ The same can be achieved by `*`:
 at = bulk("C") * (3, 2, 4)
 ```
 """
-function repeat(at::Atoms, n::NTuple{3})
-   C = cell(at)
+function Base.repeat(at::Atoms, n::NTuple{3})
+   C0 = cell(at)
    c1, c2, c3 = cell_vecs(at)
-
+   X0, P0, M0, Z0 = positions(at), momenta(at), masses(at), numbers(at)
+   nrep = n[1] * n[2] * n[3]
+   nat0 = length(at)
+   X = Base.repeat(X0, outer=nrep)
+   P = Base.repeat(P0, outer=nrep)
+   M = Base.repeat(M0, outer=nrep)
+   Z = Base.repeat(Z0, outer=nrep)
+   i = 0
+   for a in CartesianRange( CartesianIndex(1,1,1), CartesianIndex(n...) )
+      b = c1 * (a[1]-1) + c2 * (a[2]-1) + c3 * (a[3]-1)
+      X[i+1:i+nat0] = [b+x for x in X0]
+      i += nat0
+   end
+   return Atoms(X, P, M, Z, JMat(diagm([n...]) * cell(at)), pbc(at))
 end
 
-repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
+Base.repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
 
-Base.*(at::Atoms, n) = repeat(at, n)
-Base.*(n, at::Atoms) = repeat(at, n)
+import Base.*
+*(at::Atoms, n) = repeat(at, n)
+*(n, at::Atoms) = repeat(at, n)
 
 
 # ------------------ Conversion from ASE Objects -----------------
@@ -289,13 +358,11 @@ Atoms(at_ase::ASE.ASEAtoms) =
    Atoms( positions(at_ase),
           momenta(at_ase),
           ASE.masses(at_ase),
-          Int[],
-          [Symbol(s) for s in ASE.chemical_symbols(at_ase)],
+          ASE.atomic_numbers(at_ase),
           JMat{Float64}(cell(at_ase)),
           pbc(at_ase),
           calculator(at_ase),
-          constraint(at_ase),
-          Dict{Any,JData{Float64}}() )
+          constraint(at_ase) )
 
-bulk(s::Symbol, pbc = (true, true, true), cubic=false, repeat = (1,1,1)) =
+bulk(s::Symbol; pbc = (true, true, true), cubic=false, repeat = (1,1,1)) =
       Atoms(set_pbc!(ASE.bulk(string(s), cubic=cubic), pbc) * repeat)

@@ -34,7 +34,7 @@ import Base.length, Base.deleteat!, Base.write, Base.deepcopy,         # ✓
       Base.read, Base.write
 
 # from arrayconversions:
-using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF, pyarrayref,
+using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF,
       AbstractAtoms, AbstractConstraint, NullConstraint,
       AbstractCalculator, NullCalculator, maxdist, SVec,
       Dofs, set_dofs!
@@ -46,7 +46,7 @@ export ASEAtoms,      # ✓
       extend!, get_info, set_info!, get_array, set_array!, has_array, has_info,
       get_transient, set_transient!, has_transient,
       velocities, set_velocities!, masses, set_masses!,
-      static_neighbourlist
+      static_neighbourlist, atomic_numbers
 
 using PyCall
 
@@ -136,28 +136,6 @@ end
 
 positions(at::ASEAtoms) = Matrix{Float64}(at.po[:positions])' |> vecs
 
-# function positions(at::ASEAtoms)
-#     a = PyArray(at.po["positions"])
-#     if a.c_contig
-#       return copy(pyarrayref(at.po["positions"])) |> vecs
-#     else
-#       return transpose(at.po[:get_positions]()) |> vecs
-#     end
-# end
-
-
-# """
-# return a reference to the positions array stored in `at.po[:positions]`,
-# manipulating this array will change the stored positions, hence use with care.
-# Normally, `unsafe_positions` should only be used when it is certain that the
-# data will only be *read* but not manipulated.
-#
-# Note also the `unsafe_positions` will not check the storage order (row-major
-#    or columns-major) of the positions array in Python
-# """
-# unsafe_positions(at::ASEAtoms) = pyarrayref(at.po["positions"]) |> vecs
-
-# Base.getindex(at::ASEAtoms, idx::Integer) = (unsafe_positions(at))[idx]
 
 function set_positions!(a::ASEAtoms, p::JVecsF)
    pold = positions(a)
@@ -328,6 +306,8 @@ chemical_symbols(at::ASEAtoms) = pyobject(at)[:get_chemical_symbols]()
 "set the chemical symbols"
 set_chemical_symbols!{T <: AbstractString}(at::ASEAtoms, s::Vector{T}) =
    pyobject(at)[:set_chemical_symbols](s)
+"return vector of atomic numbers"
+atomic_numbers(at::ASEAtoms) = pyobject(at)[:get_atomic_numbers]()
 
 
 # ========================================================================

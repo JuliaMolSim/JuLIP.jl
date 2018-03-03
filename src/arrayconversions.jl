@@ -20,7 +20,9 @@ const JVec{T} = SVec{3,T}
 const JVecF = JVec{Float64}
 const JVecI = JVec{Int}
 
-Base.zero{T}(::Type{JVec{T}}) = JVec([zero(T) for i=1:3])
+# Base.zero{T}(::Type{JVec{T}}) = JVec([zero(T) for i=1:3])
+
+# which of these types shall we deprecate? 
 
 "`JVecs{T}` : List of 3-dimensional immutable vectors"
 const JVecs{T} = Vector{JVec{T}}

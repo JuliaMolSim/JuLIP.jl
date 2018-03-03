@@ -22,7 +22,7 @@ using PyCall
 # @pyimport matscipy.neighbours as matscipy_neighbours
 matscipy_neighbours = pyimport("matscipy.neighbours")
 
-using JuLIP:  AbstractNeighbourList, cutoff, JVecs, vecs, pyarrayref, cell
+using JuLIP:  AbstractNeighbourList, cutoff, JVecs, vecs, cell
 using JuLIP.ASE: ASEAtoms, pyobject
 
 import JuLIP: sites, bonds
@@ -81,7 +81,7 @@ function __neighbour_list__(atoms::ASEAtoms,
                      NTuple{length(quantities), PyArray}, quantities,
                      pyobject(atoms), cutoff)
    # create Julia arrays referencing the same memory
-   jresults = [pyarrayref(r) for r in results]
+   jresults = [Array(r) for r in results]
    # fix the arrays for later use
    for (idx, quantity) in enumerate(quantities)
       # convert indices to 1-based (Julia is 1-based, python 0-based)

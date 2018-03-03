@@ -1,20 +1,45 @@
 
 # the positions test is also a test for the py-reference thing
 
+
 using JuLIP
+using Base.Test
 
+
+println("check that `bulk` evaluates ok...")
 at = bulk(:Si)
+@test typeof(at) == Atoms{Float64, Int64}
 
-positions(at)
-set_positions!(at, rand(JVecF, 2))
+println("... and that we can repeat it.")
+@test length(at * (1,2,3)) == 6 * length(at)
 
-0
-# println("check the positions-as-ref thing (and the pyref)")
-# at = bulk("Al") * (2,3,2)
-# X = unsafe_positions(at)
-# X[1] = JVec(rand(3))
-# @test X == positions(at)
-#
+println("check deepcopy and == ...")
+at = bulk(:Si)
+at1 = deepcopy(at)
+@test at == at1
+
+println("Check correct implementation of `repeat` and `*` ...")
+for n in [ (2,1,1), (2,2,1), (2,3,4), (2,3,1) ]
+   @test (at * n) == (bulk(:Si, repeat = n)) == repeat(at, n)
+end
+
+println("Check setindex! and getindex ...")
+at = bulk(:Si, cubic=true)
+x = at[2]
+@test x == JVec(1.3575, 1.3575, 1.3575)
+x += 0.1
+at[2] = x
+X = positions(at)
+@test !(X === at.X)
+@test X[2] == x
+
+
+
+
+
+
+
+
 # println("test set_positions!")
 # Y = copy(X)
 # Y[3] = JVec(rand(3))
