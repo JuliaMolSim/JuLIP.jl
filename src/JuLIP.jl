@@ -3,7 +3,7 @@
 
 module JuLIP
 
-using Reexport, NeighbourLists, StaticArrays
+using Reexport, NeighbourLists, StaticArrays, Parameters
 
 
 # quickly switch between Matrices and Vectors of Vecs
@@ -15,9 +15,7 @@ include("abstractions.jl")
 # implementation of some key functionality via ASE
 include("ASE.jl")
 
-
 # include("chemistry.jl")
-
 
 # the main atoms type
 include("atoms.jl")

@@ -1,7 +1,7 @@
 
 using JuLIP
 using Base.Test
-using JuLIP.Testing
+# using JuLIP.Testing
 
 verbose=true
 isCI = haskey(ENV, "CI")
@@ -9,7 +9,7 @@ notCI = !isCI
 eam_W4 = nothing
 
 julip_tests = [
-   ("testatoms.jl", "Atoms"),
+   ("test_atoms.jl", "Atoms"),
    # ("testaux.jl", "Miscellaneous"),
    # ("testase.jl", "ASE"),
    # ("testanalyticpotential.jl", "Analytic Potential"),
@@ -26,19 +26,19 @@ end
 
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
-# ===== some prototype potentials ======
-print("Loading some interatomic potentials . .")
-data = joinpath(dirname(@__FILE__), "..", "data") * "/"
-eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
-print(" .")
-eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
-print(" .")
-try
-   eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
-catch
-   eam_W4 = nothing
-end
-println(" done.")
+# # ===== some prototype potentials ======
+# print("Loading some interatomic potentials . .")
+# data = joinpath(dirname(@__FILE__), "..", "data") * "/"
+# eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
+# print(" .")
+# eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
+# print(" .")
+# try
+#    eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
+# catch
+#    eam_W4 = nothing
+# end
+# println(" done.")
 
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 println("  Starting JuLIP Tests")
