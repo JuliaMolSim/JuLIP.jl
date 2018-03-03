@@ -20,10 +20,11 @@ TODO: write documentation
 module Potentials
 
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
-      bonds, sites,
       JVec, JVecs, mat, vec, JMat, JVecF, SVec, vecs, SMat,
       positions, set_positions!
 using StaticArrays: @SMatrix
+
+using NeighbourLists
 
 import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian, site_energies
 
@@ -53,28 +54,32 @@ abstract type SitePotential <: Potential end
 
 include("potentials_base.jl")
 # * @pot, @D, @DD, @GRAD and related things
+# TODO: move this to a separate package???
+
+NeighbourLists.sites(at::AbstractAtoms, rcut) = sites(neighbourlist(at, rcut))
+NeighbourLists.pairs(at::AbstractAtoms, rcut) = pairs(neighbourlist(at, rcut))
 
 
 # Implementation of a generic site potential
 # ================================================
 
-site_energies(pot::SitePotential, at::AbstractAtoms) =
-   Float64[ pot(r, R) for (_₁, _₂, r, R, _₃) in sites(at, cutoff(pot)) ]
+site_energies(V::SitePotential, at::AbstractAtoms) =
+   Float64[ V(r, R) for (_₁, _₂, r, R) in sites(at, cutoff(V)) ]
 
-energy(pot::SitePotential, at::AbstractAtoms) = sum_kbn(site_energies(pot, at))
+energy(V::SitePotential, at::AbstractAtoms) = sum_kbn(site_energies(V, at))
 
-evaluate(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate(pot, norm.(R), R)
+evaluate(V::SitePotential, R::AbstractVector{JVecF}) = evaluate(V, norm.(R), R)
 
-evaluate_d(pot::SitePotential, R::AbstractVector{JVecF}) = evaluate_d(pot, norm.(R), R)
+evaluate_d(V::SitePotential, R::AbstractVector{JVecF}) = evaluate_d(V, norm.(R), R)
 
-function forces(pot::SitePotential, at::AbstractAtoms)
+function forces(V::SitePotential, at::AbstractAtoms)
    frc = zerovecs(length(at))
-   for (i, j, r, R, _) in sites(at, cutoff(pot))
-      dpot = @D pot(r, R)
+   for (i, j, r, R) in sites(at, cutoff(V))
+      dV = @D V(r, R)
       for a = 1:length(j)
-         frc[j[a]] -= dpot[a]
+         frc[j[a]] -= dV[a]
       end
-      frc[i] += sum(dpot)
+      frc[i] += sum(dV)
    end
    return frc
 end
@@ -83,29 +88,29 @@ site_virial(dV, R) = - sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
 
 virial(V::SitePotential, at::AbstractAtoms) =
       sum(  site_virial((@D V(r, R)), R)
-            for (_₁, _₂, r, R, _₃) in sites(at, cutoff(V))  )
+            for (_₁, _₂, r, R) in sites(at, cutoff(V))  )
 
 
 # TODO: partial_energy and partial_energy_d are not tested properly
 
 function partial_energy(V::SitePotential, at::AbstractAtoms, Idom)
    E = 0.0
-   for (i, j, r, R, S) in sites(at, cutoff(V))
-      if i ∈ Idom
-         E += V(r, R)
-      end
+   nlist = neighbourlist(at, cutoff(V))
+   for i in Idom
+      j, r, R = site(nlist, i)
+      E += V(r, R)
    end
    return E
 end
 
 function partial_energy_d(V::SitePotential, at::AbstractAtoms, Idom)
    F = zeros(JVecF, length(at))
-   for (i, j, r, R, S) in sites(at, cutoff(V))
-      if i ∈ Idom
-         dV = @D V(R)
-         F[j] += dV
-         F[i] -= sum(dV)
-      end
+   nlist = neighbourlist(at, cutoff(V))
+   for i in Idom
+      j, r, R = site(nlist, i)
+      dV = @D V(R)
+      F[j] += dV
+      F[i] -= sum(dV)
    end
    return F
 end
@@ -265,8 +270,8 @@ function hessian_pos(V::SitePotential, at::AbstractAtoms)
    nlist = neighbourlist(at, cutoff(V))
    I, J, Z = Int[], Int[], JMatF[]
    # a crude size hint
-   for C in (I, J, Z); sizehint!(C, 24*length(nlist)); end
-   for (i, neigs, r, R, _) in sites(nlist)
+   for C in (I, J, Z); sizehint!(C, 24*npairs(nlist)); end
+   for (i, neigs, r, R) in sites(nlist)
       nneigs = length(neigs)
       # [1] the "off-centre" component of the hessian:
       # h[a, b] = ∂_{Ra} ∂_{Rb} V     (this is a nneigs x nneigs block-matrix)

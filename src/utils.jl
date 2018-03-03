@@ -1,7 +1,7 @@
 
 export rattle!, r_sum, r_dot,
       swapxy!, swapxz!, swapyz!,
-      dist
+      dist, rnn
 
 
 ############################################################

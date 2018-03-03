@@ -1,5 +1,7 @@
 export EAM
 
+using NeighbourLists
+
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
 
@@ -214,16 +216,15 @@ end
 # ================= Efficient implementation of EAM forces =======================
 
 import JuLIP: energy, forces
-using JuLIP.ASE.MatSciPy: NeighbourList
 
 # the main justification for these codes is that vectorised evaluation of the
 # splines gives a factor 2 speed-up, probably this is primarily due to
 # the function call overhead (maybe also allocations)
 # In fact, this optimised codes gives a factor 3 speed-up for energy and factor 7
-# for forces 
+# for forces
 # TODO: need a proper julia spline library
 
-function _rhobar(V::EAM, at::ASEAtoms, nlist::NeighbourList)
+function _rhobar(V::EAM, at::ASEAtoms, nlist::CellList)
    ρ = V.ρ(nlist.r)
    ρ̄ = zeros(length(at))
    for n = 1:length(nlist)

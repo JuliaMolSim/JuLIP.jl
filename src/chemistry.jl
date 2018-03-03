@@ -1,7 +1,18 @@
 
 module Chemistry
 
+export atomic_number,
+       chemical_symbol,
+       atomic_mass,
+       element_name,
+       rnn
 
+# TODO: what else should be in here?
+#    - crystal structure(s)
+#    - unit cell
+#    -
+
+# TODO: Weight should be atomic mass - probably these are incorrect units
 # Z	Symbol	Name	Weight
 elements_table = [
 1	   :H	   "Hydrogen"	     1.00794
@@ -119,8 +130,44 @@ elements_table = [
 113	:Uut	"Ununtrium"	      284
 114	:Uuq	"Ununquadium"	    289
 115	:Uup	"Ununpentium"	    288
-116	:Uuh	"Ununhexium"	     292]
+116	:Uuh	"Ununhexium"	     292 ]
 
+# TODO: the following data is just imported from ASE, this is quite the hack,
+# it would be much better to have a script that automatically imports all
+# interesting data, including crystal structures, etc from ASE and
+# make it available in a databse, either file, or Julia code.
+# _rnn = Float64[]
+# for n = 1:116
+#    r0 = -1.0
+#    try
+#       r0 = rnn(JuLIP.Chemistry.chemical_symbol(n))
+#    catch
+#    end
+#    push!(_rnn, r0)
+# end
+# # the rnn function used here is
+# """
+# `rnn(species)` : returns the nearest-neighbour distance for a given species
+# """
+# function rnn(species::Symbol)
+#    X = positions(bulk(species) * 2)
+#    return minimum( norm(X[n]-X[m]) for n = 1:length(X) for m = n+1:length(X) )
+# end
+#
+# rnn(s::AbstractString) = rnn(Symbol(s))
+#
+const _rnn = [-1.0, -1.0, 3.02243, 2.22873, -1.0, 1.54586, -1.0, -1.0, -1.0,
+   3.13248, 3.66329, 3.19823, 2.86378, 2.35126, -1.0, -1.0, -1.0, 3.71938,
+   4.52931, 3.94566, 3.25752, 2.89607, 2.6154, 2.49415, -1.0, 2.48549, 2.49875,
+   2.48902, 2.55266, 2.66, -1.0, 2.45085, -1.0, 3.53122, -1.0, 4.04465, 4.84108,
+   4.29921, 3.55822, 3.17748, 2.85788, 2.72798, 2.70767, 2.64627, 2.68701,
+   2.75065, 2.89207, 2.98, -1.0, -1.0, -1.0, 3.91893, -1.0, 4.38406, 5.23945,
+   4.34745, 3.72861, 3.64867, 3.6416, 3.63168, -1.0, -1.0, 3.99238, 3.57345,
+   3.524, 3.50263, 3.48854, 3.46905, 3.44956, 3.88202, 3.44157, 3.13374,
+   2.86654, 2.73664, 2.73976, 2.67994, 2.71529, 2.77186, 2.885, -1.0, 3.41215,
+   3.50018, -1.0, 3.35, -1.0, -1.0, -1.0, -1.0, 3.75474, 3.5921, -1.0, -1.0,
+   -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0,
+   -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0,-1.0, -1.0, -1.0, -1.0]
 
 const _symbols = Vector{Symbol}(elements_table[:, 2])
 const _names = Vector{String}(elements_table[:, 3])
@@ -141,5 +188,9 @@ atomic_mass(sym::Symbol) = atomic_mass(atomic_number(sym))
 
 element_name(z::Integer) = _names[n]
 element_name(sym::Symbol) = element_name(atomic_number(sym))
+
+rnn(z::Integer) = _rnn[z]
+rnn(sym::Symbol) = rnn(atomic_number(sym))
+
 
 end

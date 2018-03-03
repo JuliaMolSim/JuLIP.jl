@@ -30,7 +30,7 @@ build the preconditioner matrix associated with a site potential
 """
 function precon_matrix(V::SitePotential, at::AbstractAtoms)
    I = Int[]; J = Int[]; Z = Float64[]
-   for (i0, neigs, r, R, _) in sites(at, cutoff(V))
+   for (i0, neigs, r, R) in sites(at, cutoff(V))
       ii = atind2lininds(i0)
       jj = [atind2lininds(j_) for j_ in neigs]
 

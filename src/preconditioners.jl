@@ -2,11 +2,10 @@
 module Preconditioners
 
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
-            constraint, bonds, cutoff, positions, defm, JVecF, forces, mat,
-            set_positions!, julipwarn
+            constraint, pairs, cutoff, positions, defm, JVecF, forces, mat,
+            set_positions!, julipwarn, chemical_symbols, rnn
 using JuLIP.Potentials: @analytic, evaluate, PairPotential, HS
 using JuLIP.Constraints: project!, FixedCell
-using JuLIP.ASE: chemical_symbols, rnn
 
 try
    using PyAMG: RugeStubenSolver
@@ -18,6 +17,8 @@ import JuLIP.Potentials: precon
 
 import JuLIP: update!
 import Base: A_ldiv_B!, A_mul_B!, dot, *, \
+
+export Exp, FF
 
 
 # ================ AMGPrecon =====================
@@ -168,7 +169,7 @@ this is related to but not even close to the same as the hessian matrix!
 """
 function precon_matrix(p::PairPotential, at::AbstractAtoms)
    I = Int[]; J = Int[]; Z = Float64[]
-   for (i, j, r, _, _) in bonds(at, cutoff(p))
+   for (i, j, r, _) in pairs(at, cutoff(p))
       # the next 2 lines add an identity block for each atom
       # TODO: should experiment with other matrices, e.g., R ⊗ R
       ii = atind2lininds(i)
