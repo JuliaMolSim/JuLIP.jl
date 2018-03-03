@@ -1,7 +1,7 @@
-julia 0.6
+julia 0.6 0.7-
 PyCall
 StaticArrays
-Optim 0.10
+Optim 0.10 0.11-
 LineSearches
 Calculus
 PyAMG

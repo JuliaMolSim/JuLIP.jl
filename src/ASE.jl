@@ -162,7 +162,12 @@ pbc(a::ASEAtoms) = a.po[:pbc]
 
 cell(at::ASEAtoms) = at.po[:get_cell]()
 
-set_cell!(a::ASEAtoms, p::Matrix) = (a.po[:set_cell](p); a)
+function set_cell!(a::ASEAtoms, p::Matrix)
+   A = pinv(cell(a)) * p
+   (a.po[:set_cell](p); a)
+   update_transient_data!(a, vecnorm(A))
+end
+
 
 function deleteat!(at::ASEAtoms, n::Integer)
    at.po[:__delitem__](n-1) # delete in the actual array
