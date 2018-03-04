@@ -36,7 +36,7 @@ import JuLIP:
       masses, set_masses!,
       set_transient!,
       atomic_numbers,
-      Atoms
+      Atoms, chemical_symbols
 
 import Base.length, Base.deleteat!, Base.write, Base.deepcopy,         # ✓
       Base.read, Base.write
@@ -539,8 +539,10 @@ read(filename::AbstractString) = ASEAtoms(ase_io.read(filename))
 
 
 # ------------------ Conversion to and from ASE Objects -----------------
+#
+# TODO: write tests for consistency of these conversions
+#       for the new test_ase code
 
-# should this move to ASE?
 Atoms(at_ase::ASE.ASEAtoms) =
    Atoms( positions(at_ase),
           momenta(at_ase),
@@ -551,8 +553,17 @@ Atoms(at_ase::ASE.ASEAtoms) =
           calculator(at_ase),
           constraint(at_ase) )
 
-# # should this move to utils? chemistry?
-# bulk(s::Symbol; pbc = (true, true, true), cubic=false, repeat = (1,1,1)) =
-#       Atoms(set_pbc!(ASE.bulk(string(s), cubic=cubic), pbc) * repeat)
+function ASEAtoms(at::Atoms)
+   # simplify by assuming there is only one species
+   @assert length(unique(chemical_symbols(at))) == 1
+   sym = chemical_symbols(at)[1]
+   at_ase = ASEAtoms("$sym$(length(at))")
+   set_positions!(at_ase, positions(at))
+   set_momenta!(at_ase, momenta(at))
+   set_cell!(at_ase, Matrix(cell(at)))
+   set_pbc!(at_ase, tuple(pbc(at)...))
+   set_calculator!(at_ase, calculator(at))
+   set_constraint!(at_ase, constraint(at))
+end
 
 end # module
