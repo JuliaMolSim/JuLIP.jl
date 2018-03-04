@@ -29,7 +29,8 @@ export Atoms,
        bulk,
        cell_vecs,
        chemical_symbols,
-       atomic_numbers, numbers
+       atomic_numbers, numbers,
+       chemical_symbols
 
 
 """
