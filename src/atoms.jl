@@ -24,6 +24,8 @@
 # * add fields for charges and magnetic moments?
 #
 
+const CH = JuLIP.Chemistry
+
 export Atoms,
        bulk,
        cell_vecs,
@@ -372,3 +374,20 @@ Atoms(at_ase::ASE.ASEAtoms) =
 # should this move to utils? chemistry?
 bulk(s::Symbol; pbc = (true, true, true), cubic=false, repeat = (1,1,1)) =
       Atoms(set_pbc!(ASE.bulk(string(s), cubic=cubic), pbc) * repeat)
+
+export jbulk
+function jbulk(sym::Symbol, cubic = false, pbc = (true,true,true))
+   if !cubic
+      X, C, scal = CH._unit_cells[symmetry(sym)]
+   else
+      X, scal = CH._cubic_cells[symmetry(sym)]
+      C = eye(3) / scal
+   end
+   a0 = a(sym)
+   X1 = [ JVecF(x) * a0 * scal  for x in X ]
+   C1 = JMatF(C * a0 * scal)
+   m = atomic_mass(sym)
+   z = atomic_number(sym)
+   nat = length(X1)
+   return Atoms( X1, fill(zero(JVecF), nat), fill(m, nat), fill(z, nat), C1, pbc)
+end
