@@ -18,15 +18,15 @@ at1 = deepcopy(at)
 
 println("Check correct implementation of `repeat` and `*` ...")
 for n in [ (2,1,1), (2,2,1), (2,3,4), (2,3,1) ]
-   @test (at * n) == (bulk(:Si, repeat = n)) == repeat(at, n)
+   @test (at * n) == Atoms(ASE.bulk(:Si) * n) == repeat(at, n)
 end
 
 println("   check correct repeat of momenta ...")
-at_ase = JuLIP.ASE.bulk("Si")
+at_ase = ASE.bulk("Si")
 P = rand(JVecF, 2)
 set_momenta!(at_ase, P)
 set_momenta!(at, P)
-@test Atoms(at_ase) == Atoms(at)
+@test Atoms(at_ase) == at
 @test Atoms(at_ase * (2,4,3)) == (at * (2,4,3))
 
 println("Check setindex! and getindex ...")

@@ -18,6 +18,10 @@ Provides Julia wrappers for some of ASE's functionality. Currently:
 """
 module ASE
 
+using Reexport
+
+@reexport using JuLIP
+
 # the functions to be implemented
 import JuLIP:
       positions, set_positions!,
@@ -28,7 +32,11 @@ import JuLIP:
       constraint, set_constraint!, # ✓
       neighbourlist,                # ✓
       energy, forces, virial,
-      momenta, set_momenta!
+      momenta, set_momenta!,
+      masses, set_masses!,
+      set_transient!,
+      atomic_numbers,
+      Atoms
 
 import Base.length, Base.deleteat!, Base.write, Base.deepcopy,         # ✓
       Base.read, Base.write
@@ -42,11 +50,11 @@ using JuLIP: mat, vecs, JVecF, JVecs, JVecsF, JMatF,
 # extra ASE functionality:
 import Base.repeat         # ✓
 export ASEAtoms,      # ✓
-      repeat, rnn, chemical_symbols, AbstractASECalculator, ASECalculator,
+      AbstractASECalculator, ASECalculator,
       extend!, get_info, set_info!, get_array, set_array!, has_array, has_info,
-      get_transient, set_transient!, has_transient,
-      velocities, set_velocities!, masses, set_masses!,
-      static_neighbourlist, atomic_numbers
+      get_transient, has_transient,
+      velocities, set_velocities!,
+      static_neighbourlist
 
 using PyCall
 
@@ -340,7 +348,7 @@ import Base.*
 *(n::Integer, at::ASEAtoms) = repeat(at, (n,n,n))
 
 
-export bulk, graphene_nanoribbon, nanotube, molecule
+export graphene_nanoribbon, nanotube, molecule
 
 @doc ase_build.bulk[:__doc__] ->
 bulk(args...; pbc=true, kwargs...) =
@@ -372,36 +380,36 @@ end
 # matscipy neighbourlist functionality
 ############################################################
 
-# include("MatSciPy.jl")
+include("MatSciPy.jl")
 
-# function neighbourlist(at::ASEAtoms, cutoff::Float64;
-#                         recompute=false)::MatSciPy.NeighbourList
-#    # # TODO: also recompute if rcut is different !!!!!
-#    # # if no previous neighbourlist is available, compute a new one
-#    # if !has_transient(at, (:nlist, cutoff)) || recompute
-#    #    # this nlist will be destroyed as soon as positions change
-#    #    set_transient!(at, (:nlist, cutoff), MatSciPy.NeighbourList(at, cutoff))
-#    # end
-#    # return get_transient(at, (:nlist, cutoff))
-#    return MatSciPy.NeighbourList(at, cutoff)
-# end
+function neighbourlist(at::ASEAtoms, cutoff::Float64;
+                        recompute=false)::MatSciPy.NeighbourList
+   # # TODO: also recompute if rcut is different !!!!!
+   # # if no previous neighbourlist is available, compute a new one
+   # if !has_transient(at, (:nlist, cutoff)) || recompute
+   #    # this nlist will be destroyed as soon as positions change
+   #    set_transient!(at, (:nlist, cutoff), MatSciPy.NeighbourList(at, cutoff))
+   # end
+   # return get_transient(at, (:nlist, cutoff))
+   return MatSciPy.NeighbourList(at, cutoff)
+end
 
-# """
-# `static_neighbourlist(at::ASEAtoms, rcut::Float64)`
-#
-# This function first checks whether a static neighbourlist already exists
-# with cutoff `rcut` and if it does then it returns the existing list.
-# If it does not, then it computes a new neighbour list with the current
-# configuration, stores it for later use and returns it.
-# """
-# function static_neighbourlist(at::ASEAtoms, rcut::Float64)
-#    if !has_transient(at, (:snlist, rcut))
-#       set_transient!( at, (:snlist, rcut),
-#                           MatSciPy.NeighbourList(at, rcut),
-#                           Inf )    # Inf means this is never deleted!
-#    end
-#    return get_transient(at, (:snlist, rcut))
-# end
+"""
+`static_neighbourlist(at::ASEAtoms, rcut::Float64)`
+
+This function first checks whether a static neighbourlist already exists
+with cutoff `rcut` and if it does then it returns the existing list.
+If it does not, then it computes a new neighbour list with the current
+configuration, stores it for later use and returns it.
+"""
+function static_neighbourlist(at::ASEAtoms, rcut::Float64)
+   if !has_transient(at, (:snlist, rcut))
+      set_transient!( at, (:snlist, rcut),
+                          MatSciPy.NeighbourList(at, rcut),
+                          Inf )    # Inf means this is never deleted!
+   end
+   return get_transient(at, (:snlist, rcut))
+end
 
 
 ######################################################
@@ -529,5 +537,22 @@ end
 read(filename::AbstractString) = ASEAtoms(ase_io.read(filename))
 
 
+
+# ------------------ Conversion to and from ASE Objects -----------------
+
+# should this move to ASE?
+Atoms(at_ase::ASE.ASEAtoms) =
+   Atoms( positions(at_ase),
+          momenta(at_ase),
+          ASE.masses(at_ase),
+          ASE.atomic_numbers(at_ase),
+          JMat{Float64}(cell(at_ase)),
+          pbc(at_ase),
+          calculator(at_ase),
+          constraint(at_ase) )
+
+# # should this move to utils? chemistry?
+# bulk(s::Symbol; pbc = (true, true, true), cubic=false, repeat = (1,1,1)) =
+#       Atoms(set_pbc!(ASE.bulk(string(s), cubic=cubic), pbc) * repeat)
 
 end # module

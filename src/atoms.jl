@@ -13,8 +13,6 @@
 # * the kwconstructor only allows Float64, this is a bad shortcoming that
 #   needs to be fixed I think
 #
-# * `Conversion from ASE Objects` should be moved into an ASE sub-module
-#
 # * decide whether == should check equality of data
 #
 # * implement a softer `isequal` which checks for "physical" equality, i.e.,
@@ -26,10 +24,12 @@
 
 const CH = JuLIP.Chemistry
 
+
 export Atoms,
        bulk,
        cell_vecs,
-       chemical_symbols
+       chemical_symbols,
+       atomic_numbers, numbers
 
 
 """
@@ -101,6 +101,7 @@ positions(at::Atoms) = copy(at.X)
 momenta(at::Atoms) = copy(at.P)
 masses(at::Atoms) = copy(at.M)
 numbers(at::Atoms) = copy(at.Z)
+atomic_numbers(at::Atoms) = copy(at.Z)
 cell(at::Atoms) = at.cell
 pbc(at::Atoms) = at.pbc
 calculator(at::Atoms) = at.calc
@@ -166,23 +167,32 @@ function Base.isless(x::JVec, y::JVec)
 end
 
 import Base.==
-function =={T,TI}(at1::Atoms{T,TI}, at2::Atoms{T,TI})
+==(at1::Atoms{T,TI}, at2::Atoms{T,TI}) where T where TI =
+   isapprox(at1, at2, tol = 0.0) && (at1.data == at2.data)
+
+import Base.isapprox
+function isapprox(at1::Atoms{T,TI}, at2::Atoms{T,TI}; tol = sqrt(eps(T))) where T where TI
    if length(at1) != length(at2)
       return false
    end
-   p1 = sortperm(at1.X)
-   p2 = sortperm(at2.X)
-   return (at1.X[p1] == at2.X[p2]) &&
-          (at1.P[p1] == at2.P[p2]) &&
-          (at1.M[p1] == at2.M[p2]) &&
+   if tol > 0
+      ndigits = floor(Int, abs(log10(tol)))
+      X1 = [round.(x, ndigits) for x in at1.X]
+      X2 = [round.(x, ndigits) for x in at2.X]
+   else
+      X1, X2 = at1.X, at2.X
+   end
+   p1 = sortperm(X1)
+   p2 = sortperm(X2)
+   return (maxdist(at1.X[p1], at2.X[p2]) <= tol) &&
+          (maxdist(at1.P[p1], at2.P[p2]) <= tol) # &&
+          (vecnorm(at1.M[p1] - at2.M[p2], Inf) <= tol) &&
           (at1.Z[p1] == at2.Z[p2]) &&
-          (at1.cell == at2.cell) &&
+          (vecnorm(at1.cell - at2.cell, Inf) <= tol) &&
           (at1.pbc == at2.pbc) &&
           (at1.calc == at2.calc) &&
-          (at1.cons == at2.cons) &&
-          (at1.data == at2.data)
+          (at1.cons == at2.cons)
 end
-
 
 # --------------- some aliases for easier / direct access --------------
 #                 and some access not covered above
@@ -291,103 +301,4 @@ function update_data!(at::Atoms, r::Real)
       end
    end
    return at
-end
-
-
-
-
-# ------------------ Some Basic ASE Functionality Reproduced -----------------
-
-
-"""
-`deleteat!(at::Atoms, n) -> at`:
-
-returns the same atoms object `at`, but with the atom(s) specified by `n`
-removed.
-"""
-function Base.deleteat!(at::Atoms, n)
-   deleteat!(at.X, n)
-   deleteat!(at.P, n)
-   deleteat!(at.M, n)
-   deleteat!(at.Z, n)
-   update_data!(at, Inf)
-   return at
-end
-
-"""
-```
-repeat(at::Atoms, n::NTuple{3}) -> Atoms
-repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
-```
-
-Takes an `Atoms` configuration / cell and repeats it n_j times
-into the j-th cell-vector direction. For example,
-```
-at = repeat(bulk("C"), (3,2,4))
-```
-creates 3 x 2 x 4 unit cells of carbon.
-
-The same can be achieved by `*`:
-```
-at = bulk("C") * (3, 2, 4)
-```
-"""
-function Base.repeat(at::Atoms, n::NTuple{3})
-   C0 = cell(at)
-   c1, c2, c3 = cell_vecs(at)
-   X0, P0, M0, Z0 = positions(at), momenta(at), masses(at), numbers(at)
-   nrep = n[1] * n[2] * n[3]
-   nat0 = length(at)
-   X = Base.repeat(X0, outer=nrep)
-   P = Base.repeat(P0, outer=nrep)
-   M = Base.repeat(M0, outer=nrep)
-   Z = Base.repeat(Z0, outer=nrep)
-   i = 0
-   for a in CartesianRange( CartesianIndex(1,1,1), CartesianIndex(n...) )
-      b = c1 * (a[1]-1) + c2 * (a[2]-1) + c3 * (a[3]-1)
-      X[i+1:i+nat0] = [b+x for x in X0]
-      i += nat0
-   end
-   return Atoms(X, P, M, Z, JMat(diagm([n...]) * cell(at)), pbc(at))
-end
-
-Base.repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
-
-import Base.*
-*(at::Atoms, n) = repeat(at, n)
-*(n, at::Atoms) = repeat(at, n)
-
-
-# ------------------ Conversion from ASE Objects -----------------
-
-# should this move to ASE?
-Atoms(at_ase::ASE.ASEAtoms) =
-   Atoms( positions(at_ase),
-          momenta(at_ase),
-          ASE.masses(at_ase),
-          ASE.atomic_numbers(at_ase),
-          JMat{Float64}(cell(at_ase)),
-          pbc(at_ase),
-          calculator(at_ase),
-          constraint(at_ase) )
-
-# should this move to utils? chemistry?
-bulk(s::Symbol; pbc = (true, true, true), cubic=false, repeat = (1,1,1)) =
-      Atoms(set_pbc!(ASE.bulk(string(s), cubic=cubic), pbc) * repeat)
-
-export jbulk
-function jbulk(sym::Symbol; cubic = false, pbc = (true,true,true))
-   if !cubic
-      X, C, scal = CH._unit_cells[symmetry(sym)]
-   else
-      X, scal = CH._cubic_cells[symmetry(sym)]
-      C = eye(3) / scal
-   end
-   a0 = a(sym)
-   X1 = [ JVecF(x) * a0 * scal  for x in X ]
-   C1 = JMatF(C * a0 * scal)
-   m = atomic_mass(sym)
-   z = atomic_number(sym)
-   nat = length(X1)
-   return Atoms( X1, fill(zero(JVecF), nat), fill(m, nat), fill(z, nat), C1, pbc)
 end

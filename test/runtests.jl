@@ -3,6 +3,8 @@ using JuLIP
 using Base.Test
 using JuLIP.Testing
 
+include(joinpath(dirname(@__FILE__()), "..", "src") * "/ASE.jl")
+
 verbose=true
 isCI = haskey(ENV, "CI")
 notCI = !isCI
@@ -11,12 +13,12 @@ eam_W4 = nothing
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
    ("test_atoms.jl", "Atoms"),
+   ("test_build.jl", "Build"),
    ("testanalyticpotential.jl", "Analytic Potential"),
    ("testpotentials.jl", "Potentials"),
    ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
    ("testsolve.jl", "Solve"),
-   # ("testase.jl", "ASE"),
 ]
 
 # remove testsolve if on Travis

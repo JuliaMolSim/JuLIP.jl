@@ -154,7 +154,7 @@ include("pairpotentials.jl")
 #       at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
 # end
 
-include("EMT.jl")
+# include("EMT.jl")
 # * EMTCalculator
 
 include("stillingerweber.jl")

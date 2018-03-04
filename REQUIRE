@@ -1,8 +1,6 @@
 julia 0.6 0.7-
-PyCall
 StaticArrays
 Optim 0.10 0.11-
-LineSearches
 Calculus
 PyAMG
 JSON
@@ -10,5 +8,4 @@ Reexport
 FunctionWrappers
 Dierckx 0.2.1
 ForwardDiff 0.4
-PositiveFactorizations
 Parameters

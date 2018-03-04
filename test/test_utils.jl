@@ -2,7 +2,7 @@
 
 println("testing periodic notion of distance")
 X1 = [ JVecF(0.0,0.0,0.0), JVecF(0.5,0.5,0.5)]
-at = ASEAtoms("H2", X1)
+at = Atoms(:H, X1)
 set_pbc!(at, (true, false, false))
 set_cell!(at, [1.0 0.2 0.3; 0.0 1.0 0.1; 0.0 0.0 1.0])
 X2 = [ X1[1], X1[2] + JVecF(1.0, 0.2, 0.3)]
