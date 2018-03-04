@@ -376,7 +376,7 @@ bulk(s::Symbol; pbc = (true, true, true), cubic=false, repeat = (1,1,1)) =
       Atoms(set_pbc!(ASE.bulk(string(s), cubic=cubic), pbc) * repeat)
 
 export jbulk
-function jbulk(sym::Symbol, cubic = false, pbc = (true,true,true))
+function jbulk(sym::Symbol; cubic = false, pbc = (true,true,true))
    if !cubic
       X, C, scal = CH._unit_cells[symmetry(sym)]
    else
