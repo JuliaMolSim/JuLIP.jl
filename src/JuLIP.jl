@@ -3,6 +3,12 @@
 
 module JuLIP
 
+warn("""This is a major breaking change for JuLIP, effectively removing
+        the dependency on ASE. If you have been using the JuLIP master branch
+        until now, then please checkout the branch `v0.2ase`. Access to ASE
+        will be restored asap, in a separate package. Documentation
+        on how to use the 'new JuLIP' will hopefully follow very soon.""")
+
 using Reexport, NeighbourLists, StaticArrays, Parameters
 
 
