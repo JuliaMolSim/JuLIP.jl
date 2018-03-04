@@ -1,10 +1,10 @@
 using JuLIP: stress
-using JuLIP.Potentials, JuLIP.ASE
+using JuLIP.Potentials
 
 println("-------------------------------------------------")
 println("   Variable Cell Test")
 println("-------------------------------------------------")
-calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
+calc = lennardjones(r0=rnn("Al"))
 at = bulk("Al") * 2      # cubic=true,
 set_pbc!(at, true)
 set_calculator!(at, calc)

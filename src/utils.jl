@@ -161,10 +161,3 @@ function displacement{T}(at::AbstractAtoms, X1::Vector{JVec{T}}, X2::Vector{JVec
          for (x1, x2) in zip(X1, X2) ]
    return U
 end
-
-
-"""
-simple way to construct an atoms object from just positions
-"""
-Atoms(s::Symbol, X::Vector{JVecF}) = Atoms(ASEAtoms("$(s)$(length(X))", X))
-Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))

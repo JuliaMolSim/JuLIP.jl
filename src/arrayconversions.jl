@@ -22,7 +22,7 @@ const JVecI = JVec{Int}
 
 # Base.zero{T}(::Type{JVec{T}}) = JVec([zero(T) for i=1:3])
 
-# which of these types shall we deprecate? 
+# which of these types shall we deprecate?
 
 "`JVecs{T}` : List of 3-dimensional immutable vectors"
 const JVecs{T} = Vector{JVec{T}}
@@ -132,7 +132,7 @@ zeromats(T::Type, n::Integer) = zeros()
 maximum of distances between two sets of JVec's, usually positions;
 `maximum(a - b for (a,b) in zip(x,y))`
 """
-function maxdist{T}(x::JVecs{T}, y::JVecs{T})
+function maxdist(x::AbstractArray{JVec{T}}, y::AbstractArray{JVec{T}}) where T
    @assert length(x) == length(y)
    return maximum( norm(a-b)  for (a,b) in zip(x,y) )
 end

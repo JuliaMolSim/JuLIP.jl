@@ -13,8 +13,8 @@ This module ought to remain shielded from a user, calling
 `neighbourlist(at)` for an object `at::ASEAtoms` should automatically
 generate a `MatSciPy` neighbourlist.
 
-* `JuLIP.ASE.MatSciPy.__neighbour_list__` : the raw neighbour_list wrapper
-* `JuLIP.ASE.MatSciPy.NeighbourList` : boiler plate type, including iterators
+* `ASE.MatSciPy.__neighbour_list__` : the raw neighbour_list wrapper
+* `ASE.MatSciPy.NeighbourList` : boiler plate type, including iterators
 """
 module MatSciPy
 
@@ -23,7 +23,7 @@ using PyCall
 matscipy_neighbours = pyimport("matscipy.neighbours")
 
 using JuLIP:  AbstractNeighbourList, cutoff, JVecs, vecs, cell
-using JuLIP.ASE: ASEAtoms, pyobject
+using ..ASEAtoms, ..pyobject
 
 import JuLIP: sites, bonds
 # to implement the iterators

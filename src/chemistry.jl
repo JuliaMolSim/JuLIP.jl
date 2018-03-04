@@ -7,9 +7,8 @@ export atomic_number,
        chemical_symbol,
        atomic_mass,
        symmetry,
-       a,
-       rnn,
-       jbulk
+       lattice_constant,
+       rnn
 
 data = JSON.parsefile(@__FILE__()[1:end-16] * "data/asedata.json")
 
@@ -40,23 +39,6 @@ for (n, sym) in enumerate(_symbols)
 end
 
 
-_unit_cells = Dict(     # (positions, cell matrix, factor of a)
-   :fcc => ( [ [0.0,0.0,0.0], ],
-             [0 1 1; 1 0 1; 1 1 0],  0.5),
-   :bcc => ( [ [0.0,0.0,0.0], ],
-             [-1 1 1; 1 -1 1; 1 1 -1], 0.5),
-   :diamond => ( [ [0.0, 0.0, 0.0], [0.5, 0.5, 0.5] ],
-                 [0 1 1; 1 0 1; 1 1 0], 0.5)
-)
-
-_cubic_cells = Dict(   # (positions, factor of a)
-   :fcc => ( [ [0 0 0], [0 1 1], [1 0 1], [1 1 0] ], 0.5 ),
-   :bcc => ( [ [0 0 0], [1 1 1] ], 0.5 ),
-   :diamond => ( [ [0 0 0], [1 1 1], [0 2 2], [1 3 3], [2 0 2],
-                   [3 1 3], [2 2 0], [3 3 1] ], 0.25 )
-)
-
-
 atomic_number(sym::Symbol) = _numbers[sym]
 
 chemical_symbol(z::Integer) = _symbols[z+1]
@@ -73,8 +55,10 @@ rnn(sym::Symbol) = rnn(atomic_number(sym))
 symmetry(z::Integer) = Symbol(_refstates[z+1]["symmetry"])
 symmetry(sym::Symbol) = symmetry(atomic_number(sym))
 
-a(z::Integer) = Float64( _refstates[z+1]["a"] )
-a(sym::Symbol) = a(atomic_number(sym))
+lattice_constant(z::Integer) = Float64( _refstates[z+1]["a"] )
+lattice_constant(sym::Symbol) = lattice_constant(atomic_number(sym))
 
+refstate(z::Integer) = _refstates[z+1]
+refstate(sym::Symbol) = refstate(atomic_number(sym))
 
 end

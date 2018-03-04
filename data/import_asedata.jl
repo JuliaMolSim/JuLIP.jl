@@ -14,6 +14,9 @@ asedata = Dict(
 
 write((@__FILE__()[1:end-17]) * "asedata.json", JSON.json(asedata, 0))
 
+# ======================================================================
+
+
 # NOTE:
 # some other data that we could consider adding
 # asedata.atomic_numbers
@@ -23,22 +26,17 @@ write((@__FILE__()[1:end-17]) * "asedata.json", JSON.json(asedata, 0))
 # ase_data.vdw_radii
 #  can we get some more stuff like electron affinity somewhere?
 
-ase_data.chemical_symbols[30]
-ase_data.reference_states[30]
-ase_data.reference_states[2]
 
-
-
-function rnn_old(species::Symbol)
-   X = positions(bulk(species) * 2)
-   return minimum( norm(X[n]-X[m]) for n = 1:length(X) for m = n+1:length(X) )
-end
-
-_rnn = fill(-1.0, length(_symbols))
-for n = 2:length(_symbols)
-   z = n-1
-   try
-      _rnn[n] = rnn_old(JuLIP.Chemistry.chemical_symbol(z))
-   catch
-   end
-end
+# function rnn_old(species::Symbol)
+#    X = positions(bulk(species) * 2)
+#    return minimum( norm(X[n]-X[m]) for n = 1:length(X) for m = n+1:length(X) )
+# end
+#
+# _rnn = fill(-1.0, length(_symbols))
+# for n = 2:length(_symbols)
+#    z = n-1
+#    try
+#       _rnn[n] = rnn_old(JuLIP.Chemistry.chemical_symbol(z))
+#    catch
+#    end
+# end

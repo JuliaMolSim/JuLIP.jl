@@ -110,7 +110,7 @@ println("  Testing Stillinger-Weber hessian ")
 println("============================================")
 
 # setup a geometry
-at = bulk("Si", cubic=true) * 2
+at = bulk(:Si, cubic=true) * 2
 rattle!(at, 0.02)
 set_pbc!(at, false)
 set_constraint!(at, FixedCell(at))
