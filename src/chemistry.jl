@@ -46,13 +46,13 @@ _unit_cells = Dict(     # (positions, cell matrix, factor of a)
    :bcc => ( [ [0.0,0.0,0.0], ],
              [-1 1 1; 1 -1 1; 1 1 -1], 0.5),
    :diamond => ( [ [0.0, 0.0, 0.0], [0.5, 0.5, 0.5] ],
-                 [0 1 1; 1 0 0; 1 0 0], 0.5)
+                 [0 1 1; 1 0 1; 1 1 0], 0.5)
 )
 
 _cubic_cells = Dict(   # (positions, factor of a)
-   :fcc => ( [ [0 0 0], [0 1 0], [1 0 1], [1 1 0] ], 0.5 ),
+   :fcc => ( [ [0 0 0], [0 1 1], [1 0 1], [1 1 0] ], 0.5 ),
    :bcc => ( [ [0 0 0], [1 1 1] ], 0.5 ),
-   :diamond => ( [ [0 0 0], [1 1 1], [1 2 2], [1 3 3], [2 0 2],
+   :diamond => ( [ [0 0 0], [1 1 1], [0 2 2], [1 3 3], [2 0 2],
                    [3 1 3], [2 2 0], [3 3 1] ], 0.25 )
 )
 
@@ -67,7 +67,7 @@ atomic_mass(sym::Symbol) = atomic_mass(atomic_number(sym))
 element_name(z::Integer) = _names[z+1]
 element_name(sym::Symbol) = element_name(atomic_number(sym))
 
-rnn(z::Integer) = _rnn[z+1]
+rnn(z::Integer) = _rnn[z+1]       # >>> TODO: move to utils ?? bulk as well??
 rnn(sym::Symbol) = rnn(atomic_number(sym))
 
 symmetry(z::Integer) = Symbol(_refstates[z+1]["symmetry"])
