@@ -4,9 +4,19 @@ using Base.Test
 using JuLIP.Testing
 
 verbose=true
+
+# check whether on CI
 isCI = haskey(ENV, "CI")
 notCI = !isCI
 eam_W4 = nothing
+
+# check whether ASE is available
+hasase = true
+try
+   import ASE
+catch
+   hasase = false
+end
 
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),

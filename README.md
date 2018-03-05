@@ -7,7 +7,7 @@ molecular simulation algorithms. Requires v0.5 or v0.6 of Julia.
 
 **NOTE:** This branch is a recent conversion of the original JuLIP (v0.1, v0.2)
 to a pure Julia library. All previous dependency on
-[ASE](https://gitlab.com/ase/ase) will be moved to a new package `ASE.jl`.
+[ASE](https://gitlab.com/ase/ase) has been moved to a new package `ASE.jl`.
 Despite this decoupling, the structure of JuLIP is still heavily inspired by
 [ASE](https://gitlab.com/ase/ase) and JuLIP still heavily relies on ASE for
 obtaining the data to generate computational cells. The main idea for JuLIP is
@@ -21,18 +21,18 @@ Contributions are welcome.
 
 * chemical symbols are now `Symbol`s instead of `String`s, e.g., write
 `bulk(:Si)` instead of `bulk("Si")`.
-* a lot more of Julia's sub-libraries is now automatically exported
-* ASE.jl is not part of JuLIP.jl anymore
+* a lot more of Julia's sub-libraries are now automatically exported, e.g.
+no need to call `using JuLIP.Potentials`
+* ASE bindings are not part of JuLIP.jl anymore, but a separate package,
+at [ASE.jl](https://github.com/cortner/ASE.jl.git)
+* only a minimal subset of ASE functionality is covered by JuLIP, but
+`using ASE` instead of `using JuLIP` will recover essentially the same
+functionality as before (`JuLIP` itself will also be loaded and exported)
 * `JuLIP.Visualise` has temporarily been removed, and will likely
 be moved to a separate repository as well.
 
 
 # Installation
-
-<!-- JuLIP relies on [ASE](https://gitlab.com/ase/ase) and
- [matscipy](https://github.com/libAtoms/matscipy). Most likely, they will
- be automatically installed the first time you import `JuLIP`. If not, then
- please follow the instructions on the respective websites. -->
 
 Install JuLIP, from the Julia REPL:
 ```julia
@@ -43,6 +43,9 @@ and run
 Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. If a test fails, please open an issue.
+
+Most likely you will also want to ASE bindings; please see
+[ASE.jl](https://github.com/cortner/ASE.jl.git) for more detail.
 
 
 <!-- ## `imolecule` and dependencies
@@ -57,8 +60,6 @@ configurations in an IPython notebook. Its main dependency is
 conda install -c openbabel openbabel
 pip install imolecule
 ``` -->
-
-
 
 # Examples
 

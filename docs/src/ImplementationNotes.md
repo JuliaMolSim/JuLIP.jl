@@ -1,6 +1,8 @@
 
 # Implementation Notes
 
+TODO: these are very out of date and need an update
+
 ## Prototypes
 
 For commonly used functions such as `set_positions!` etc, a prototype is
