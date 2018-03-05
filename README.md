@@ -5,11 +5,6 @@
 A package for rapid implementation and testing of new interatomic potentials and
 molecular simulation algorithms. Requires v0.5 or v0.6 of Julia.
 
-**NOTE ON v0.6:** The conversion to Julia v0.6 is fairly recent. It is likely there are
-bugs, if you encounter a problem, please file an issue. The main change is
-the construction of analytic pair potentials, which is now achieved with the
-macro `@analytic`; see also the example below.
-
 The structure of JuLIP is heavily inspired by [ASE](https://gitlab.com/ase/ase)
 but uses more "Julian" notation.  JuLIP relies on ASE for much of the
 materials modeling background such as generating computational cells for
@@ -24,12 +19,14 @@ explore new molecular simulation algorithms.
 
 Contributions are welcome.
 
-<!-- In the foreseeable future we plan to implement better optimised
-calculators, create links to electronic structure packages, possibly
-include potentials for molecules (the focus at the moment is materials). -->
-<!-- The long-term vision for JuLIP is that it can be used in two ways: (1) as a
-Julia version of ASE, using ASE in a minimal fashion; or (2) as a selection of
-efficient calculators for ASE. -->
+###
+
+* The conversion to Julia v0.6 is fairly recent. It is likely there are
+bugs, if you encounter a problem, please file an issue. The main change is
+the construction of analytic pair potentials, which is now achieved with the
+macro `@analytic`; see also the example below.
+* This branch of `JuLIP` will only get bug-fixes from now on. Development is
+now on version `v0.4.x` which has decoupled ASE from JuLIP.
 
 
 # Installation
