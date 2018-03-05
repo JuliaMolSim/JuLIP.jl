@@ -24,7 +24,7 @@ Contributions are welcome.
 * a lot more of Julia's sub-libraries is now automatically exported
 * ASE.jl is not part of JuLIP.jl anymore
 * `JuLIP.Visualise` has temporarily been removed, and will likely
-be moved to a separate repository as well. 
+be moved to a separate repository as well.
 
 
 # Installation
