@@ -68,9 +68,5 @@ include("Testing.jl")
 #                `imolecule` is not correctly installed.""")
 # end
 
-# # implementation of some key functionality via ASE
-# # this is no longer exported, and get moved to a separate repository asap
-# include("ASE.jl")
-
 
 end # module
