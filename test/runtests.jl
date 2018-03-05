@@ -3,8 +3,6 @@ using JuLIP
 using Base.Test
 using JuLIP.Testing
 
-include(joinpath(dirname(@__FILE__()), "..", "src") * "/ASE.jl")
-
 verbose=true
 isCI = haskey(ENV, "CI")
 notCI = !isCI
