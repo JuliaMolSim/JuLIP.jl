@@ -6,11 +6,12 @@ only a subset of the `bulk` functionality is supported.
 module Build
 
 using ..Chemistry
-using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF,
-      Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc
+using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
+      Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
+      chemical_symbols, set_cell!, set_pbc!
 
 
-export repeat, bulk
+export repeat, bulk, cluster
 
 
 
@@ -75,6 +76,74 @@ end
 
 
 """
+`cluster(args...; kwargs...) -> at::AbstractAtoms`
+
+Produce a cluster of approximately radius R. The center
+atom is always at index 1 and position 0
+
+## Methods
+```
+cluster(atu::AbstractAtoms, R::Real)  # specify unit cell
+cluster(sym::Symbol, R::Real)         # atu = bulk(sym; cubic=true)
+```
+Both methods assume that there is only a single species, and both require
+the use of an orthorhombic unit cell (for now).
+
+* `sym`: chemical symbol of the atomic species
+* `R` : length-scale, meaning depends on shape of the cluster
+
+## Keyword Arguments:
+* `dims` : dimension into which the cluster is extended, typically
+   `(1,2,3)` for 3D point defects and `(1,2)` for 2D dislocations, in the
+   remaining dimension(s) the b.c. will be periodic.
+* `shape` : shape of the cluster, at the moment only `:ball` is allowed
+
+## TODO
+ * lift the restriction of single species
+ * allow other shapes
+"""
+function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball)
+   sym = chemical_symbols(atu)[1]
+   # check that the cell is orthorombic
+   @assert isdiag(cell(atu))
+   # # check that the first index is the centre
+   # @assert norm(atu[1]) == 0.0
+   # determine by how much to multiply in each direction
+   Fu = cell(atu)'
+   L = [ j ∈ dims ? 2 * (ceil(Int, R/Fu[j,j])+3) : 1    for j = 1:3]
+   # multiply
+   at = Atoms(atu) * L
+   # find point closes to centre
+   x̄ = mean( x[dims] for x in at.X)
+   i0 = findmin( norm(x[dims] - x̄) for x in at.X )[2]
+   x0 = at[i0]
+   # shift + swap positions
+   X = [x - x0 for x in at.X]
+   X[1], X[i0] = X[i0], X[1]
+   F = diagm([Fu[j,j]*L[j] for j = 1:3])
+   # carve out a cluster with mini-buffer to account for round-off
+   @assert norm(X[1]) == 0.0
+   r = [ norm(x[dims]) for x in X ]
+   IR = find( r .<= R+sqrt(eps(T)) )
+   # generate new positions
+   Xcluster = X[IR]
+   @assert norm(Xcluster[1]) == 0.0
+   # generate the cluster
+   at_cluster = Atoms(sym, Xcluster)
+   set_cell!(at_cluster, F')
+   # take open boundary in all directions specified in dims, periodic in the rest
+   set_pbc!(at_cluster, [ !(j ∈ dims) for j = 1:3 ])
+   # return the cluster and the index of the center atom
+   return at_cluster
+end
+
+
+cluster(sym::Symbol, R::Real; kwargs...) =
+      cluster( bulk(sym, cubic=true), R; kwargs... )
+
+
+
+"""
 ```
 repeat(at::Atoms, n::NTuple{3}) -> Atoms
 repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
@@ -112,6 +181,7 @@ function Base.repeat(at::Atoms, n::NTuple{3})
 end
 
 Base.repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
+Base.repeat(at::Atoms, n::AbstractArray) = repeat(at, (n...))
 
 import Base.*
 *(at::Atoms, n) = repeat(at, n)
@@ -139,16 +209,17 @@ end
 simple way to construct an atoms object from just positions
 """
 Atoms(s::Symbol, X::Vector{JVecF}) =
-      Atoms( X, fill(JVecF, length(X)), fill(atomic_mass(s), length(X)),
+      Atoms( X, fill(zero(JVecF), length(X)), fill(atomic_mass(s), length(X)),
              fill(atomic_number(s), length(X)), _autocell(X),
              (false, false, false) )
+
 Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
 
-function _autocell(X::JVecsF)
-   ext = extrema(mat(JVecsF), 2)
-   C = diagm([ e[2] - e[1] + 1.0  for e in ext ])
-   return JMatF(C)
-end
 
+function _autocell(X::Vector{JVec{T}}) where T
+   ext = extrema(mat(X), 2)
+   C = diagm([ e[2] - e[1] + 1.0  for e in ext ][:])
+   return JMat{T}(C)
+end
 
 end
