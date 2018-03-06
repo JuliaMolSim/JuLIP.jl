@@ -103,6 +103,7 @@ end
 export AbstractAtoms,
       positions, get_positions, set_positions!,
       momenta, get_momenta, set_momenta!,
+      masses, get_masses, set_masses,
       cell, get_cell, set_cell!, is_cubic,
       pbc, get_pbc, set_pbc!,
       # set_data!, get_data, has_data,
@@ -162,6 +163,10 @@ get_momenta = momenta
 @protofun set_momenta!(::AbstractAtoms, ::Any)
 
 set_momenta!(at::AbstractAtoms, p::Matrix) = set_momenta!(at, vecs(p))
+
+@protofun masses(::AbstractAtoms)
+get_masses = masses
+@protofun set_masses!(::AbstractAtoms, ::Any)
 
 "get computational cell (the rows are the lattice vectors)"
 @protofun cell(::AbstractAtoms)
