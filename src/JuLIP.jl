@@ -1,6 +1,7 @@
 
 # JuLIP.jl master file.
 
+__precompile__()
 module JuLIP
 
 warn("""This is a major breaking change for JuLIP, effectively removing
