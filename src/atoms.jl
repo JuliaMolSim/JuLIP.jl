@@ -87,7 +87,7 @@ TODO
 end
 
 
-Atoms(X, P, M, Z, cell, pbc, calc=NullCalculator(),
+Atoms(X, P, M, Z, cell, pbc; calc=NullCalculator(),
       cons = NullConstraint(), data = Dict{Any,JData}()) =
    Atoms(X, P, M, Z, cell, pbc, calc, cons, data)
 
