@@ -2,10 +2,10 @@ julia 0.6 0.7-
 StaticArrays
 Optim 0.10 0.11-
 Calculus
-PyAMG
+AMG
 JSON
 Reexport
 FunctionWrappers
-Dierckx 0.2.1
+Dierckx 0.3 0.4-
 ForwardDiff 0.4
 Parameters

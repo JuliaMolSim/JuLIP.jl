@@ -79,7 +79,7 @@ end
 `cluster(args...; kwargs...) -> at::AbstractAtoms`
 
 Produce a cluster of approximately radius R. The center
-atom is always at index 1 and position 0
+atom is always at index 1.
 
 ## Methods
 ```
@@ -117,17 +117,15 @@ function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball)
    x̄ = mean( x[dims] for x in at.X)
    i0 = findmin( norm(x[dims] - x̄) for x in at.X )[2]
    x0 = at[i0]
-   # shift + swap positions
-   X = [x - x0 for x in at.X]
+   # swap positions
+   X = positions(at)
    X[1], X[i0] = X[i0], X[1]
    F = diagm([Fu[j,j]*L[j] for j = 1:3])
    # carve out a cluster with mini-buffer to account for round-off
-   @assert norm(X[1]) == 0.0
-   r = [ norm(x[dims]) for x in X ]
+   r = [ norm(x[dims] - X[1][dims]) for x in X ]
    IR = find( r .<= R+sqrt(eps(T)) )
    # generate new positions
    Xcluster = X[IR]
-   @assert norm(Xcluster[1]) == 0.0
    # generate the cluster
    at_cluster = Atoms(sym, Xcluster)
    set_cell!(at_cluster, F')
