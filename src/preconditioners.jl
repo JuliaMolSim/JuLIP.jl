@@ -64,7 +64,7 @@ end
 
 function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
          updatedist=0.2 * estimate_rnn(at), tol=1e-7, updatefreq=10, stab=0.01,
-         solver = :amg)
+         solver = :chol)
    # make sure we don't use this in a context it is not intended for!
    @assert isa(constraint(at), FixedCell)
    A = AMG.poisson(12)
