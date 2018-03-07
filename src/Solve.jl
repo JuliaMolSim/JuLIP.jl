@@ -103,7 +103,7 @@ function minimise!(at::AbstractAtoms;
    end
 
    # choose the optimisation method Optim.jl
-   if method == :auto
+   if method == :auto || method == :cg 
       if isa(precond, Identity)
          optimiser = ConjugateGradient(linesearch = BackTracking(order=2))
       else

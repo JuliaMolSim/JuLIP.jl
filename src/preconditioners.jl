@@ -4,10 +4,10 @@ module Preconditioners
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
             constraint, pairs, cutoff, positions, defm, JVecF, forces, mat, vecs,
             set_positions!, julipwarn, chemical_symbols, rnn, JVec, JMat ,
-            AbstractCalculator
+            AbstractCalculator, calculator
 
 using JuLIP.Potentials: @analytic, evaluate, evaluate_d, PairPotential, HS,
-         SitePotential, sites, C0Shift, _hessian_or_precon_pos
+         SitePotential, sites, C0Shift, _precon_or_hessian_pos
 
 using JuLIP.Constraints: project!, FixedCell, _pos_to_alldof
 
@@ -88,7 +88,7 @@ A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: Base.Spa
 A_mul_B!(out::Dofs, P::IPPrecon, x::Dofs) = A_mul_B!(out, P.A, x)
 dot(x, P::IPPrecon, y) = dot(x, P * y)
 *(P::IPPrecon, x::AbstractVector) = P.A * x
-\(P::IPPrecon, x::AbstractVector) = A_ldiv_B!(zeros(length(z)), P, x)
+\(P::IPPrecon, x::AbstractVector) = A_ldiv_B!(zeros(length(x)), P, x)
 Base.size(P::IPPrecon) = size(P.A)
 
 
@@ -101,7 +101,7 @@ update!(P::IPPrecon, at::AbstractAtoms) =
 
 
 update_solver!(P::IPPrecon{TV, TS}) where TV where TS <: Base.SparseArrays.CHOLMOD.Factor =
-   cholfact(P.A)
+   cholfact(Symmetric(P.A))
 
 update_solver!(P::IPPrecon{TV, TS}) where TV where TS <: AMG.MultiLevel =
    ruge_stuben(P.A)
@@ -112,7 +112,7 @@ function force_update!(P::IPPrecon, at::AbstractAtoms)
    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
    Pmat = precon_matrix(P.p, at)
-   Pmat + P.stab * speye(size(Pmat, 1))
+   Pmat = Pmat + P.stab * speye(size(Pmat, 1))
    Pmat = project!(constraint(at), Pmat)
    # and the AMG solver
    P.A = Pmat
@@ -142,7 +142,7 @@ atind2lininds(i::Integer) = (i-1) * 3 + [1;2;3]
 build the preconditioner matrix associated with the potential V
 """
 precon_matrix(V::AbstractCalculator, at::AbstractAtoms) =
-   _pos_to_alldof(_hessian_or_precon_pos(V, at, precon), at)
+   _pos_to_alldof(_precon_or_hessian_pos(V, at, precon), at)
 
 """
 A variant of the `Exp` preconditioner; see
@@ -180,10 +180,10 @@ function Exp(at::AbstractAtoms;
       @analytic r -> exp( - A * (r/r0 - 1.0))
    end * C0Shift(rcut)
    P = IPPrecon(Exp(Vexp, e0), at; kwargs...)
-   # if energyscale == :auto
-   #    P.p.energyscale = estimate_energyscale(at, P)
-   #    force_update!(P, at)
-   # end
+   if energyscale == :auto
+      P.p.energyscale = estimate_energyscale(at, P)
+      force_update!(P, at)
+   end
    return P
 end
 
@@ -233,33 +233,7 @@ TODO: thorough documentation and reference once the paper is finished
 FF(at::AbstractAtoms, V::AbstractCalculator; kwargs...) =
    IPPrecon(V, at; kwargs...)
 
-
-# """
-# build the preconditioner matrix associated with a site potential
-# """
-# function precon_matrix(V::SitePotential, at::AbstractAtoms)
-#    I = Int[]; J = Int[]; Z = Float64[]
-#    for (i0, neigs, r, R) in sites(at, cutoff(V))
-#       ii = atind2lininds(i0)
-#       jj = [atind2lininds(j_) for j_ in neigs]
-#
-#       # compute positive version of hessian of V(R)
-#       hV = precon(V, r, R)
-#
-#       nneigs = length(neigs)
-#       for j1 = 1:nneigs, j2 = 1:nneigs
-#          GJ1, GJ2 = jj[j1], jj[j2]                       # global indices
-#          H = hV[j1, j2]
-#          for a = 1:3, b = 1:3
-#             append!(I, [ GJ1[a],    ii[a],  GJ1[a],  ii[a] ])
-#             append!(J, [ GJ2[b],   GJ2[b],   ii[b],  ii[b] ])
-#             append!(Z, [ H[a,b], - H[a,b], -H[a,b], H[a,b] ])
-#          end
-#       end
-#    end
-#    N = 3*length(at)
-#    return sparse(I, J, Z, N, N)
-# end
+FF(at::AbstractAtoms) = FF(at, calculator(at))
 
 
 

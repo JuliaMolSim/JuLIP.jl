@@ -15,15 +15,15 @@ X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 set_constraint!(at, FixedCell(at))
-# minimise!(at, precond=:id, verbose=2)
-# X1 = positions(at) |> mat
-# X0 .-= X0[:, 1]
-# X1 .-= X1[:, 1]
-# F = X1 / X0
-# println("check that the optimiser really converged to a lattice")
-# @show vecnorm(F'*F - eye(3), Inf)
-# @show vecnorm(F*X0 - X1, Inf)
-# @test vecnorm(F*X0 - X1, Inf) < 1e-4
+minimise!(at, precond=:id, verbose=2)
+X1 = positions(at) |> mat
+X0 .-= X0[:, 1]
+X1 .-= X1[:, 1]
+F = X1 / X0
+println("check that the optimiser really converged to a lattice")
+@show vecnorm(F'*F - eye(3), Inf)
+@show vecnorm(F*X0 - X1, Inf)
+@test vecnorm(F*X0 - X1, Inf) < 1e-4
 
 println("-------------------------------------------------")
 println("same test but large and with Exp preconditioner")
@@ -33,8 +33,8 @@ at = bulk(:Al, cubic=true) * (20,20,2)
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 set_constraint!(at, FixedCell(at))
-minimise!(at, precond = :exp, method = :lbfgs, robust_energy_difference = true, verbose=2)
-
+minimise!(at, precond = Exp(at, solver=:amg), method = :lbfgs,
+          robust_energy_difference = true, verbose=2)
 
 
 println("-------------------------------------------------")
