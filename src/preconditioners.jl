@@ -7,11 +7,7 @@ using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
 using JuLIP.Potentials: @analytic, evaluate, PairPotential, HS
 using JuLIP.Constraints: project!, FixedCell
 
-try
-   using PyAMG: RugeStubenSolver
-catch
-   julipwarn("failed to load `PyAMG`")
-end
+using AMG
 
 import JuLIP.Potentials: precon
 
@@ -30,40 +26,41 @@ export Exp, FF
 
 abstract type PairPrecon <: Preconditioner end
 
-"""
-`AMGPrecon{T}`: a preconditioner using AMG as the main solver
+# """
+# `AMGPrecon{T}`: a preconditioner using AMG as the main solver
+#
+# `AMGPrecon` stores a field `p` which is used to determine the preconditioner
+# matrix via
+# ```julia
+# precon_matrix(P, at::AbstractAtoms)
+# ```
+# If `p` should be updated in response to an update of `at` then
+# the type can overload `JuLIP.Preconditioners.update_inner!`.
+#
+# ## Constructor:
+# ```
+# AMGPrecon(p::Any, at::AbstractAtoms; updatedist=0.3, tol=1e-7)
+# ```
+# ## TODO:
+# * provide mechanism for automatically determining updatedist
+# from the nearest-neighbour distance in `at`
+# * should also have automatic updates every 10 or so iterations
+# """
+# type AMGPrecon{T} <: PairPrecon
+#    p::T
+#    amg::RugeStubenSolver
+#    oldX::JVecsF
+#    updatedist::Float64
+#    tol::Float64
+#    updatefreq::Int
+#    skippedupdates::Int
+#    stab::Float64
+# end
 
-`AMGPrecon` stores a field `p` which is used to determine the preconditioner
-matrix via
-```julia
-precon_matrix(P, at::AbstractAtoms)
-```
-If `p` should be updated in response to an update of `at` then
-the type can overload `JuLIP.Preconditioners.update_inner!`.
 
-## Constructor:
-```
-AMGPrecon(p::Any, at::AbstractAtoms; updatedist=0.3, tol=1e-7)
-```
-## TODO:
-* provide mechanism for automatically determining updatedist
-from the nearest-neighbour distance in `at`
-* should also have automatic updates every 10 or so iterations
-"""
-type AMGPrecon{T} <: PairPrecon
+type IPPreconditioner{T, S}
    p::T
-   amg::RugeStubenSolver
-   oldX::JVecsF
-   updatedist::Float64
-   tol::Float64
-   updatefreq::Int
-   skippedupdates::Int
-   stab::Float64
-end
-
-
-type DirectPrecon{T} <: PairPrecon
-   p::T
+   solver::S
    A::SparseMatrixCSC
    oldX::JVecsF
    updatedist::Float64
