@@ -56,8 +56,11 @@ include("potentials_base.jl")
 # * @pot, @D, @DD, @GRAD and related things
 # TODO: move this to a separate package???
 
-NeighbourLists.sites(at::AbstractAtoms, rcut) = sites(neighbourlist(at, rcut))
-NeighbourLists.pairs(at::AbstractAtoms, rcut) = pairs(neighbourlist(at, rcut))
+NeighbourLists.sites(at::AbstractAtoms, rcut::AbstractFloat) =
+      sites(neighbourlist(at, rcut))
+
+NeighbourLists.pairs(at::AbstractAtoms, rcut::AbstractFloat) =
+      pairs(neighbourlist(at, rcut))
 
 
 # Implementation of a generic site potential
@@ -264,9 +267,12 @@ function fd_hessian!(H, calc::AbstractCalculator, at::AbstractAtoms, h)
 end
 
 
+hessian_pos(V::SitePotential, at::AbstractAtoms) =
+      _precon_or_hessian_pos(V, at, hess)
+
 # implementation of a generic assembly of a global block-hessian from
 # local site-hessians
-function hessian_pos(V::SitePotential, at::AbstractAtoms)
+function _precon_or_hessian_pos(V::SitePotential, at::AbstractAtoms, hfun)
    nlist = neighbourlist(at, cutoff(V))
    I, J, Z = Int[], Int[], JMatF[]
    # a crude size hint
@@ -275,7 +281,7 @@ function hessian_pos(V::SitePotential, at::AbstractAtoms)
       nneigs = length(neigs)
       # [1] the "off-centre" component of the hessian:
       # h[a, b] = ∂_{Ra} ∂_{Rb} V     (this is a nneigs x nneigs block-matrix)
-      h = hess(V, r, R)
+      h = hfun(V, r, R)
       for a = 1:nneigs, b = 1:nneigs
          push!(I, neigs[a])
          push!(J, neigs[b])
@@ -301,7 +307,10 @@ function hessian_pos(V::SitePotential, at::AbstractAtoms)
       push!(Z, hii)
    end
    return sparse(I, J, Z, length(at), length(at))
- end
+end
+
+
+
 
 
 

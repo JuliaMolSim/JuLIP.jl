@@ -74,20 +74,36 @@ function virial(pp::PairPotential, at::AbstractAtoms)
 end
 
 
-function hess(V::PairPotential, r::Float64, R::JVecF)
+function hess(V::PairPotential, r, R)
    R̂ = R/r
    P = R̂ * R̂'
    dV = (@D V(r))/r
    return ((@DD V(r)) - dV) * P + dV * eye(JMatF)
 end
 
+# an FF preconditioner for pair potentials
+function precon(V::PairPotential, r, R)
+   dV = @D V(r)
+   hV = @DD V(r)
+   Id = eye(JMatF)
+   S = R/r
+   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (Id - S * S')) +
+          0.1 * (abs(hV) + abs(dV / r)) * Id
+end
 
-function hessian_pos(pp::PairPotential, at::AbstractAtoms)
-   nlist = neighbourlist(at, cutoff(pp))
+
+hessian_pos(V::PairPotential, at::AbstractAtoms) =
+      _hessian_or_precon_pos(V, at, hess)
+
+#
+# this assembles a hessian or preconditioner as a block-matrix
+#
+function _hessian_or_precon_pos(V::PairPotential, at::AbstractAtoms, hfun)
+   nlist = neighbourlist(at, cutoff(V))
    I, J, Z = Int[], Int[], JMatF[]
    for C in (I, J, Z); sizehint!(C, 2*npairs(nlist)); end
    for (i, j, r, R) in pairs(nlist)
-      h = 0.5 * hess(pp, r, R)
+      h = 0.5 * hfun(V, r, R)
       append!(I, (i,  i,  j, j))
       append!(J, (i,  j,  i, j))
       append!(Z, (h, -h, -h, h))
@@ -208,17 +224,3 @@ evaluate(psp::PairSitePotential, r, R) = 0.5 * _sumpair_(psp.pp, r)
 
 evaluate_d(psp::PairSitePotential, r, R) =
             [ 0.5 * grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
-
-
-# an FF preconditioner for pair potentials
-function precon(V::PairPotential, r, R)
-   dV = 0.5 * (@D V(r))
-   hV = 0.5 * (@DD V(r))
-   S = R/r
-   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (eye(JMatF) - S * S')) +
-          0.1 * (abs(hV) + abs(dV / r)) * eye(JMatF)
-end
-
-
-# TODO: define a `ComposePotential?`
-# and construct e.g. with  F ∘ sitepot = ComposePot(F, sitepot)
