@@ -26,5 +26,4 @@ before_install:
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone("https://github.com/libAtoms/NeighbourLists.jl.git");
-     Pkg.clone(pwd()); Pkg.build("JuLIP"); Pkg.test("JuLIP"; coverage=true)'
+  - julia -e 'Pkg.clone(pwd()); Pkg.build("JuLIP"); Pkg.test("JuLIP"; coverage=true)'
