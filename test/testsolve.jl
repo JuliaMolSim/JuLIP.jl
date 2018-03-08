@@ -29,20 +29,12 @@ println("-------------------------------------------------")
 println("same test but large and with Exp preconditioner")
 println("-------------------------------------------------")
 
-at = bulk(:Al, cubic=true) * (5,5,2)
+at = bulk(:Al, cubic=true) * (20,20,2)
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 set_constraint!(at, FixedCell(at))
-minimise!(at, precond = Exp(at, solver=:amg), method = :lbfgs,
+minimise!(at, precond = :exp, method = :lbfgs,
           robust_energy_difference = true, verbose=2)
-
-P = Exp(at, solver = :chol)
-g = gradient(at)
-norm(P.A \ g, Inf)
-norm(P.solver \ g, Inf)
-
-
-
 
 
 println("-------------------------------------------------")
