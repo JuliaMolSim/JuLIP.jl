@@ -1,7 +1,9 @@
 
+import JuLIP.Chemistry: rnn
+
 export rattle!, r_sum, r_dot,
       swapxy!, swapxz!, swapyz!,
-      dist, rnn, displacement
+      dist, displacement
 
 
 ############################################################
@@ -160,4 +162,10 @@ function displacement{T}(at::AbstractAtoms, X1::Vector{JVec{T}}, X2::Vector{JVec
    U = [ _project_pbc_min_(F, Finv, p, x2-x1)
          for (x1, x2) in zip(X1, X2) ]
    return U
+end
+
+
+function rnn(at::AbstractAtoms)
+   syms = unique(chemical_symbols(at))
+   return minimum(rnn.(syms))
 end
