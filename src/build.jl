@@ -8,7 +8,7 @@ module Build
 using ..Chemistry
 using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
-      chemical_symbols, set_cell!, set_pbc!
+      chemical_symbols, set_cell!, set_pbc!, update_data!
 
 
 export repeat, bulk, cluster

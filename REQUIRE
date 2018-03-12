@@ -1,6 +1,6 @@
 julia 0.6 0.7-
 StaticArrays
-Optim 0.10 0.11-
+Optim 0.14
 Calculus
 AMG
 JSON
@@ -10,3 +10,4 @@ Dierckx 0.3 0.4-
 ForwardDiff 0.4
 Parameters
 NeighbourLists
+MacroTools
