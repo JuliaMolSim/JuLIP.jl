@@ -86,10 +86,13 @@ TODO
    data::Dict{Any,JData} = Dict{Any,JData}()
 end
 
+_auto_pbc(pbc::Tuple{Bool, Bool, Bool}) = pbc
+_auto_pbc(pbc::Bool) = (pbc, pbc, pbc)
+_auto_pbc(pbc::AbstractVector) = tuple(pbc...)
 
 Atoms(X, P, M, Z, cell, pbc; calc=NullCalculator(),
       cons = NullConstraint(), data = Dict{Any,JData}()) =
-   Atoms(X, P, M, Z, cell, pbc, calc, cons, data)
+   Atoms(X, P, M, Z, JMat(cell), _auto_pbc(pbc), calc, cons, data)
 
 # derived properties
 length(at::Atoms) = length(at.X)
