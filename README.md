@@ -94,6 +94,20 @@ pot = pot * SplineCutoff(2.1 * r0, 3.5 * r0)
 # `pot` can now be used as a calculator to do something interesting ...
 ```
 
+## Site Potential with AD
+
+```julia
+using JuLIP
+# and EAM-like site potential
+f(R) = sqrt( 1.0 + sum( exp(-norm(r)) for r in R ) )
+# wrap it into a site potential type => can be used as AbstractCalculator
+V = ADPotential(f)
+# evaluate V and ∇V
+R0 = [ @SVector rand(3) for n = 1:nneigs ]
+@show V(R0)
+@show (@D V(R0))
+```
+
 <!-- ## An Example with TightBinding
 
 **THIS IS PROBABLY BROKEN ON JULIA v0.6**
