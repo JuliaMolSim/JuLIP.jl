@@ -1,19 +1,19 @@
-# TODO: this needs a big rewrite
+
 
 import ForwardDiff
 
-import ReverseDiffPrototype
-const _RD_ = ReverseDiffPrototype
+using JuLIP: vecs, mat
 
-using JuLIP: vecs
-
-export FDPotential, FDPotential_r, RDPotential_r
+export ADPotential
 
 
 # Implementation of a ForwardDiff site potential
 # ================================================
 
-function ad_evaluate end
+@pot struct ADPotential{T} <: SitePotential
+   V::T
+end
+
 
 """
 `abstract FDPotential <: SitePotential`
@@ -36,51 +36,16 @@ Notes:
 `ForwardDiff`. Hopefully it can be fixed.
 * TODO: allow arguments `(r, R)` then use chain-rule to combine them.
 """
-abstract type FDPotential <: SitePotential end
+ADPotential
 
-evaluate(pot::FDPotential, r, R) = ad_evaluate(pot, mat(collect(R)))
+evaluate(V::ADPotential, r, R) = V.V(R)
 
-evaluate_d(pot::FDPotential, r, R) =
-   ForwardDiff.gradient( R_ -> ad_evaluate(pot, R_), mat(collect(R)) ) |> vecs
+evaluate_d(V::ADPotential, r, R) =
+   ForwardDiff.gradient( S -> V.V(vecs(S)), mat(R)[:] ) |> vecs
 
-
-abstract type FDPotential_r <: SitePotential end
-
-evaluate(pot::FDPotential_r, r, R) = ad_evaluate(pot, collect(r))
-
-function evaluate_d(pot::FDPotential_r, r, R)
-   d = ForwardDiff.gradient( r_ -> ad_evaluate(pot, r_), collect(r) )
-   return [ (d[i]/r[i]) * R[i] for i = 1:length(r) ]
-end
-
-
-# Implementation of a ReverseDiffPrototype site potential
-# ========================================================
-
-abstract type RDPotential_r <: SitePotential end
-
-evaluate(pot::RDPotential_r, r, R) = ad_evaluate(pot, collect(r))
-
-function evaluate_d(pot::RDPotential_r, r, R)
-   d = _RD_.gradient( r_ -> ad_evaluate(pot, r_), collect(r) )
-   return [ (d[i]/r[i]) * R[i] for i = 1:length(r) ]
-end
-
-
-# # Implementation of a ReverseDiffSource site potential
-# # ========================================================
+# function evaluate_dd(V::ADPotential, r, R)
 #
-#abstractRDSPotential_r <: SitePotential
-#
-# init(pot::RDSPotential_r,
-#
-# evaluate(pot::RDPotential_r, r, R) = ad_evaluate(pot, collect(r))
-#
-# function evaluate_d(pot::RDPotential_r, r, R)
-#    d = _RD_.gradient( r_ -> ad_evaluate(pot, r_), collect(r) )
-#    return [ (d[i]/r[i]) * R[i] for i = 1:length(r) ]
 # end
-
 
 
 
@@ -135,35 +100,35 @@ end
 
 
 
-# ========= STUFF FOR FF Preconditioner =============
-
-"""
-`ADP`: this computes a basic FF preconditioner by AD-ing the site
-energy derivatives. It is slow and most of the time not as effective as
-the hand-coded ones.
-"""
-type ADP{VT <: SitePotential} <: SitePotential
- V::VT
-end
-cutoff(V::ADP) = cutoff(V.V)
-
-function _ad_grad(V::SitePotential, S)
-   R = reshape(S, 3, length(S) ÷ 3) |> vecs
-   r = [norm(u) for u in R]
-   dV = evaluate_d(V, r, R)
-   return mat(dV)[:]
-end
-
-_ad_hess(V::SitePotential, S) = ForwardDiff.jacobian( S_ -> _ad_grad(V, S_), S )
-
-function precon(Vad::ADP, r, R)
-   V = Vad.V
-   hV = _ad_hess(V, mat(R)[:])
-   # positive factorisation
-   hV = 0.5 * (hV + hV')
-   L = cholfact(Positive, hV)[:L]
-   H = L * L'
-   return 0.9 * H + 0.1 * maximum(diag(H)) * eye(size(L,1))
-end
-
-hinds(j) =  3 * (j-1) + [1,2,3]
+# # ========= STUFF FOR FF Preconditioner =============
+#
+# """
+# `ADP`: this computes a basic FF preconditioner by AD-ing the site
+# energy derivatives. It is slow and most of the time not as effective as
+# the hand-coded ones.
+# """
+# type ADP{VT <: SitePotential} <: SitePotential
+#  V::VT
+# end
+# cutoff(V::ADP) = cutoff(V.V)
+#
+# function _ad_grad(V::SitePotential, S)
+#    R = reshape(S, 3, length(S) ÷ 3) |> vecs
+#    r = [norm(u) for u in R]
+#    dV = evaluate_d(V, r, R)
+#    return mat(dV)[:]
+# end
+#
+# _ad_hess(V::SitePotential, S) = ForwardDiff.jacobian( S_ -> _ad_grad(V, S_), S )
+#
+# function precon(Vad::ADP, r, R)
+#    V = Vad.V
+#    hV = _ad_hess(V, mat(R)[:])
+#    # positive factorisation
+#    hV = 0.5 * (hV + hV')
+#    L = cholfact(Positive, hV)[:L]
+#    H = L * L'
+#    return 0.9 * H + 0.1 * maximum(diag(H)) * eye(size(L,1))
+# end
+#
+# hinds(j) =  3 * (j-1) + [1,2,3]
