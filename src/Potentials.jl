@@ -147,18 +147,8 @@ include("pairpotentials.jl")
 # * MorsePotential
 # * SimpleExponential
 
-
-# try
-#    include("adsite.jl")
-#    # * FDPotential : Site potential using ForwardDiff
-#    # * RDPotential : Site potential using ReverseDiffPrototype
-# catch
-#    warn("""adsite.jl could not be included; most likely some AD package is missing;
-#       at the moment it needs `ForwardDiff, ReverseDiffPrototype`""")
-# end
-
-# include("EMT.jl")
-# * EMTCalculator
+include("adsite.jl")
+# * ADPotential : Site potential using ForwardDiff
 
 include("stillingerweber.jl")
 # * type StillingerWeber
@@ -166,6 +156,8 @@ include("stillingerweber.jl")
 include("splines.jl")
 include("eam.jl")
 # EAM, FinnisSinclair
+
+
 
 export ZeroSitePotential
 
