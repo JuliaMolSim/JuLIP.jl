@@ -1,4 +1,4 @@
-using JuLIP, ForwardDiff, StaticArrays, ReverseDiff, BenchmarkTools
+using JuLIP, ForwardDiff, StaticArrays, BenchmarkTools # , ReverseDiff
 
 # simple EAM potential
 f(R) = sqrt( 1.0 + sum( exp(-norm(r)) for r in R ) )
@@ -24,14 +24,14 @@ end
 
 
 
-f1(R::AbstractMatrix) =
-      sqrt( 1.0 + sum( exp.(-sqrt.(sum(abs2, R, 1))) ) )
-f1_rd(R::Matrix) =
-      reshape(
-            ReverseDiff.gradient( S -> f1(reshape(S, 3, length(S) ÷ 3)), R[:] ),
-            size(R) )
-R1 = mat(R0)
-f1_rd(R1)
-
-@btime f1($R1);
-@btime f1_rd($R1);
+# f1(R::AbstractMatrix) =
+#       sqrt( 1.0 + sum( exp.(-sqrt.(sum(abs2, R, 1))) ) )
+# f1_rd(R::Matrix) =
+#       reshape(
+#             ReverseDiff.gradient( S -> f1(reshape(S, 3, length(S) ÷ 3)), R[:] ),
+#             size(R) )
+# R1 = mat(R0)
+# f1_rd(R1)
+#
+# @btime f1($R1);
+# @btime f1_rd($R1);

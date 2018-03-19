@@ -24,7 +24,7 @@ julip_tests = [
    ("test_build.jl", "Build"),
    ("testanalyticpotential.jl", "Analytic Potential"),
    ("testpotentials.jl", "Potentials"),
-   ("test_ad.jl", "AD Potentials"),
+   # ("test_ad.jl", "AD Potentials"),
    ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
    ("testsolve.jl", "Solve"),
