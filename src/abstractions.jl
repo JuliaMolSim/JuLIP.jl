@@ -106,7 +106,7 @@ export AbstractAtoms,
       masses, get_masses, set_masses,
       cell, get_cell, set_cell!, is_cubic,
       pbc, get_pbc, set_pbc!,
-      # set_data!, get_data, has_data,
+      set_data!, get_data, has_data,
       set_calculator!, calculator, get_calculator,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
@@ -210,36 +210,31 @@ get_pbc = pbc
 is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 
 
-# """
-# `set_data!(at, name, value)`:
-# associate some data with `at`; to be stored in a Dict within `at`
-#
-# if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
-# for `set_data!`.
-# """
-# @protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
-# Base.setindex!(at::AbstractAtoms, value,
-#                name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
+"""
+`set_data!(at, name, value)`:
+associate some data with `at`; to be stored in a Dict within `at`
 
-# `positions` is a special version of `get_data`; others are
-# `momenta` see above, `velocities`, `masses`, ...others?...
+if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
+for `set_data!`.
+"""
+@protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
+Base.setindex!(at::AbstractAtoms, value,
+               name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
+"""
+`get_data(a, name)`:
+obtain some data stored with `set_data!`
 
+if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
+for `get_data`.
+"""
+@protofun get_data(a::AbstractAtoms, name::Any)
 
-# """
-# `get_data(a, name)`:
-# obtain some data stored with `set_data!`
-#
-# if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
-# for `get_data`.
-# """
-# @protofun get_data(a::AbstractAtoms, name::Any)
+Base.getindex(at::AbstractAtoms,
+               name::Union{Symbol, AbstractString}) = get_data(at, name)
 
-# Base.getindex(at::AbstractAtoms,
-#                name::Union{Symbol, AbstractString}) = get_data(at, name)
-
-# "check whether some data with id `name` is already stored"
-# @protofun has_data(a::AbstractAtoms, name::Any)
+"check whether some data with id `name` is already stored"
+@protofun has_data(a::AbstractAtoms, name::Any)
 
 "delete an atom"
 @protofun deleteat!(a::AbstractAtoms, n::Integer)

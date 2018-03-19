@@ -261,7 +261,7 @@ has_data(at::Atoms, key) = haskey(at.data, key)
 see also `set_data!`. Unlike `get_positions`, etc, this returns the original
 datum, not a copy (unless it is immutable).
 """
-get_data(at::Atoms, key) = (a.data[key]).data
+get_data(at::Atoms, key) = (at.data[key]).data
 
 """
 `set_data!(a::Atoms, key, value, max_change=Inf)`:
@@ -280,7 +280,7 @@ preconditioners so that the list need not be recomputed each time the
 configuration changes.
 """
 function set_data!(at::Atoms, key, value, max_change=Inf)
-   at.transient[name] = JData(max_change, 0.0, value)
+   at.data[key] = JData(max_change, 0.0, value)
    return at
 end
 
