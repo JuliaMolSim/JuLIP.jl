@@ -23,6 +23,7 @@ morseold_r = morseold.(rr)
 dmorse_r = [(@D morse(r)) for r in rr]
 dmorseold_r = [ (@D morseold(r)) for r in rr ]
 
+println("Check consistency of hand-coded and analytic Morse potentials...")
 @test vecnorm(morse_r - morseold_r, Inf) < 1e-12
 @test vecnorm(dmorse_r - dmorseold_r, Inf) < 1e-12
 

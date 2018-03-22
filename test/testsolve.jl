@@ -1,6 +1,6 @@
 
-using JuLIP, JuLIP.ASE, JuLIP.Potentials, JuLIP.Solve, JuLIP.Constraints
-using JuLIP.Preconditioners: Exp, FF
+using JuLIP
+using Base.Test
 
 println("===================================================")
 println("          TEST SOLVE ")
@@ -9,8 +9,8 @@ println("===================================================")
 println("-----------------------------------------------------------------")
 println("Testing `minimise!` with equilibration with LJ calculator to lattice")
 println("-----------------------------------------------------------------")
-calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = bulk("Al", cubic=true) * 10
+calc = lennardjones(r0=rnn(:Al))
+at = bulk(:Al, cubic=true) * 10
 X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
@@ -29,19 +29,19 @@ println("-------------------------------------------------")
 println("same test but large and with Exp preconditioner")
 println("-------------------------------------------------")
 
-at = bulk("Al", cubic=true) * (20,20,2)
-at = set_pbc!(at, true)
+at = bulk(:Al, cubic=true) * (20,20,2)
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 set_constraint!(at, FixedCell(at))
-minimise!(at, precond = :exp, method = :lbfgs, robust_energy_difference = true, verbose=2)
+minimise!(at, precond = :exp, method = :lbfgs,
+          robust_energy_difference = true, verbose=2)
 
 
 println("-------------------------------------------------")
 println("   Variable Cell Test")
 println("-------------------------------------------------")
-calc = lennardjones(r0=JuLIP.ASE.rnn("Al"))
-at = set_pbc!(bulk("Al", cubic=true), true)
+calc = lennardjones(r0=rnn(:Al))
+at = set_pbc!(bulk(:Al, cubic=true), true)
 set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at))
 minimise!(at, verbose = 2)
@@ -51,7 +51,7 @@ println("-------------------------------------------------")
 println(" FF preconditioner for StillingerWeber ")
 println("-------------------------------------------------")
 
-at = bulk("Si", cubic=true) * (10,10,2)
+at = bulk(:Si, cubic=true) * (10,10,2)
 at = set_pbc!(at, true)
 at = rattle!(at, 0.02)
 set_calculator!(at, StillingerWeber())
@@ -64,7 +64,7 @@ println("-------------------------------------------------")
 println(" FF preconditioner for EAM ")
 println("-------------------------------------------------")
 
-at = bulk("W", cubic=true) * (10,10,2)
+at = bulk(:W, cubic=true) * (10,10,2)
 at = set_pbc!(at, true)
 at = rattle!(at, 0.02)
 X0 = positions(at)

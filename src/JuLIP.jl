@@ -1,52 +1,40 @@
 
 # JuLIP.jl master file.
 
+__precompile__()
 module JuLIP
 
-using PyCall, Reexport
+# warn("""This is a major breaking change for JuLIP, effectively removing
+#         the dependency on ASE. If you have been using the JuLIP master branch
+#         until now, then please checkout the branch `v0.2ase`. Access to ASE
+#         will be restored asap, in a separate package. Documentation
+#         on how to use the 'new JuLIP' will hopefully follow very soon.""")
 
-export Atoms
+using Reexport, NeighbourLists, StaticArrays, Parameters
 
-# TODO: correctly use import versus using throughout this package!
 
-# quickly switch between Matrices and Vectors of Vecs
+# quickly switch between Matrices and Vectors of SVectors, etc
 include("arrayconversions.jl")
 
 # define types and abstractions of generic functions
 include("abstractions.jl")
 
-# implementation of some key functionality via ASE
-include("ASE.jl")
-@reexport using JuLIP.ASE
+include("chemistry.jl")
+@reexport using JuLIP.Chemistry
 
-# define the default atoms object
-"""
-`type Atoms`
+# the main atoms type
+include("atoms.jl")
 
-Technically not a type but a type-alias, to possibly allow different "backends".
-At the moment, `Atoms = ASE.ASEAtoms`; see its help for more details.
-This will likely remain for the foreseeable future.
-"""
-const Atoms = ASE.ASEAtoms
+# how to build some simple domains
+include("build.jl")
+@reexport using JuLIP.Build
 
 # a few auxiliary routines
 include("utils.jl")
 
-# only try to import Visualise, it is not needed for the rest to work.
-try
-   # some visualisation options
-   if isdefined(Main, :JULIPVISUALISE)
-      if Main.JULIPVISUALISE == true
-         include("Visualise.jl")
-      end
-   end
-catch
-   JuLIP.julipwarn("""JuLIP.Visualise did not import correctly, probably because
-               `imolecule` is not correctly installed.""")
-end
-
 # interatomic potentials prototypes and some example implementations
 include("Potentials.jl")
+@reexport using JuLIP.Potentials
 
 # submodule JuLIP.Constraints
 include("Constraints.jl")
@@ -54,6 +42,7 @@ include("Constraints.jl")
 
 # basic preconditioning capabilities
 include("preconditioners.jl")
+@reexport using JuLIP.Preconditioners
 
 # some solvers
 include("Solve.jl")
@@ -65,5 +54,20 @@ include("Experimental.jl")
 
 # codes to facilitate testing
 include("Testing.jl")
+
+
+# # only try to import Visualise, it is not needed for the rest to work.
+# try
+#    # some visualisation options
+#    if isdefined(Main, :JULIPVISUALISE)
+#       if Main.JULIPVISUALISE == true
+#          include("Visualise.jl")
+#       end
+#    end
+# catch
+#    JuLIP.julipwarn("""JuLIP.Visualise did not import correctly, probably because
+#                `imolecule` is not correctly installed.""")
+# end
+
 
 end # module

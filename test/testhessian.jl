@@ -2,7 +2,6 @@ using Base.Test
 using JuLIP
 using JuLIP.Potentials
 using JuLIP.Testing
-using JuLIP.ASE
 using StaticArrays
 using JuLIP.Potentials: evaluate_d, evaluate_dd
 
@@ -10,11 +9,11 @@ println("============================================")
 println("  Testing pair potential hessian ")
 println("============================================")
 
-at = bulk("Cu", cubic=true)
-pp = lennardjones(r0=rnn("Cu"))
+at = bulk(:Cu, cubic=true)
+pp = lennardjones(r0=rnn(:Cu))
 
 println("test the potential (scalar) itself")
-r = 0.9*rnn("Cu") + 3.0*rand(100)
+r = 0.9*rnn(:Cu) + 3.0*rand(100)
 ddJ = [@DD pp(r) for r in r]
 ddJh = [((@D pp(r + 1e-4)) - (@D pp(r - 1e-4))) / 2e-4  for r in r]
 @show maximum(abs.(ddJ - ddJh))
@@ -59,7 +58,7 @@ println("  Testing EAM hessian ")
 println("============================================")
 
 # setup a geometry
-at = bulk("Fe", cubic=true) * 2
+at = bulk(:Fe, cubic=true) * 2
 set_pbc!(at, false)
 set_constraint!(at, FixedCell(at))
 dir = joinpath(dirname(@__FILE__), "..", "data") * "/"
@@ -69,7 +68,7 @@ set_calculator!(at, eam)
 println("test a single stencil")
 r = []
 R = []
-for (_1, _2, r1, R1, _3) in sites(at, cutoff(eam))
+for (_1, _2, r1, R1) in sites(at, cutoff(eam))
    r = r1
    R = R1
    break
@@ -111,7 +110,7 @@ println("  Testing Stillinger-Weber hessian ")
 println("============================================")
 
 # setup a geometry
-at = bulk("Si", cubic=true) * 2
+at = bulk(:Si, cubic=true) * 2
 rattle!(at, 0.02)
 set_pbc!(at, false)
 set_constraint!(at, FixedCell(at))

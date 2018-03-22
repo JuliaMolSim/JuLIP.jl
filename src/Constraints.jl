@@ -7,17 +7,17 @@ TODO: write documentation
 module Constraints
 
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
-         mat, vecs, JVecs, JVecsF, JMatF, JMat,
-         set_positions!, set_cell!, virial, defm, set_defm!,
-         forces, unsafe_positions, momenta, set_momenta!,
-         constraint
+             mat, vecs, JVecs, JVecsF, JMatF, JMat,
+             set_positions!, set_cell!, virial, defm, set_defm!,
+             forces, momenta, set_momenta!,
+             constraint, rnn, AbstractCalculator, calculator
 
 # temporary hack - we may need to rethink this
 using JuLIP.Potentials: hessian_pos
 
-import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient, energy,
-      momentum_dofs, set_momentum_dofs!
-import JuLIP: dofs, project!, set_dofs!, positions, gradient, energy, hessian
+import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient,
+              energy, momentum_dofs, set_momentum_dofs!, dofs, project!,
+              set_dofs!, positions, gradient, energy, hessian
 
 
 export FixedCell, VariableCell, ExpVariableCell, FixedCell2D, atomdofs
@@ -102,6 +102,7 @@ project!(at::AbstractAtoms, cons::FixedCell) = at
 # TODO: this is a temporary hack, and I think we need to
 #       figure out how to do this for more general constraints
 #       maybe not too terrible
+#       but why is there a !???
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 gradient(at::AbstractAtoms, cons::FixedCell) =
@@ -109,8 +110,11 @@ gradient(at::AbstractAtoms, cons::FixedCell) =
 
 energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
 
-function hessian(at::AbstractAtoms, cons::FixedCell)
-   Hpos = hessian_pos(at)
+# >>> TODO: move to abstractions.jl ??
+hessian(at::AbstractAtoms, cons::FixedCell) =
+      project!(cons, _pos_to_alldof(hessian_pos(calculator(at), at), at))
+
+function _pos_to_alldof(Hpos::SparseMatrixCSC, at::AbstractAtoms)
    I, J, Z = Int[], Int[], Float64[]
    for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
    Nat = length(at)
@@ -123,7 +127,7 @@ function hessian(at::AbstractAtoms, cons::FixedCell)
          push!(Z, zat[a,b])
       end
    end
-   return project!( cons, sparse(I, J, Z, 3*Nat, 3*Nat) )
+   return sparse(I, J, Z, 3*Nat, 3*Nat)
 end
 
 

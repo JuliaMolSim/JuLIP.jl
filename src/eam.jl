@@ -1,5 +1,7 @@
 export EAM
 
+using NeighbourLists
+
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
 
@@ -226,7 +228,6 @@ end
 # ================= Efficient implementation of EAM forces =======================
 
 import JuLIP: energy, forces
-using JuLIP.ASE.MatSciPy: NeighbourList
 
 # the main justification for these codes is that vectorised evaluation of the
 # splines gives a factor 2 speed-up, probably this is primarily due to
@@ -235,34 +236,34 @@ using JuLIP.ASE.MatSciPy: NeighbourList
 # for forces
 # TODO: need a proper julia spline library
 
-function _rhobar(V::EAM, at::ASEAtoms, nlist::NeighbourList)
+function _rhobar(V::EAM, nlist::CellList)
    ρ = V.ρ(nlist.r)
-   ρ̄ = zeros(length(at))
-   for n = 1:length(nlist)
+   ρ̄ = zeros(nsites(nlist))
+   for n = 1:npairs(nlist)
       ρ̄[nlist.i[n]] += ρ[n]
    end
    return ρ̄
 end
 
 function energy(V::EAM{SplinePairPotential, SplinePairPotential, T},
-                        at::ASEAtoms) where T
-   nlist = neighbourlist(at, cutoff(V))
-   ρ̄ = _rhobar(V, at, nlist)
+                        at::AbstractAtoms) where T
+   nlist = neighbourlist(at, cutoff(V))::CellList
+   ρ̄ = _rhobar(V, nlist)
    ϕ = V.ϕ(nlist.r)
    return sum( V.F(s) for s in ρ̄ ) + 0.5 * sum(ϕ)
 end
 
 function forces(V::EAM{SplinePairPotential, SplinePairPotential, T},
-                        at::ASEAtoms) where T
-   nlist = neighbourlist(at, cutoff(V))
-   ρ̄ = _rhobar(V, at, nlist)
+                        at::AbstractAtoms) where T
+   nlist = neighbourlist(at, cutoff(V))::CellList
+   ρ̄ = _rhobar(V, nlist)
    dF = [ @D V.F(t)  for t in ρ̄ ]
    dρ = @D V.ρ(nlist.r)
    dϕ = @D V.ϕ(nlist.r)
 
    # compute the forces
    dE = zerovecs(length(at))
-   for n = 1:length(nlist)
+   for n = 1:npairs(nlist)
       f = ((0.5 * dϕ[n] + dF[nlist.i[n]] * dρ[n])/nlist.r[n]) * nlist.R[n]
       dE[nlist.i[n]] += f
       dE[nlist.j[n]] -= f
