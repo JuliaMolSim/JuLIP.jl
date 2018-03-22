@@ -1,6 +1,5 @@
 
 
-using StaticArrays, PyCall
 
 import Base.convert
 
@@ -8,8 +7,6 @@ export mat, vecs
 export SVec, SMat, STen, JVec, JVecs, JVecF, JVecsF
 export JMat, JMatF
 export zerovecs, maxdist, maxnorm
-
-export unsafe_pyarrayref, safe_pyarrayref
 
 "typealias fora static vector type; currently `StaticArrays.SVector`"
 const SVec = SVector
@@ -23,7 +20,9 @@ const JVec{T} = SVec{3,T}
 const JVecF = JVec{Float64}
 const JVecI = JVec{Int}
 
-Base.zero{T}(::Type{JVec{T}}) = JVec([zero(T) for i=1:3])
+# Base.zero{T}(::Type{JVec{T}}) = JVec([zero(T) for i=1:3])
+
+# which of these types shall we deprecate?
 
 "`JVecs{T}` : List of 3-dimensional immutable vectors"
 const JVecs{T} = Vector{JVec{T}}
@@ -133,19 +132,10 @@ zeromats(T::Type, n::Integer) = zeros()
 maximum of distances between two sets of JVec's, usually positions;
 `maximum(a - b for (a,b) in zip(x,y))`
 """
-function maxdist{T}(x::JVecs{T}, y::JVecs{T})
+function maxdist(x::AbstractArray{JVec{T}}, y::AbstractArray{JVec{T}}) where T
    @assert length(x) == length(y)
    return maximum( norm(a-b)  for (a,b) in zip(x,y) )
 end
 
 "`maximum(norm(y) for y in x);` typically, x is a vector of forces"
 maxnorm{T}(x::JVecs{T}) = maximum( norm.(x) )
-
-
-
-# The next function is conversion of python arrays  _by reference_
-pyarrayref(a::PyObject; own=false) = pyarrayref(PyArray(a); own=own)
-function pyarrayref(a::PyArray; own=false)
-    a.c_contig || error("Python array is not C-contiguous, cannot use unsafe_wrap()")
-    return unsafe_wrap(Array, a.data, reverse(a.dims), own)
-end

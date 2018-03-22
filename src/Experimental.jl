@@ -22,22 +22,22 @@ function newton(x, g, h; maxsteps=10, tol=1e-5)
 end
 
 function newton!(a::AbstractAtoms; maxsteps=20, tol=1e-10)
-    x = newton(dofs(a), 
-               x -> gradient(a, x), 
+    x = newton(dofs(a),
+               x -> gradient(a, x),
                x -> hessian(a, x))
     set_dofs!(a, x)
     return x
 end
 
-function constrained_bond_newton!(a::AbstractAtoms, i::Integer, j::Integer, bondlength::Float64; 
+function constrained_bond_newton!(a::AbstractAtoms, i::Integer, j::Integer, bondlength::Float64;
                                   maxsteps=20, tol=1e-10)
     I1 = atomdofs(a, i)
     I2 = atomdofs(a, j)
     I1I2 = [I1; I2]
-    
+
     # bondlength of target bond
     blen(x) = norm(x[I2] - x[I1])
-    
+
     # constraint function
     c(x) = blen(x) - bondlength
 
@@ -55,13 +55,13 @@ function constrained_bond_newton!(a::AbstractAtoms, i::Integer, j::Integer, bond
     _I2 = length(I1)+1:length(I1)+length(I2)
     _blen(x) = norm(x[_I2] - x[_I1])
     _c(x) = _blen(x) - bondlength
-    
+
     function ddc(x)
         s = spzeros(length(x), length(x))
         s[I1I2, I1I2] = ForwardDiff.hessian(_c, x[I1I2])
         return s
     end
-    
+
     # Define Lagrangian L(x, λ) = E - λC and its gradient and hessian
     L(x, λ) = energy(a, x) - λ*c(x)
     L(z) = L(z[1:end-1], z[end])

@@ -101,11 +101,13 @@ end
 
 # function defined primarily on AbstractAtoms
 export AbstractAtoms,
-      positions, get_positions, set_positions!, unsafe_positions, xyz, 
-      momenta, get_momenta, set_momenta!, unsafe_momenta,
-      cell, get_cell, set_cell!, is_cubic, pbc, get_pbc, set_pbc!,
-      # set_data!, get_data, has_data,
-      set_calculator!, calculator, get_calculator!,
+      positions, get_positions, set_positions!,
+      momenta, get_momenta, set_momenta!,
+      masses, get_masses, set_masses,
+      cell, get_cell, set_cell!, is_cubic,
+      pbc, get_pbc, set_pbc!,
+      set_data!, get_data, has_data,
+      set_calculator!, calculator, get_calculator,
       set_constraint!, constraint, get_constraint,
       neighbourlist, cutoff,
       defm, set_defm!
@@ -142,15 +144,12 @@ export Preconditioner, preconditioner
 "alias for `positions`"
 get_positions = positions
 
-"return a reference to positions"
-@protofun unsafe_positions(::AbstractAtoms)
+"Set positions of all atoms"
+@protofun set_positions!(::AbstractAtoms, ::Any)
 
-"Set positions of all atoms as a `3 x N` array."
-@protofun set_positions!(::AbstractAtoms, ::JVecs)
-
-# TODO: move allAbstractypes to the beginning of the module
 set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
 set_positions!(at::AbstractAtoms, x, y, z) = set_positions!(at, [x'; y'; z'])
+
 xyz(at::AbstractAtoms) = xyz(positions(at))
 
 
@@ -160,13 +159,14 @@ xyz(at::AbstractAtoms) = xyz(positions(at))
 "alias for `momenta`"
 get_momenta = momenta
 
-"return a reference to momenta"
-@protofun unsafe_momenta(::AbstractAtoms)
-
 "Set momenta of all atoms as a `3 x N` array."
-@protofun set_momenta!(::AbstractAtoms, ::JVecs)
+@protofun set_momenta!(::AbstractAtoms, ::Any)
 
 set_momenta!(at::AbstractAtoms, p::Matrix) = set_momenta!(at, vecs(p))
+
+@protofun masses(::AbstractAtoms)
+get_masses = masses
+@protofun set_masses!(::AbstractAtoms, ::Any)
 
 "get computational cell (the rows are the lattice vectors)"
 @protofun cell(::AbstractAtoms)
@@ -175,8 +175,9 @@ set_momenta!(at::AbstractAtoms, p::Matrix) = set_momenta!(at, vecs(p))
 get_cell = cell
 
 "set computational cell"
-@protofun set_cell!(::AbstractAtoms, ::Matrix)
+@protofun set_cell!(::AbstractAtoms, ::AbstractMatrix)
 
+# TODO: deprecate these!
 "deformation matrix; `defm(at) = cell(at)'`"
 defm(at::AbstractAtoms) = JMat(cell(at)')
 
@@ -188,7 +189,7 @@ set the deformation matrix
 function set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false)
    if updatepositions
       A = JMatF(F * inv(defm(at)))
-      X = [A * x for x in unsafe_positions(at)]
+      X = [A * x for x in positions(at)]
       set_positions!(at, X)
    end
    set_cell!(at, Matrix(F'))
@@ -196,7 +197,8 @@ end
 
 
 "set periodic boundary conditions"
-@protofun set_pbc!(::AbstractAtoms, ::NTuple{3,Bool})
+@protofun set_pbc!(::AbstractAtoms, ::Union{AbstractVector, Tuple})
+set_pbc!(at::AbstractAtoms, p::Bool) = set_pbc!(at, (p,p,p))
 
 "get array (or tuple) determining which directions are periodic"
 @protofun pbc(::AbstractAtoms)
@@ -207,36 +209,32 @@ get_pbc = pbc
 "determines whether a cubic cell is used (i.e. cell is a diagonal matrix)"
 is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 
-# """
-# `set_data!(at, name, value)`:
-# associate some data with `at`; to be stored in a Dict within `at`
-#
-# if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
-# for `set_data!`.
-# """
-# @protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
-# Base.setindex!(at::AbstractAtoms, value,
-#                name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
-# `positions` is a special version of `get_data`; others are
-# `momenta` see above, `velocities`, `masses`, ...others?...
+"""
+`set_data!(at, name, value)`:
+associate some data with `at`; to be stored in a Dict within `at`
 
+if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
+for `set_data!`.
+"""
+@protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
+Base.setindex!(at::AbstractAtoms, value,
+               name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
+"""
+`get_data(a, name)`:
+obtain some data stored with `set_data!`
 
-# """
-# `get_data(a, name)`:
-# obtain some data stored with `set_data!`
-#
-# if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
-# for `get_data`.
-# """
-# @protofun get_data(a::AbstractAtoms, name::Any)
+if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
+for `get_data`.
+"""
+@protofun get_data(a::AbstractAtoms, name::Any)
 
-# Base.getindex(at::AbstractAtoms,
-#                name::Union{Symbol, AbstractString}) = get_data(at, name)
+Base.getindex(at::AbstractAtoms,
+               name::Union{Symbol, AbstractString}) = get_data(at, name)
 
-# "check whether some data with id `name` is already stored"
-# @protofun has_data(a::AbstractAtoms, name::Any)
+"check whether some data with id `name` is already stored"
+@protofun has_data(a::AbstractAtoms, name::Any)
 
 "delete an atom"
 @protofun deleteat!(a::AbstractAtoms, n::Integer)
@@ -256,70 +254,70 @@ delete_atom! = deleteat!
 "attach a constraint"
 @protofun set_constraint!(at::AbstractAtoms, cons::AbstractConstraint)
 
-"""
-`neighbourlist(a::AbstractAtoms, rcut)`
-
-construct a suitable neighbourlist for this atoms object. `rcut` should
-be allowed to be either a scalar or a vector.
-"""
-@protofun neighbourlist(a::AbstractAtoms, rcut::Float64)
-
 
 
 #######################################################################
 #  NEIGHBOURLIST
 #######################################################################
 
-
-
 """
-`sites(::AbstractNeighbourList)` or `sites(::AbstractAtoms, rcut)`
+`neighbourlist(a::AbstractAtoms, rcut)`
 
-Returns an iterator over atomic sites.
-```julia
-for (idx, neigs, r, R, S) in sites(nlist)
-    # do something at this site
-end
-```
-Here `idx` is the current center-atom, `neigs` a collection
-indexing the neighbouring atoms, `r` a vector if distances and
-`R` a vector of distance vectors. `S` stores information
-about which copy of the cell the neighbours belong to
-
-A quicker way, if `nlist` won't be reused is
-```julia
-for n, ... in sites(at, rcut)
-```
-
-It should be assumed that `neigs, r, R, S` are views and therefore
-should not be modified!
+construct a suitable neighbourlist for this atoms object. `rcut` should
+be allowed to be either a scalar or a vector.
 """
-@protofun sites(::AbstractNeighbourList)
-
-sites(at::AbstractAtoms, rcut::Float64) = sites(neighbourlist(at, rcut))
+@protofun neighbourlist(a::AbstractAtoms, rcut::AbstractFloat)
 
 
-"""
-`bonds` : iterator over (pair-) bonds
 
-E.g., the a pair potential can be implemented as follows:
-```julia
-ϕ(r) = r^(-12) - 2.0 * r^(-6)
-dϕ(r) = -12 * (r^(-13) - r^(-7))
-function lj(at::AbstractAtoms)
-   E = 0.0; dE = zeros(3, length(at)) |> vecs
-   for (i, j, r, R, S) in bonds(at, 4.1)
-      E += ϕ(r)
-      dE[j] += (dϕ(r)/r) * R
-      dE[i] -= (dϕ(r)/r) * R
-   end
-   return E, dE
-end
-```
-"""
-@protofun bonds(::AbstractNeighbourList)
-
-bonds(at::AbstractAtoms, cutoff::Float64) = bonds(neighbourlist(at, cutoff))
+# """
+# `sites(::AbstractNeighbourList)` or `sites(::AbstractAtoms, rcut)`
+#
+# Returns an iterator over atomic sites.
+# ```julia
+# for (idx, neigs, r, R, S) in sites(nlist)
+#     # do something at this site
+# end
+# ```
+# Here `idx` is the current center-atom, `neigs` a collection
+# indexing the neighbouring atoms, `r` a vector if distances and
+# `R` a vector of distance vectors. `S` stores information
+# about which copy of the cell the neighbours belong to
+#
+# A quicker way, if `nlist` won't be reused is
+# ```julia
+# for (n, ...) in sites(at, rcut)
+# ```
+#
+# It should be assumed that `neigs, r, R, S` are views and therefore
+# should not be modified!
+# """
+# @protofun sites(::AbstractNeighbourList)
+#
+# sites(at::AbstractAtoms, rcut::Float64) = sites(neighbourlist(at, rcut))
+#
+#
+# """
+# `bonds` : iterator over (pair-) bonds
+#
+# E.g., the a pair potential can be implemented as follows:
+# ```julia
+# ϕ(r) = r^(-12) - 2.0 * r^(-6)
+# dϕ(r) = -12 * (r^(-13) - r^(-7))
+# function lj(at::AbstractAtoms)
+#    E = 0.0; dE = zeros(3, length(at)) |> vecs
+#    for (i, j, r, R, S) in bonds(at, 4.1)
+#       E += ϕ(r)
+#       dE[j] += (dϕ(r)/r) * R
+#       dE[i] -= (dϕ(r)/r) * R
+#    end
+#    return E, dE
+# end
+# ```
+# """
+# @protofun bonds(::AbstractNeighbourList)
+#
+# bonds(at::AbstractAtoms, cutoff::Float64) = bonds(neighbourlist(at, cutoff))
 
 
 
@@ -332,6 +330,8 @@ type  NullCalculator <: AbstractCalculator end
 
 "Returns the cut-off radius of the potential."
 @protofun cutoff(::AbstractCalculator)
+
+cutoff(at::AbstractAtoms) = cutoff(calculator(at))
 
 """
 `energy`: can be called in various ways

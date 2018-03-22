@@ -1,5 +1,5 @@
 using BenchmarkTools
-using JuLIP, JuLIP.ASE, JuLIP.Potentials
+using JuLIP
 
 function perfbm(id::AbstractString, at::AbstractAtoms, calc::AbstractCalculator;
                 e = true, elist = true, f = true, flist = true)
@@ -31,7 +31,7 @@ println()
 
 perfbm("LENNARD-JONES",
          bulk("Al", cubic=true) * (10,10,8),
-         lennardjones(r0=JuLIP.ASE.rnn("Al")) )
+         lennardjones(r0=rnn("Al")) )
 
 data = joinpath(dirname(@__FILE__), "..", "data") * "/"
 perfbm("EAM (Splines)",

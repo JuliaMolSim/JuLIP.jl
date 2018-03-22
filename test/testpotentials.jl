@@ -2,7 +2,6 @@
 using JuLIP
 using JuLIP.Potentials
 using JuLIP.Testing
-using JuLIP.ASE
 
 
 pairpotentials = [
@@ -51,42 +50,28 @@ V2 = V * C2Shift(1.0)
 
 calculators = Any[]
 
-# [1] basic lennard-jones calculator test
-push!(calculators, (  lennardjones(r0=rnn("Al")),
-         set_pbc!(bulk("Al", cubic=true) * (3,3,2), (true,false,false)) ) )
+# Basic lennard-jones calculator test
+push!(calculators,
+      (lennardjones(r0=rnn(:Al)),
+       bulk(:Al, cubic=true, pbc=(true,false,false)) * (3,3,2) ) )
 
-# [2] ASE's EMT calculator
-emt = JuLIP.ASE.EMTCalculator()
-at = rattle!( set_pbc!( bulk("Cu", cubic=true) * 2, (true,false,false) ), 0.1 )
-set_calculator!(at, emt)
-if notCI
-   push!(calculators, (emt, at))
-end
+# PROBABLY NEED TO REVISIT THIS ONE
+# # [3] JuLIP's EMT calculator
+# at2 = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )
+# set_positions!(at2, positions(at))
+# emt2 = JuLIP.Potentials.EMTCalculator(at2)
+# set_calculator!(at2, emt2)
+# push!(calculators, (emt2, at2))
 
-# [3] JuLIP's EMT calculator
-at2 = set_pbc!( bulk("Cu", cubic=true) * (2,2,2), (true,false,false) )
-set_positions!(at2, positions(at))
-emt2 = JuLIP.Potentials.EMTCalculator(at2)
-set_calculator!(at2, emt2)
-push!(calculators, (emt2, at2))
-
-println("--------------------------------------------------")
-println(" EMT Consistency test: ")
-println("--------------------------------------------------")
-println(" E_ase - E_jl = ", energy(at) - energy(at2))
-println(" |Frc_ase - Frc_jl = ", maxnorm(forces(at) - forces(at2)))
-println("--------------------------------------------------")
-@test abs(energy(at) - energy(at2)) < 1e-10
-
-# [4] Stillinger-Weber model
-at3 = set_pbc!( bulk("Si", cubic=true) * 2, (false, true, false) )
+# Stillinger-Weber model
+at3 = set_pbc!( bulk(:Si, cubic=true) * 2, (false, true, false) )
 sw = StillingerWeber()
 set_calculator!(at3, sw)
 push!(calculators, (sw, at3))
 
-# [8] PairSitePotential
-at8 = set_pbc!( bulk("Al", cubic=true), false ) * 2
-pp = lennardjones(r0=rnn("Al"))
+# PairSitePotential (pair potential wrapped in a site potential)
+at8 = set_pbc!( bulk(:Al, cubic=true), false ) * 2
+pp = lennardjones(r0=rnn(:Al))
 psp = SitePotential(pp)
 if notCI
    push!(calculators, (psp, at8))
@@ -96,19 +81,19 @@ println("--------------------------------------------------")
 println(" PairSitePotential Consistency test: ")
 println("--------------------------------------------------")
 println(" E_pp - E_psp = ", energy(pp, at8) - energy(psp, at8))
-println(" |Frc_pp - Frc_psp = ", maxnorm(forces(pp, at8) - forces(psp, at8)))
+println(" |Frc_pp - Frc_psp| = ", maxnorm(forces(pp, at8) - forces(psp, at8)))
 println("--------------------------------------------------")
 @test abs(energy(pp, at8) - energy(psp, at8)) < 1e-11
 
 
-# [9] EAM Potential
-at9 = set_pbc!( bulk("Fe", cubic = true), false ) * (2,1,1)
+# EAM Potential
+at9 = set_pbc!( bulk(:Fe, cubic = true), false ) * (2,1,1)
 eam = eam_Fe
 push!(calculators, (eam, at9))
 
 if eam_W4 != nothing
-   # [10] Another EAM Potential
-   at10 = set_pbc!( bulk("W", cubic = true), false ) * (2,1,2)
+   # Another EAM Potential
+   at10 = set_pbc!( bulk(:W, cubic = true), false ) * (2,1,2)
    eam4 = eam_W4
    push!(calculators, (eam4, at10))
 end
@@ -133,9 +118,9 @@ end
 println("--------------------------------------------------")
 println("Testing `site_energy` and `partial_energy` ...")
 println("--------------------------------------------------")
-at = bulk("Si", pbc=true, cubic=true) * 3
+at = bulk(:Si, pbc=true, cubic=true) * 3
 sw = StillingerWeber()
-atsm = bulk("Si", pbc = true)
+atsm = bulk(:Si, pbc = true)
 println("checking site energy identity . . .")
 @test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm) / 2 ) < 1e-10
 rattle!(at, 0.01)

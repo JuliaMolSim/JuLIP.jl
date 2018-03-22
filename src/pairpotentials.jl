@@ -1,8 +1,9 @@
 # included from Potentials.jl
 # part of the module JuLIP.Potentials
 
-using JuLIP: zerovecs, JVecsF, JVecF, JMatF
-using JuLIP.ASE.MatSciPy: NeighbourList
+using JuLIP: zerovecs, JVecsF, JVecF, JMatF, neighbourlist
+
+using NeighbourLists
 
 export ZeroPairPotential, PairSitePotential,
          LennardJones, lennardjones,
@@ -10,7 +11,7 @@ export ZeroPairPotential, PairSitePotential,
 
 function site_energies(pp::PairPotential, at::AbstractAtoms)
    Es = zeros(length(at))
-   for (i,_2,r,_3,_4) in bonds(at, cutoff(pp))
+   for (i,_2,r,_3) in pairs(at, cutoff(pp))
       Es[i] += 0.5 * pp(r)
    end
    return Es
@@ -31,34 +32,32 @@ end
 # a simplified way to calculate gradients of pair potentials
 @inline grad(V::PairPotential, r::Real, R::JVec) = (evaluate_d(V, r) / r) * R
 
+# function energy(V::PairPotential, at::AbstractAtoms)
+#    E = 0.0
+#    for (_₁, _₂, r, _₃) in pairs(at, cutoff(V))
+#       E += V(r)
+#    end
+#    return 0.5 * E
+# end
+
 function energy(V::PairPotential, at::AbstractAtoms)
-   E = 0.0
-   for (_₁, _₂, r, _₃, _₄) in bonds(at, cutoff(V))
-      E += V(r)
-   end
-   return 0.5 * E
-end
-
-using JuLIP.ASE: ASEAtoms
-
-function energy(V::PairPotential, at::ASEAtoms)
-   nlist = neighbourlist(at, cutoff(V))
+   nlist = neighbourlist(at, cutoff(V))::CellList
    return 0.5 * sum(V, nlist.r)
 end
 
 
-function forces(V::PairPotential, at::AbstractAtoms)
-   dE = zerovecs(length(at))
-   for (i,j,r,R,_) in bonds(at, cutoff(V))
-      dE[i] += @GRAD V(r, R)
-   end
-   return dE
-end
+# function forces(V::PairPotential, at::AbstractAtoms)
+#    dE = zerovecs(length(at))
+#    for (i,j,r,R) in pairs(at, cutoff(V))
+#       dE[i] += @GRAD V(r, R)
+#    end
+#    return dE
+# end
 
-function forces(V::PairPotential, at::ASEAtoms)
-   nlist = neighbourlist(at, cutoff(V))
+function forces(V::PairPotential, at::AbstractAtoms)
+   nlist = neighbourlist(at, cutoff(V))::CellList
    dE = zerovecs(length(at))
-   @simd for n = 1:length(nlist)
+   @simd for n = 1:npairs(nlist)
       @inbounds dE[nlist.i[n]] += grad(V, nlist.r[n], nlist.R[n])
    end
    return dE
@@ -68,27 +67,43 @@ end
 # TODO: rewrite using generator once bug is fixed (???or maybe decide not to bother???)
 function virial(pp::PairPotential, at::AbstractAtoms)
    S = zero(JMatF)
-   for (_₁, _₂, r, R, _₃) in bonds(at, cutoff(pp))
+   for (_₁, _₂, r, R) in pairs(at, cutoff(pp))
       S -= 0.5 * grad(pp, r, R) * R'  # (((@D pp(r)) / r) * R) * R'
    end
    return S
 end
 
 
-function hess(V::PairPotential, r::Float64, R::JVecF)
+function hess(V::PairPotential, r, R)
    R̂ = R/r
    P = R̂ * R̂'
    dV = (@D V(r))/r
    return ((@DD V(r)) - dV) * P + dV * eye(JMatF)
 end
 
+# an FF preconditioner for pair potentials
+function precon(V::PairPotential, r, R)
+   dV = @D V(r)
+   hV = @DD V(r)
+   Id = eye(JMatF)
+   S = R/r
+   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (Id - S * S')) +
+          0.1 * (abs(hV) + abs(dV / r)) * Id
+end
 
-function hessian_pos(pp::PairPotential, at::AbstractAtoms)
-   nlist = neighbourlist(at, cutoff(pp))
+
+hessian_pos(V::PairPotential, at::AbstractAtoms) =
+      _precon_or_hessian_pos(V, at, hess)
+
+#
+# this assembles a hessian or preconditioner as a block-matrix
+#
+function _precon_or_hessian_pos(V::PairPotential, at::AbstractAtoms, hfun)
+   nlist = neighbourlist(at, cutoff(V))
    I, J, Z = Int[], Int[], JMatF[]
-   for C in (I, J, Z); sizehint!(C, 2*length(nlist)); end
-   for (i, j, r, R, _) in bonds(nlist)
-      h = 0.5 * hess(pp, r, R)
+   for C in (I, J, Z); sizehint!(C, 2*npairs(nlist)); end
+   for (i, j, r, R) in pairs(nlist)
+      h = 0.5 * hfun(V, r, R)
       append!(I, (i,  i,  j, j))
       append!(J, (i,  j,  i, j))
       append!(Z, (h, -h, -h, h))
@@ -209,17 +224,3 @@ evaluate(psp::PairSitePotential, r, R) = 0.5 * _sumpair_(psp.pp, r)
 
 evaluate_d(psp::PairSitePotential, r, R) =
             [ 0.5 * grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
-
-
-# an FF preconditioner for pair potentials
-function precon(V::PairPotential, r, R)
-   dV = 0.5 * (@D V(r))
-   hV = 0.5 * (@DD V(r))
-   S = R/r
-   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (eye(JMatF) - S * S')) +
-          0.1 * (abs(hV) + abs(dV / r)) * eye(JMatF)
-end
-
-
-# TODO: define a `ComposePotential?`
-# and construct e.g. with  F ∘ sitepot = ComposePot(F, sitepot)
