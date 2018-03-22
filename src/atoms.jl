@@ -216,10 +216,10 @@ cell_vecs(at::Atoms) = at.cell[1,:], at.cell[2,:], at.cell[3,:]
 
 function neighbourlist(at::Atoms{T}, cutoff::T; recompute=false) where T <: AbstractFloat
    # TODO: re-design this from scratch . . .
-   CellList(positions(at), cutoff, cell(at), pbc(at))
+   PairList(positions(at), cutoff, cell(at), pbc(at))
    # if !has_data(at, (:nlist, cutoff)) || recompute
    #    set_transient!(at, (:nlist, cutoff),
-   #          CellList(positions(at), cutoff, cell(at), pbc(at))
+   #          PairList(positions(at), cutoff, cell(at), pbc(at))
    #       )
    # end
    # return get_data(at, (:nlist, cutoff))
@@ -238,7 +238,7 @@ configuration, stores it for later use and returns it.
 function static_neighbourlist(at::Atoms{T}, cutoff::T) where T
    if !has_data(at, (:snlist, cutoff))
       set_data!( at, (:snlist, cutoff),
-            CellList(positions(at), cutoff, cell(at), pbc(at))
+            PairList(positions(at), cutoff, cell(at), pbc(at))
          )
    end
    return get_data(at, (:snlist, cutoff))
