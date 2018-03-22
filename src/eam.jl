@@ -236,7 +236,7 @@ import JuLIP: energy, forces
 # for forces
 # TODO: need a proper julia spline library
 
-function _rhobar(V::EAM, nlist::CellList)
+function _rhobar(V::EAM, nlist::PairList)
    ρ = V.ρ(nlist.r)
    ρ̄ = zeros(nsites(nlist))
    for n = 1:npairs(nlist)
@@ -247,7 +247,7 @@ end
 
 function energy(V::EAM{SplinePairPotential, SplinePairPotential, T},
                         at::AbstractAtoms) where T
-   nlist = neighbourlist(at, cutoff(V))::CellList
+   nlist = neighbourlist(at, cutoff(V))::PairList
    ρ̄ = _rhobar(V, nlist)
    ϕ = V.ϕ(nlist.r)
    return sum( V.F(s) for s in ρ̄ ) + 0.5 * sum(ϕ)
@@ -255,7 +255,7 @@ end
 
 function forces(V::EAM{SplinePairPotential, SplinePairPotential, T},
                         at::AbstractAtoms) where T
-   nlist = neighbourlist(at, cutoff(V))::CellList
+   nlist = neighbourlist(at, cutoff(V))::PairList
    ρ̄ = _rhobar(V, nlist)
    dF = [ @D V.F(t)  for t in ρ̄ ]
    dρ = @D V.ρ(nlist.r)

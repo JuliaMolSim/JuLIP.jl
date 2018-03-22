@@ -41,7 +41,7 @@ end
 # end
 
 function energy(V::PairPotential, at::AbstractAtoms)
-   nlist = neighbourlist(at, cutoff(V))::CellList
+   nlist = neighbourlist(at, cutoff(V))::PairList
    return 0.5 * sum(V, nlist.r)
 end
 
@@ -55,7 +55,7 @@ end
 # end
 
 function forces(V::PairPotential, at::AbstractAtoms)
-   nlist = neighbourlist(at, cutoff(V))::CellList
+   nlist = neighbourlist(at, cutoff(V))::PairList
    dE = zerovecs(length(at))
    @simd for n = 1:npairs(nlist)
       @inbounds dE[nlist.i[n]] += grad(V, nlist.r[n], nlist.R[n])
