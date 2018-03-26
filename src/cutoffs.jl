@@ -76,9 +76,33 @@ end
 
 """
 `Shift{ORD}` : a shift-cutoff function
-TODO: add documentation
-"""
+
+It is not technically a cut-off function but a cut-off operator. Let
+`f(r)` with real arguments and range, then
+```
+g = f * Shift(o, rcut)
+```
+creates a new function `g(r) = (f(r) - p(r)) * (r < rcut)` where
+`p(r)` is a polynomial of order `o` such that all derivatives of `g` up
+to order `o` vanish at `r = rcut`. There order must be an integer
+between -1 and 2. Choosing `o=-1` creates a Heaviside function.
+
+### Equivalent constructors:
+```
+HS(r::Float64) = Shift(-1, r)
+C0Shift(r::Float64) = Shift(0, r)
+C1Shift(r::Float64) = Shift(1, r)
+C2Shift(r::Float64) = Shift(2, r)
+```
+
+### Example:
+```
+lj = LennardJones()  # standard lennad-jones potential
+V = lj * C2Shift(2.5)
+```
+Now `V` is a C2-continuous `PairPotential` with support (0, 2.5]."""
 Shift
+
 
 const HS{TV} = Shift{-1, TV}
 const C0Shift{TV} = Shift{0, TV}
@@ -88,9 +112,13 @@ const C2Shift{TV} = Shift{2, TV}
 cutoff(p::Shift) = p.rcut
 
 # the basic constructors
+"see documentation for `Shift`"
 HS(r::Float64) = Shift(-1, r)
+"see documentation for `Shift`"
 C0Shift(r::Float64) = Shift(0, r)
+"see documentation for `Shift`"
 C1Shift(r::Float64) = Shift(1, r)
+"see documentation for `Shift`"
 C2Shift(r::Float64) = Shift(2, r)
 Shift(o::Int, r::Float64) = Shift(Val(o), nothing, r, 0.0, 0.0, 0.0)
 Shift(V, p::Shift{-1}) = Shift(p.ord, V, p.rcut, 0.0, 0.0, 0.0)
