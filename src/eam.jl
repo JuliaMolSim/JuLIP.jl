@@ -44,13 +44,16 @@ TODO: implement other file formats.
 EAM
 
 
-EAM(ϕ, ρ, F) = EAM(ρ, ρ, F, nothing)
+EAM(ϕ, ρ, F) = EAM(ϕ, ρ, F, nothing)
 
 cutoff(V::EAM) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
-evaluate(V::EAM, r, R) =
+# evaluate(V::EAM, r, R) =
+#     length(r) == 0 ? V.F(0.0) :
+#            V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
+evaluate(V::TV, r, R) where TV <: EAM =
     length(r) == 0 ? V.F(0.0) :
-     V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
+           V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
 
 # TODO: this creates a lot of unnecessary overhead; probaby better to
 #       define vectorised versions of pair potentials
