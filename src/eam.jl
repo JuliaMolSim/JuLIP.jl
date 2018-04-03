@@ -273,3 +273,17 @@ function forces(V::EAM{SplinePairPotential, SplinePairPotential, T},
    end
    return dE
 end
+
+
+export energy_map, forces_map
+using JuLIP:Atoms
+
+energy_map(V::EAM, at::Atoms) =
+   sum_kbn( maptosites!( (r,R) -> V(r,R),
+                         zeros(length(at)),
+                         sites(at, cutoff(V)) ) )
+
+forces_map(V::EAM, at::Atoms) =
+   scale!( maptosites_d!( ((r, R) -> @D V(r, R)),
+                          zeros(JVecF, length(at)),
+                          sites(at, cutoff(V)) ), -1 )
