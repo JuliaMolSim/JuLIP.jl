@@ -199,3 +199,25 @@ SplineCutoff
 evaluate_dd(p::SplineCutoff, r) = fcut_dd(r, p.r0, p.r1)
 cutoff(p::SplineCutoff) = p.r1
 Base.string(p::SplineCutoff) = "SplineCutoff(r0=$(p.r0), r1=$(p.r1))"
+
+
+
+# ============ DRAFT: cos-based cutoff ============
+
+@inline function coscut(r, r0, r1)
+   if r <= r0
+      return 1.0
+   elseif r > r1
+      return 0.0
+   else
+      return cos( π/2 * (r-r0) / (r1-r0) )
+   end
+end
+
+@inline function coscut_d(r, r0, r1)
+   if r0 < r < r1
+      return - π/(2*(r1-r0)) * sin( π/2 * (r-r0) / (r1-r0) )
+   else
+      return 0.0
+   end 
+end
