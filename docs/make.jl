@@ -13,6 +13,7 @@ makedocs(
    )
 
 # deploydocs(
+#     julia = "nightly",
 #     repo = "github.com/JuliaDocs/Documenter.jl.git",
 #     target = "build",
 #     deps = nothing,
