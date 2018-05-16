@@ -227,6 +227,6 @@ generates cell vectors that contain all atom positions + a small buffer,
 sets the cell of `at` accordingly (in-place) and returns the same atoms objet
 with the new cell.
 """
-autocell!(at::Atoms) = set_cell!(at, _autocell(positions(X)))
+autocell!(at::Atoms) = set_cell!(at, _autocell(positions(at)))
 
 end
