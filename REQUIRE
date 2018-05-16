@@ -1,7 +1,7 @@
 julia 0.6 0.7-
 StaticArrays
 Optim 0.14
-Calculus
+Calculus 0.2 0.3-
 AMG
 JSON
 Reexport

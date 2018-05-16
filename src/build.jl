@@ -11,7 +11,7 @@ using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       chemical_symbols, set_cell!, set_pbc!, update_data!
 
 
-export repeat, bulk, cluster
+export repeat, bulk, cluster, autocell!
 
 
 
@@ -219,5 +219,14 @@ function _autocell(X::Vector{JVec{T}}) where T
    C = diagm([ e[2] - e[1] + 1.0  for e in ext ][:])
    return JMat{T}(C)
 end
+
+"""
+`autocell!(at::Atoms) -> Atoms`
+
+generates cell vectors that contain all atom positions + a small buffer,
+sets the cell of `at` accordingly (in-place) and returns the same atoms objet
+with the new cell.
+"""
+autocell!(at::Atoms) = set_cell!(at, _autocell(positions(X)))
 
 end
