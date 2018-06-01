@@ -114,6 +114,9 @@ end
 
 function evaluate(calc::StillingerWeber, r, R)
    # two-body contributions
+   if length(r) == 0
+      return 0.0
+   end
    Es = sum(calc.V2, r)
    # three-body contributions
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
@@ -149,6 +152,9 @@ end
 
 function evaluate_d(calc::StillingerWeber, r, R)
    # two-body terms
+   if length(r) == 0
+      return JVecF[]
+   end 
    dEs = [ grad(calc.V2, ri, Ri) for (ri, Ri) in zip(r, R) ]
    # three-body terms
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
