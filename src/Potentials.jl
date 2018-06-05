@@ -87,7 +87,9 @@ function forces(V::SitePotential, at::AbstractAtoms)
    return frc
 end
 
-site_virial(dV, R) = - sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) )
+site_virial(dV, R) =  (
+      length(R) > 0 ? (- sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) ))
+                    : zero(JMatF) )
 
 virial(V::SitePotential, at::AbstractAtoms) =
       sum(  site_virial((@D V(r, R)), R)
