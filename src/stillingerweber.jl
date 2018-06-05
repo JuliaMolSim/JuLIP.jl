@@ -106,7 +106,7 @@ function StillingerWeber(; brittle = false,
                ϵ=2.1675, σ = 2.0951, A=7.049556277, B=0.6022245584,
                p = 4, a = 1.8, λ = brittle ? 42.0 : 21.0, γ=1.20 )
    cutoff = a*σ-1e-2
-   V2 = @analytic(r -> (0.5*ϵ*A) * (B*(r/σ)^(-p) - 1.0) * exp(1.0/(r/σ - a))) *
+   V2 = @analytic(r -> (ϵ*A) * (B*(r/σ)^(-p) - 1.0) * exp(1.0/(r/σ - a))) *
          HS(cutoff)
    V3 = @analytic(r -> sqrt(ϵ * λ) * exp( γ / (r/σ - a) )) * HS(cutoff)
    return StillingerWeber(V2, V3)
@@ -117,7 +117,7 @@ function evaluate(calc::StillingerWeber, r, R)
    if length(r) == 0
       return 0.0
    end
-   Es = sum(calc.V2, r)
+   Es = 0.5 * sum( calc.V2(s) for s in r )
    # three-body contributions
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
    V3 = [ calc.V3(r1) for r1 in r ]
@@ -154,8 +154,8 @@ function evaluate_d(calc::StillingerWeber, r, R)
    # two-body terms
    if length(r) == 0
       return JVecF[]
-   end 
-   dEs = [ grad(calc.V2, ri, Ri) for (ri, Ri) in zip(r, R) ]
+   end
+   dEs = [ 0.5 * grad(calc.V2, ri, Ri) for (ri, Ri) in zip(r, R) ]
    # three-body terms
    S = [ R1/r1 for (R1,r1) in zip(R, r) ]
    V3 = [calc.V3(s) for s in r]
