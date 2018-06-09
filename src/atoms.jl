@@ -306,3 +306,25 @@ function update_data!(at::Atoms, r::Real)
    end
    return at
 end
+
+
+
+# ------------------------ workaround for JLD bug  ----------------------
+import JLD
+struct AtomsSerializer
+   X
+   P
+   M
+   Z
+   cell
+   pbc
+   calc
+   cons
+   data
+end
+
+JLD.writeas(at::Atoms) =
+   AtomsSerializer(at.X, at.P, at.M, at.Z, at.cell, at.pbc, at.calc, at.cons, at.data)
+
+JLD.readas(at::AtomsSerializer) =
+   Atoms(at.X, at.P, at.M, at.Z, at.cell, at.pbc, at.calc, at.cons, at.data)
