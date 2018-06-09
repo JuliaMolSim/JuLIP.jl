@@ -124,7 +124,7 @@ function set_momenta!(at::Atoms{T}, P::Vector{JVec{T}})  where T
    at.P .= P
    return at
 end
-function set_masses!(at::Atoms{T}, X::Vector{T})  where T
+function set_masses!(at::Atoms{T}, M::Vector{T})  where T
    update_data!(at, Inf)
    at.M .= M
    return at
