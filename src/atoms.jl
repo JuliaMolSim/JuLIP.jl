@@ -214,9 +214,9 @@ end
 cell_vecs(at::Atoms) = at.cell[1,:], at.cell[2,:], at.cell[3,:]
 
 
-function neighbourlist(at::Atoms{T}, cutoff::T; recompute=false) where T <: AbstractFloat
+function jneighbourlist(at::Atoms{T}, cutoff::T; recompute=false, kwargs...) where T <: AbstractFloat
    # TODO: re-design this from scratch . . .
-   PairList(positions(at), cutoff, cell(at), pbc(at))
+   PairList(positions(at), cutoff, cell(at), pbc(at); kwargs...)
    # if !has_data(at, (:nlist, cutoff)) || recompute
    #    set_transient!(at, (:nlist, cutoff),
    #          PairList(positions(at), cutoff, cell(at), pbc(at))
@@ -224,6 +224,36 @@ function neighbourlist(at::Atoms{T}, cutoff::T; recompute=false) where T <: Abst
    # end
    # return get_data(at, (:nlist, cutoff))
 end
+
+# ====================== TEMPORARY DROP-IN REPLACEMENT =====================
+using ASE
+using PyCall
+matscipy_neighbours = pyimport("matscipy.neighbours")
+function asenlist(at, rcut)
+   pyat = ASEAtoms(at).po
+   return matscipy_neighbours[:neighbour_list]("ijdD", pyat, rcut)
+end
+
+function neighbourlist(at::Atoms{T}, rcut::T; recompute=false, kwargs...) where T <: AbstractFloat
+   i, j, r, R = asenlist(at, rcut)
+   R = vecs(R')
+   first = NeighbourLists.get_first(i, length(at))
+   NeighbourLists.sort_neigs!(j, r, R, first)
+   return PairList(positions(at), rcut, i, j, r, R, first)
+end
+
+# struct PairList{T <: AbstractFloat, TI <: Integer}
+#    X::Vector{SVec{T}}
+#    cutoff::T
+#    i::Vector{TI}
+#    j::Vector{TI}
+#    r::Vector{T}
+#    R::Vector{SVec{T}}
+#    first::Vector{TI}
+# end
+
+
+# ===========================================================================
 
 neighbourlist(at::Atoms) = neighbourlist(at, cutoff(at))
 
