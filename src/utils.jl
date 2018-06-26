@@ -141,7 +141,7 @@ function _project_coord_min_(λ, p)
    end
    λ = mod(λ, 1.0)   # project to cell
    if λ > 0.5        # periodic image with minimal length
-      λ = 1.0 - λ
+      λ = λ - 1.0
    end
    return λ
 end
@@ -164,6 +164,7 @@ function displacement{T}(at::AbstractAtoms, X1::Vector{JVec{T}}, X2::Vector{JVec
    return U
 end
 
+project_min(at, u) = _project_pbc_min_(defm(at), inv(defm(at)), pbc(at), u)
 
 function rnn(at::AbstractAtoms)
    syms = unique(chemical_symbols(at))
