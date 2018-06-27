@@ -170,3 +170,10 @@ function rnn(at::AbstractAtoms)
    syms = unique(chemical_symbols(at))
    return minimum(rnn.(syms))
 end
+
+function wrap_pbc!(at)
+   X = positions(at)
+   F = defm(at)
+   X = [_project_pbc_min_(F, inv(F), pbc(at), x) for x in X]
+   set_positions!(at, X)
+end
