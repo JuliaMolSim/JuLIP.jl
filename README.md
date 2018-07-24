@@ -1,35 +1,26 @@
 # JuLIP: Julia Library for Interatomic Potentials
 
-[![Build Status](https://travis-ci.org/libAtoms/JuLIP.jl.svg?branch=master)](https://travis-ci.org/libAtoms/JuLIP.jl)
+| **Build Status** | **Social** |
+|:-:|:-:|
+| [![Build Status][build-img]][build-url] | [![][gitter-img]][gitter-url] |
+
+<!-- [![Build Status](https://travis-ci.org/libAtoms/JuLIP.jl.svg?branch=master)](https://travis-ci.org/libAtoms/JuLIP.jl) -->
 
 A package for rapid implementation and testing of new interatomic potentials and
-molecular simulation algorithms. Requires v0.5 or v0.6 of Julia.
+molecular simulation algorithms. Requires v0.5 or v0.6 of Julia. Current
+development is for Julia v0.6.x. Documentation is essentially non-existent but
+the inline documentations is reasonably complete.
 
-**NOTE:** This branch is a recent conversion of the original JuLIP (v0.1, v0.2)
-to a pure Julia library. All previous dependency on
-[ASE](https://gitlab.com/ase/ase) has been moved to a new package `ASE.jl`.
-Despite this decoupling, the structure of JuLIP is still heavily inspired by
-[ASE](https://gitlab.com/ase/ase) and JuLIP still heavily relies on ASE for
-obtaining the data to generate computational cells. The main idea for JuLIP is
-that, while ASE is pure Python and hence relies on external software to
-efficiently evaluate interatomic potentials, Julia allows the  implementation of
-fast potentials in pure Julia, often in just a few lines of code.
+The design of `JuLIP` is heavily inspired by [ASE](https://gitlab.com/ase/ase).
+The main motivation for `JuLIP` is that, while `ASE` is pure Python and hence
+relies on external software to efficiently evaluate interatomic potentials,
+Julia allows the  implementation of fast potentials in pure Julia, often in just
+a few lines of code. `ASE` bindings compatible with `JuLIP` are provided by
+[ASE.jl](https://github.com/cortner/ASE.jl.git).
 
-Contributions are welcome.
+Contributions are welcome, especially for producing examples and tutorials. Any
+questions or suggestions, please ask on [![][gitter-img]][gitter-url].
 
-# Main Changes from v0.2 to Pure Julia Version
-
-* chemical symbols are now `Symbol`s instead of `String`s, e.g., write
-`bulk(:Si)` instead of `bulk("Si")`.
-* a lot more of Julia's sub-libraries are now automatically exported, e.g.
-no need to call `using JuLIP.Potentials`
-* ASE bindings are not part of JuLIP.jl anymore, but a separate package,
-at [ASE.jl](https://github.com/cortner/ASE.jl.git)
-* only a minimal subset of ASE functionality is covered by JuLIP, but
-`using ASE` instead of `using JuLIP` will recover essentially the same
-functionality as before (`JuLIP` itself will also be loaded and exported)
-* `JuLIP.Visualise` has temporarily been removed, and will likely
-be moved to a separate repository as well.
 
 
 # Installation
@@ -134,3 +125,9 @@ Edef = energy(tbm, at)
 println("Vacancy formation energy = ", Edef - Eref * length(at)/(length(at)+1))
 println("(probably this should not be negative! Increase simulation accuracy!)")
 ``` -->
+
+
+[build-img]: https://travis-ci.org/libAtoms/JuLIP.jl.svg?branch=master
+[build-url]: https://travis-ci.org/libAtoms/JuLIP.jl
+[gitter-url]: https://gitter.im/libAtoms/JuLIP.jl
+[gitter-img]: https://badges.gitter.im/libAtoms/JuLIP.jl.svg
