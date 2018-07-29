@@ -1,5 +1,5 @@
 # TODO:
-# * defm, set_defm!   >>> decide what to do about those
+# * defm, set_defm!         >>> decide what to do about those
 # * Base.read, Base.write   >>> rename as read_xyz, write_xyz
 # * if we make Atoms immutable, then we could make the calculator
 #   etc a type parameter, but it has the disadvantage that we would need
@@ -24,6 +24,7 @@
 
 const CH = JuLIP.Chemistry
 
+import Base.Dict
 
 export Atoms,
        bulk,
@@ -81,8 +82,8 @@ TODO
    Z::Vector{TI} = Int[]           # atomic numbers
    cell::JMat{T} = zero(JMat{Float64})                   # cell
    pbc::JVec{Bool} = JVec(false, false, false)     # boundary condition
-   calc::AbstractCalculator = NullCalculator()
-   cons::AbstractConstraint = NullConstraint()
+   calc::Union{Void, AbstractCalculator} = nothing
+   cons::Union{Void, AbstractConstraint} = nothing
    data::Dict{Any,JData} = Dict{Any,JData}()
 end
 
@@ -93,6 +94,10 @@ _auto_pbc(pbc::AbstractVector) = tuple(pbc...)
 Atoms(X, P, M, Z, cell, pbc; calc=NullCalculator(),
       cons = NullConstraint(), data = Dict{Any,JData}()) =
    Atoms(X, P, M, Z, JMat(cell), _auto_pbc(pbc), calc, cons, data)
+
+Atoms(Z::Vector{TI}, X::Vector{JVec{T}}; kwargs...
+     ) where {TI <: Integer, T <: AbstractFloat} =
+  Atoms(;Z=Z, X=X, P = zeros(JVec{T}, length(X)), M = zeros(length(X)), kwargs...)
 
 # derived properties
 length(at::Atoms) = length(at.X)
@@ -310,21 +315,27 @@ end
 
 
 # ------------------------ workaround for JLD bug  ----------------------
-import JLD
-struct AtomsSerializer
-   X
-   P
-   M
-   Z
-   cell
-   pbc
-   calc
-   cons
-   data
-end
 
-JLD.writeas(at::Atoms) =
-   AtomsSerializer(at.X, at.P, at.M, at.Z, at.cell, at.pbc, at.calc, at.cons, at.data)
 
-JLD.readas(at::AtomsSerializer) =
-   Atoms(at.X, at.P, at.M, at.Z, at.cell, at.pbc, at.calc, at.cons, at.data)
+Dict(at::Atoms) =
+   Dict( "id"   => "JuLIP.Atoms",
+         "X"    => at.X,
+         "P"    => at.P,
+         "M"    => at.M,
+         "Z"    => at.Z,
+         "cell" => at.cell,
+         "pbc"  => at.pbc,
+         "calc" => nothing,
+         "cons" => nothing,
+         "data" => at.data )
+
+Atoms(D::Dict) =
+   Atoms( X    = D["X"],
+          P    = D["P"],
+          M    = D["M"],
+          Z    = D["Z"],
+          cell = D["cell"],
+          pbc  = D["pbc"],
+          calc = D["calc"],
+          cons = D["cons"],
+          data = D["data"] )
