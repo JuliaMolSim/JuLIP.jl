@@ -102,7 +102,7 @@ the use of an orthorhombic unit cell (for now).
  * lift the restriction of single species
  * allow other shapes
 """
-function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball)
+function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothing)
    sym = chemical_symbols(atu)[1]
    # check that the cell is orthorombic
    @assert isdiag(cell(atu))
@@ -116,13 +116,18 @@ function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball)
    # find point closes to centre
    x̄ = mean( x[dims] for x in at.X)
    i0 = findmin( norm(x[dims] - x̄) for x in at.X )[2]
-   x0 = at[i0]
+   if x0 == nothing
+      x0 = at[i0]
+   else
+      x0 += at[i0]
+   end
+   @show x0
    # swap positions
    X = positions(at)
    X[1], X[i0] = X[i0], X[1]
    F = diagm([Fu[j,j]*L[j] for j = 1:3])
    # carve out a cluster with mini-buffer to account for round-off
-   r = [ norm(x[dims] - X[1][dims]) for x in X ]
+   r = [ norm(x[dims] - x0[dims]) for x in X ]
    IR = find( r .<= R+sqrt(eps(T)) )
    # generate new positions
    Xcluster = X[IR]
