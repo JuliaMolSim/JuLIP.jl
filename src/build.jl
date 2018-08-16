@@ -121,7 +121,6 @@ function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=no
    else
       x0 += at[i0]
    end
-   @show x0
    # swap positions
    X = positions(at)
    X[1], X[i0] = X[i0], X[1]
