@@ -8,7 +8,8 @@ module Build
 using ..Chemistry
 using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
-      chemical_symbols, set_cell!, set_pbc!, update_data!
+      chemical_symbols, set_cell!, set_pbc!, update_data!, rmin,
+      set_defm!, defm
 
 
 export repeat, bulk, cluster, autocell!
@@ -76,6 +77,20 @@ end
 
 
 """
+auxiliary function to convert a general cell to a cubic one; this is a bit of
+a hack, so to not make a mess of things, this will only work in very restrictive
+circumstances and otherwise throw an error. But it could be revisited.
+"""
+function _cubic_cell(atu::Atoms)
+   @assert length(atu) == 1
+   ru = rmin(atu)
+   at = bulk(chemical_symbol(atu.Z[1]), cubic=true)
+   r = rmin(at)
+   return set_defm!(at, (ru/r) * defm(at); updatepositions=true)
+end
+
+
+"""
 `cluster(args...; kwargs...) -> at::AbstractAtoms`
 
 Produce a cluster of approximately radius R. The center
@@ -105,7 +120,13 @@ the use of an orthorhombic unit cell (for now).
 function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothing)
    sym = chemical_symbols(atu)[1]
    # check that the cell is orthorombic
-   @assert isdiag(cell(atu))
+   if !isdiag(cell(atu))
+      if length(atu) > 1
+         error("""`JuLIP.cluster` requires as argument either a cubic cell or a
+                  one-atom cell.""")
+      end
+      atu = _cubic_cell(atu)
+   end
    # # check that the first index is the centre
    # @assert norm(atu[1]) == 0.0
    # determine by how much to multiply in each direction
