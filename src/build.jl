@@ -5,10 +5,11 @@ only a subset of the `bulk` functionality is supported.
 """
 module Build
 
+import JuLIP
 using ..Chemistry
 using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
-      chemical_symbols, set_cell!, set_pbc!, update_data!, rmin,
+      chemical_symbols, set_cell!, set_pbc!, update_data!,
       set_defm!, defm
 
 
@@ -83,9 +84,9 @@ circumstances and otherwise throw an error. But it could be revisited.
 """
 function _cubic_cell(atu::Atoms)
    @assert length(atu) == 1
-   ru = rmin(atu)
+   ru = JuLIP.rmin(atu)
    at = bulk(chemical_symbol(atu.Z[1]), cubic=true)
-   r = rmin(at)
+   r = JuLIP.rmin(at)
    return set_defm!(at, (ru/r) * defm(at); updatepositions=true)
 end
 
