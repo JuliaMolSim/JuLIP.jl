@@ -123,14 +123,14 @@ end
 #
 # Load EAM file from .fs file format
 #
-function EAM(fname::AbstractString)
+function EAM(fname::AbstractString; kwargs...)
 
    if fname[end-3:end] == ".eam"
       error(".eam is not yet implemented, please file an issue")
    elseif fname[end-6:end] == ".eam.fs"
       error(".eam.fs is not yet implemented, please file an issue")
    elseif fname[end-2:end] == ".fs"
-      return eam_from_fs(fname)
+      return eam_from_fs(fname; kwargs...)
    end
 
    error("unknwon EAM file format, please file an issue")
@@ -168,8 +168,8 @@ Read a `.fs` file specifying and EAM / Finnis-Sinclair potential.
 """
 function eam_from_fs(fname; kwargs...)
    F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
-   return EAM( SplinePairPotential(r, ϕfun, kwargs...),
-               SplinePairPotential(r, ρfun, kwargs...),
+   return EAM( SplinePairPotential(r, ϕfun; kwargs...),
+               SplinePairPotential(r, ρfun; kwargs...),
                SplinePairPotential(ρ, F; fixcutoff= false, kwargs...),
                info )
 end
