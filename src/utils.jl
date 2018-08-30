@@ -108,9 +108,9 @@ distances between the two configurations `X1, X2` or `at1, at2`.
 This implementation accounts for periodic boundary conditions (in those
 coordinate directions where they are set to `true`)
 """
-function dist{T}(at::AbstractAtoms,
-                 X1::Vector{JVec{T}}, X2::Vector{JVec{T}},
-                 p = Inf)
+function dist(at::AbstractAtoms,
+              X1::Vector{JVec{T}}, X2::Vector{JVec{T}},
+              p = Inf) where T
    @assert length(X1) == length(X2)
    F = cell(at)'
    Finv = inv(F)
@@ -154,7 +154,7 @@ function _project_pbc_min_(F, Finv, p, x)
 end
 
 
-function displacement{T}(at::AbstractAtoms, X1::Vector{JVec{T}}, X2::Vector{JVec{T}})
+function displacement(at::AbstractAtoms, X1::Vector{JVec{T}}, X2::Vector{JVec{T}}) where T
    @assert length(X1) == length(X2)
    F = defm(at)
    Finv = inv(F)

@@ -15,7 +15,7 @@ pairpotentials = [
 println("============================================")
 println("  Testing pair potential implementations ")
 println("============================================")
-r = linspace(0.8, 4.0, 100) |> collect
+r = range(0.8, stop=4.0, length=100) |> collect
 push!(r, 2.0-1e-12)
 for pp in pairpotentials
    println("--------------------------------")
@@ -27,8 +27,8 @@ end
 print("testing shift-cutoffs: ")
 V = @analytic r -> exp(r)
 Vhs = V * HS(1.0)
-r1 = linspace(0.0, 1.0-1e-14, 20)
-r2 = linspace(1.0+1e-14, 3.0, 20)
+r1 = range(0.0, stop=1.0-1e-14, length=20)
+r2 = range(1.0+1e-14, stop=3.0, length=20)
 print("HS")
 @test Vhs.(r1) == exp.(r1)
 @test norm(Vhs.(r2)) == 0.0

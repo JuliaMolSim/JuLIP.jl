@@ -1,6 +1,6 @@
 
 using JuLIP
-using Base.Test
+using Test
 
 println("===================================================")
 println("          TEST SOLVE ")

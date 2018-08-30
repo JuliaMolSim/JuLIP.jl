@@ -1,6 +1,6 @@
 
 using JuLIP
-using Base.Test
+using Test
 using JuLIP.Testing
 
 verbose=true

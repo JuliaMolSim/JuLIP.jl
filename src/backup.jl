@@ -11,8 +11,8 @@ fields = [ (:X,       "positions",    true),
            ]
 
 for (S, name, isarray) in fields
-   set_name = parse("set_$(name)!")
-   get_name = parse("$name")
+   set_name = Meta.parse("set_$(name)!")
+   get_name = Meta.parse("$name")
    if isarray
       @eval begin
          function $(get_name)(at::Atoms)

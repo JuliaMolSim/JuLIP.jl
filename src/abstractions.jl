@@ -326,7 +326,7 @@ be allowed to be either a scalar or a vector.
 #     CALCULATOR
 #######################################################################
 
-type  NullCalculator <: AbstractCalculator end
+mutable struct  NullCalculator <: AbstractCalculator end
 
 "Returns the cut-off radius of the potential."
 @protofun cutoff(::AbstractCalculator)
@@ -406,7 +406,7 @@ stress(at::AbstractAtoms) = stress(calculator(at), at)
 #  Constraints and DoF Handling
 #######################################################################
 
-type NullConstraint <: AbstractConstraint end
+mutable struct NullConstraint <: AbstractConstraint end
 
 """
 `position_dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
@@ -531,7 +531,7 @@ update!(precond::Preconditioner, at::AbstractAtoms, x::Dofs) =
 """
 Identity preconditioner, i.e., no preconditioner.
 """
-type Identity <: Preconditioner
+mutable struct Identity <: Preconditioner
 end
 
 A_ldiv_B!(out::Dofs, P::Identity, x::Dofs) = copy!(out, x)

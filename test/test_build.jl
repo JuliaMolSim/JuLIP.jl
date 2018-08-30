@@ -1,6 +1,6 @@
 
 
-using Base.Test, JuLIP
+using Test, JuLIP
 
 if hasase
    println("Testing `jbulk == bulk` ...")

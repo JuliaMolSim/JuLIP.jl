@@ -27,7 +27,7 @@ for `evaluate, evaluate_d, evaluate_dd, grad`.
 
 For example, the declaration
 ```julia
-@pot type LennardJones <: PairPotential
+@pot mutable struct LennardJones <: PairPotential
    r0::Float64
 end
 "documentation for `LennardJones`"
@@ -58,10 +58,10 @@ macro pot(fsig)
    quote
       $(esc(fsig))
       # Docs.@__doc__ $(name_only)
-      @inline ($sym::$tname){$(tparams...)}(args...) = evaluate($sym, args...)
-      @inline ($sym::$tname){$(tparams...)}(::Type{Val{:D}}, args...) = evaluate_d($sym, args...)
-      @inline ($sym::$tname){$(tparams...)}(::Type{Val{:DD}}, args...) = evaluate_dd($sym, args...)
-      @inline ($sym::$tname){$(tparams...)}(::Type{Val{:GRAD}}, args...) = grad($sym, args...)
+      @inline ($sym::$tname)(args...) where {$(tparams...)} = evaluate($sym, args...)
+      @inline ($sym::$tname)(::Type{Val{:D}}, args...) where {$(tparams...)} = evaluate_d($sym, args...)
+      @inline ($sym::$tname)(::Type{Val{:DD}}, args...) where {$(tparams...)} = evaluate_dd($sym, args...)
+      @inline ($sym::$tname)(::Type{Val{:GRAD}}, args...) where {$(tparams...)} = grad($sym, args...)
    end
 end
 
@@ -117,7 +117,7 @@ end
 # ==================================
 #   Basic Potential Arithmetic
 
-@pot type SumPot{P1, P2} <: PairPotential
+@pot mutable struct SumPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
@@ -136,7 +136,7 @@ function Base.show(io::Base.IO, p::SumPot)
    print(io, p.p2)
 end
 
-@pot type ProdPot{P1, P2} <: PairPotential
+@pot mutable struct ProdPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
@@ -160,5 +160,5 @@ end
 #       basically, we want to allow that
 #       a pair potential can depend on direction as well!
 #       in this case, @D is already the gradient and @GRAD remaind undefined?
-evaluate{P1,P2}(p::ProdPot{P1,P2}, r, R) = p.p1(r, R) * p.p2(r, R)
+evaluate(p::ProdPot{P1,P2}, r, R) where {P1,P2} = p.p1(r, R) * p.p2(r, R)
 evaluate_d(p::ProdPot, r, R) = p.p1(r,R) * (@D p.p2(r,R)) + (@D p.p1(r,R)) * p.p2(r,R)

@@ -25,9 +25,9 @@ a concrete type and overload `JuLIP.Potentials.ad_evaluate`.
 
 Example
 ```julia
-@pot type P1 <: FDPotential
+@pot mutable struct P1 <: FDPotential
 end
-JuLIP.Potentials.ad_evaluate{T<:Real}(pot::P1, R::Matrix{T}) =
+JuLIP.Potentials.ad_evaluate(pot::P1, R::Matrix{T}) where {T<:Real} =
                sum( exp(-norm(R[:,i])) for i = 1:size(R,2) )
 ```
 

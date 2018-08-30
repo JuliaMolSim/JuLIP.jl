@@ -48,7 +48,7 @@ preconditioner is updated
 * `stab`: stabilisation constant {0.01}, add `stab * I` to `P`
 * `solve`: which solver to used, `:amg` or `:chol`, default is `:amg`
 """
-type IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer} <: Preconditioner
+mutable struct IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer} <: Preconditioner
    p::TV
    solver::TS
    A::SparseMatrixCSC{T, TI}
@@ -169,7 +169,7 @@ end
 
 cutoff(P::Exp) = cutoff(P.Vexp)
 
-precon{T}(P::Exp{T}, r, R) = (P.energyscale * P.Vexp(r)) * one(JMat{T})
+precon(P::Exp{T}, r, R) where {T} = (P.energyscale * P.Vexp(r)) * one(JMat{T})
 
 function Exp(at::AbstractAtoms;
              A=3.0, r0=rnn(at), cutoff_mult=2.2, energyscale = 1.0,

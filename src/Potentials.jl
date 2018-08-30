@@ -163,7 +163,7 @@ include("eam.jl")
 
 export ZeroSitePotential
 
-@pot type ZeroSitePotential <: SitePotential
+@pot mutable struct ZeroSitePotential <: SitePotential
 end
 
 "a site potential that just returns zero"
@@ -181,7 +181,7 @@ cutoff(::ZeroSitePotential) = 3.0
 If `length(R) = N` and `length(R[i]) = d` then `H` is an N × N `Matrix{SMatrix}` with
 each element a d × d static array.
 """
-function fd_hessian{D,T}(V::SitePotential, R::Vector{SVec{D,T}}, h)
+function fd_hessian(V::SitePotential, R::Vector{SVec{D,T}}, h) where {D,T}
    d = length(R[1])
    N = length(R)
    H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
@@ -193,7 +193,7 @@ end
 
 Fill `H` with the hessian entries; cf `fd_hessian`.
 """
-function fd_hessian!{D,T}(H, V::SitePotential, R::Vector{SVec{D,T}}, h)
+function fd_hessian!(H, V::SitePotential, R::Vector{SVec{D,T}}, h) where {D,T}
    N = length(R)
    # convert R into a long vector and H into a big matrix (same part of memory!)
    Rvec = mat(R)[:]

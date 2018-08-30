@@ -10,7 +10,7 @@ using Dierckx: Spline1D
 # https://github.com/kbarbary/Dierckx.jl
 
 
-@pot type SplinePairPotential <: PairPotential
+@pot mutable struct SplinePairPotential <: PairPotential
    spl::Spline1D          # The actual spline object
    rcut::Float64          # cutoff radius (??? could just use spl.t[end] ???)
    wrk::Vector{Float64}   # a work array for faster evaluation of derivatives

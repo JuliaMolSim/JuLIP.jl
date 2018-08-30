@@ -17,10 +17,10 @@
 
 import StaticArrays
 
-_expm{N,T}(A::StaticArrays.SMatrix{N,N,T}) =
-   StaticArrays.SMatrix{N,N,T}(expm(Array(A)))
+_expm(A::StaticArrays.SMatrix{N,N,T}) where {N,T} =
+   StaticArrays.SMatrix{N,N,T}(exp(Array(A)))
 
-type ExpVariableCell <: AbstractConstraint
+mutable struct ExpVariableCell <: AbstractConstraint
    ifree::Vector{Int}
    X0::JVecsF
    F0::JMatF
@@ -46,7 +46,7 @@ function logm_defm(at::AbstractAtoms, cons::ExpVariableCell)
    expU = F * inv(cons.F0)
    # expU should be spd, but roundoff (or other things) might mess this up
    # do we need an extra check here?
-   U = logm(expU |> Array) |> JMat
+   U = log(expU |> Array) |> JMat
    U = real(0.5 * (U + U'))
    # check that expm(U) * F0 ≈ F (if not, then something has gone horribly wrong)
    if vecnorm(F - _expm(U) * cons.F0, Inf) > 1e-12

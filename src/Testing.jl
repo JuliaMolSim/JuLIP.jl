@@ -51,7 +51,7 @@ function fdtest(F::Function, dF::Function, x; verbose=true)
       end
       return true
    else
-      warn("""It seems the finite-difference test has failed, which indicates
+      @warn("""It seems the finite-difference test has failed, which indicates
       that there is an inconsistency between the function and gradient
       evaluation. Please double-check this manually / visually. (It is
       also possible that the function being tested is poorly scaled.)""")
@@ -85,7 +85,7 @@ function fdtest_hessian(F::Function, dF::Function, x; verbose=true)
       println("passed")
       return true
    else
-      warn("""It seems the finite-difference test has failed, which indicates
+      @warn("""It seems the finite-difference test has failed, which indicates
             that there is an inconsistency between the function and gradient
             evaluation. Please double-check this manually / visually. (It is
             also possible that the function being tested is poorly scaled.)""")
@@ -121,7 +121,7 @@ function fdtest_R2R(F::Function, dF::Function, x::Vector{Float64};
       println("passed")
       return true
    else
-      warn("""is seems the finite-difference test has failed, which indicates
+      @warn("""is seems the finite-difference test has failed, which indicates
             that there is an inconsistency between the function and gradient
             evaluation. Please double-check this manually / visually. (It is
             also possible that the function being tested is poorly scaled.)""")

@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 using JuLIP
 using JuLIP.Potentials
 using JuLIP.Testing
