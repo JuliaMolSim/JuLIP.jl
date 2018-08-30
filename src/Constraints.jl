@@ -23,19 +23,19 @@ import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient,
 export FixedCell, VariableCell, ExpVariableCell, FixedCell2D, atomdofs
 
 
-function zeros_free{T}(n::Integer, x::Vector{T}, free::Vector{Int})
+function zeros_free(n::Integer, x::Vector{T}, free::Vector{Int}) where T
    z = zeros(T, n)
    z[free] = x
    return z
 end
 
-function insert_free!{T}(p::Array{T}, x::Vector{T}, free::Vector{Int})
+function insert_free!(p::Array{T}, x::Vector{T}, free::Vector{Int}) where T
    p[free] = x
    return p
 end
 
 # a helper function to get a valid positions array from a dof-vector
-positions{TI<:Integer}(at::AbstractAtoms, ifree::AbstractVector{TI}, dofs::Dofs) =
+positions(at::AbstractAtoms, ifree::AbstractVector{TI}, dofs::Dofs) where {TI<:Integer} =
       insert_free!(positions(at) |> mat, dofs, ifree) |> vecs
 
 
@@ -57,12 +57,12 @@ Set at most one of the kwargs:
 * `clamp` : list of clamped atom indices (not dof indices)
 * `mask` : 3 x N Bool array to specify individual coordinates to be clamped
 """
-type FixedCell <: AbstractConstraint
+mutable struct FixedCell <: AbstractConstraint
    ifree::Vector{Int}
 end
 
 function analyze_mask(at, free, clamp, mask)
-   if length(find((free != nothing, clamp != nothing, mask != nothing))) > 1
+   if length(findall((free != nothing, clamp != nothing, mask != nothing))) > 1
       error("FixedCell: only one of `free`, `clamp`, `mask` may be provided")
    elseif all( (free == nothing, clamp == nothing, mask == nothing) )
       # in this case (default) all atoms are free
@@ -80,7 +80,7 @@ function analyze_mask(at, free, clamp, mask)
       fill!(mask, false)
       mask[:, free] = true
    end
-   return find(mask[:])
+   return findall(mask[:])
 end
 
 FixedCell(at::AbstractAtoms; clamp = nothing, free=nothing, mask=nothing) =
@@ -203,7 +203,7 @@ On call to the constructor, `VariableCell` stored positions and deformation
 One aspect of this definition is that clamped atom positions still change via
 `F`.
 """
-type VariableCell <: AbstractConstraint
+mutable struct VariableCell <: AbstractConstraint
    ifree::Vector{Int}
    X0::JVecsF
    F0::JMatF
@@ -301,6 +301,6 @@ project!(at::AbstractAtoms, cons::VariableCell) = at
 # include("expcell.jl")
 
 # convenience function to return DoFs associated with a particular atom
-atomdofs(a::AbstractAtoms, I::Integer) = findin(constraint(a).ifree, 3*I-2:3*I)
+atomdofs(a::AbstractAtoms, I::Integer) = findall(in(3*I-2:3*I), constraint(a).ifree)
 
 end # module

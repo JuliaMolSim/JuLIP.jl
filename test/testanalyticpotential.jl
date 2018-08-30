@@ -1,7 +1,7 @@
 
 import JuLIP.Potentials: @pot, @D, evaluate, evaluate_d, PairPotential, @analytic
 
-@pot type Morseold <: PairPotential
+@pot mutable struct Morseold <: PairPotential
    e0::Float64
    A::Float64
    r0::Float64
@@ -17,7 +17,7 @@ morse = @analytic( r -> e0 * (exp(-2*A*(r/r0-1.0)) - 2.0*exp(-A*(r/r0-1.0))) )
 @show typeof(morse)
 morseold = Morseold(e0, A, r0)
 
-rr = collect(linspace(0.9, 2.1, 100))
+rr = collect(range(0.9, stop=2.1, length=100))
 morse_r = morse.(rr)
 morseold_r = morseold.(rr)
 dmorse_r = [(@D morse(r)) for r in rr]

@@ -1,7 +1,7 @@
 
 
 using JuLIP
-using Base.Test
+using Test
 
 
 println("check that `bulk` evaluates ok...")

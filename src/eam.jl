@@ -140,7 +140,7 @@ end
 # ================= Finnis-Sinclair Potential =======================
 
 
-@pot type FSEmbed end
+@pot mutable struct FSEmbed end
 evaluate(V::FSEmbed, ρ̄) = - sqrt(ρ̄)
 evaluate_d(V::FSEmbed, ρ̄) = - 0.5 / sqrt(ρ̄)
 evaluate_dd(V::FSEmbed, ρ̄) = 0.25 * ρ̄^(-3/2)
@@ -212,8 +212,8 @@ function read_fs(fname)
    # all the data
    data = readdlm(f)
    @assert length(data) == Nrho+2*Nr
-   ρ = linspace(0, (Nrho-1)*drho, Nrho)
-   r = linspace(cutoff - (Nr-1)*dr, cutoff, Nr)
+   ρ = range(0, stop=(Nrho-1)*drho, length=Nrho)
+   r = range(cutoff - (Nr-1)*dr, stop=cutoff, length=Nr)
 
    # embedding function
    F = data[1:Nrho]

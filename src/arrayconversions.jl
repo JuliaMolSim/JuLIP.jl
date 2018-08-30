@@ -39,9 +39,9 @@ vector
 `vecs(V::Array{T,N})` : If `V` has dimensions 3 x n2 x ... x nN then
 it gets converted to an n2 x ... x nN array with JVec{T} entries.
 """
-vecs{T}(V::Matrix{T}) = reinterpret(JVec{T}, V, (size(V,2),))
-vecs{T}(V::Vector{T}) = reinterpret(JVec{T}, V, (length(V) ÷ 3,))
-vecs{T,N}(V::Array{T,N}) = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
+vecs(V::Matrix{T}) where {T} = reinterpret(JVec{T}, V, (size(V,2),))
+vecs(V::Vector{T}) where {T} = reinterpret(JVec{T}, V, (length(V) ÷ 3,))
+vecs(V::Array{T,N}) where {T,N} = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
 
 "`JMat{T}` : 3 × 3 immutable marix"
 
@@ -74,7 +74,7 @@ const JMatsI = JMats{Int}
 # mats{T}(V::Matrix{T}) = reshape(permutedims(V, [1 3 2 4]), 6, 6)
 
 export mats
-function mats{T,N}(V::Array{T, N})
+function mats(V::Array{T, N}) where {T,N}
   @assert size(V,1) == size(V,2) == 3
   @assert ndims(V) > 2
   return reinterpret(JMat{T}, V, tuple(size(V)[3:end]...))
@@ -94,7 +94,7 @@ x, y, z = xyz(at)
 ```
 Conversely, `set_positions!(at, x, y, z)` is also allowed.
 """
-xyz{T}(V::Vector{JVec{T}}) = xyz(mat(V))
+xyz(V::Vector{JVec{T}}) where {T} = xyz(mat(V))
 
 
 function xyz(V::Matrix)
@@ -114,12 +114,12 @@ X = positions(at)          # returns a Vector{JVec}
 X = positions(at) |> mat   # returns a Matrix
 ```
 """
-mat{N,T}(V::Vector{SVec{N,T}}) = reinterpret(T, V, (N, length(V)))
-mat{N,T}(X::AbstractVector{SVec{N,T}}) = mat(collect(X))
+mat(V::Vector{SVec{N,T}}) where {N,T} = reinterpret(T, V, (N, length(V)))
+mat(X::AbstractVector{SVec{N,T}}) where {N,T} = mat(collect(X))
 
 # rewrite all of this in terms of `convert` (TODO: is this needed?)
-convert{T}(::Type{Matrix{T}}, V::JVecs{T}) = mat(V)
-convert{T}(::Type{JVecs{T}}, V::Matrix{T}) = vec(V)
+convert(::Type{Matrix{T}}, V::JVecs{T}) where {T} = mat(V)
+convert(::Type{JVecs{T}}, V::Matrix{T}) where {T} = vec(V)
 
 # initialise a vector of vecs or points
 zerovecs(n::Integer) = zerovecs(Float64, n)
@@ -138,4 +138,4 @@ function maxdist(x::AbstractArray{JVec{T}}, y::AbstractArray{JVec{T}}) where T
 end
 
 "`maximum(norm(y) for y in x);` typically, x is a vector of forces"
-maxnorm{T}(x::JVecs{T}) = maximum( norm.(x) )
+maxnorm(x::JVecs{T}) where {T} = maximum( norm.(x) )

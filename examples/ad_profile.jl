@@ -56,9 +56,9 @@ end
 x = gresult = compiled_f_tape = nothing
 for N in (100, 400, 1600)
    # pre-record a GradientTape for `F` using inputs with Float64 elements
-   const f_tape = GradientTape(F, rand(N))
+   f_tape = GradientTape(F, rand(N))
    # compile `f_tape` into a more optimized representation
-   const compiled_f_tape = compile(f_tape)
+   compiled_f_tape = compile(f_tape)
    # some inputs and work buffers to play around with
    gresult = zeros(N)
    x = collect(1:N) + rand(N)

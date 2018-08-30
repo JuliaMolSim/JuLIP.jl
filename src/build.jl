@@ -102,7 +102,7 @@ the use of an orthorhombic unit cell (for now).
  * lift the restriction of single species
  * allow other shapes
 """
-function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothing)
+function cluster(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothing) where T
    sym = chemical_symbols(atu)[1]
    # check that the cell is orthorombic
    @assert isdiag(cell(atu))
@@ -127,7 +127,7 @@ function cluster{T}(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=no
    F = diagm([Fu[j,j]*L[j] for j = 1:3])
    # carve out a cluster with mini-buffer to account for round-off
    r = [ norm(x[dims] - x0[dims]) for x in X ]
-   IR = find( r .<= R+sqrt(eps(T)) )
+   IR = findall( r .<= R+sqrt(eps(T)) )
    # generate new positions
    Xcluster = X[IR]
    # generate the cluster
@@ -174,7 +174,7 @@ function Base.repeat(at::Atoms, n::NTuple{3})
    M = Base.repeat(M0, outer=nrep)
    Z = Base.repeat(Z0, outer=nrep)
    i = 0
-   for a in CartesianRange( CartesianIndex(1,1,1), CartesianIndex(n...) )
+   for a in CartesianIndices( CartesianIndex(1,1,1), CartesianIndex(n...) )
       b = c1 * (a[1]-1) + c2 * (a[2]-1) + c3 * (a[3]-1)
       X[i+1:i+nat0] = [b+x for x in X0]
       i += nat0
@@ -183,7 +183,7 @@ function Base.repeat(at::Atoms, n::NTuple{3})
 end
 
 Base.repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
-Base.repeat(at::Atoms, n::AbstractArray) = repeat(at, (n...))
+Base.repeat(at::Atoms, n::AbstractArray) = repeat(at, (n...,))
 
 import Base.*
 *(at::Atoms, n) = repeat(at, n)

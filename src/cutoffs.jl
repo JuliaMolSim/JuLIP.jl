@@ -30,7 +30,7 @@ end
 
 
 # doc below
-@pot type SWCutoff <: PairPotential
+@pot mutable struct SWCutoff <: PairPotential
     Rc::Float64
     Lc::Float64
     e0::Float64
@@ -125,8 +125,8 @@ Shift(V, p::Shift{-1}) = Shift(p.ord, V, p.rcut, 0.0, 0.0, 0.0)
 Shift(V, p::Shift{0}) = Shift(p.ord, V, p.rcut, V(p.rcut), 0.0, 0.0)
 Shift(V, p::Shift{1}) = Shift(p.ord, V, p.rcut, V(p.rcut), (@D V(p.rcut)), 0.0)
 Shift(V, p::Shift{2}) = Shift(p.ord, V, p.rcut, V(p.rcut), (@D V(p.rcut)), (@DD V(p.rcut)))
-*{ORD}(V::PairPotential, p::Shift{ORD, Void}) = Shift(V, p)
-*{ORD}(p::Shift{ORD, Void}, V::PairPotential) = Shift(V, p)
+*(V::PairPotential, p::Shift{ORD, Nothing}) where {ORD} = Shift(V, p)
+*(p::Shift{ORD, Nothing}, V::PairPotential) where {ORD} = Shift(V, p)
 
 
 # """
@@ -179,7 +179,7 @@ function fcut_dd(r, r0, r1)
   return (0 < s < 1) * (@fastmath (120*s^3 - 180 * s^2 + 60 * s) / (r1-r0)^2)
 end
 
-@pot type SplineCutoff <: PairPotential
+@pot mutable struct SplineCutoff <: PairPotential
    r0::Float64
    r1::Float64
 end

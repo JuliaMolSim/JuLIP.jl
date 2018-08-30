@@ -1,4 +1,4 @@
-using JuLIP, ForwardDiff, StaticArrays, ReverseDiff, BenchmarkTools, Base.Test
+using JuLIP, ForwardDiff, StaticArrays, ReverseDiff, BenchmarkTools, Test
 
 # simple EAM-like potential
 f(R) = sqrt( 1.0 + sum( exp(-norm(r)) for r in R ) )

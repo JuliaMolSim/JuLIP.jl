@@ -1,7 +1,7 @@
 
 
 "embedding function for the Gupta potential"
-type GuptaEmbed <: SimpleFunction
+mutable struct GuptaEmbed <: SimpleFunction
     xi
 end
 evaluate(p::GuptaEmbed, r) = p.xi * sqrt(r)
