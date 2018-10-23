@@ -5,7 +5,7 @@
 # F = exp(U) F0
 # x =  F * F0^{-1} z  = exp(U) z
 #
-# ϕ( exp(U+tV) (z+tv) ) ~ ϕ'(x) ⋅ (exp(U) v) + ϕ'(x) ⋅ ( L(U, V) exp(-U) exp(U) z )
+# ϕ( exp(U+tV) (z+tv) ) ~ ϕ'(x) ⋅ (exp(U) V) + ϕ'(x) ⋅ ( L(U, V) exp(-U) exp(U) z )
 #    >>> ∂E(U) : V  =  [S exp(-U)'] : L(U,V)
 #                   =  L'(U, S exp(-U)') : V
 #                   =  L(U', S exp(-U)') : V

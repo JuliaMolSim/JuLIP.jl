@@ -1,0 +1,193 @@
+
+\documentclass[11pt,a4paper]{amsart}
+
+
+\begin{document}
+
+\begin{center}
+   \bf Note on the Exponential Cell Matrix
+\end{center}
+
+\bigskip
+
+This brief note is to recap the deformation of a cell matrix via the matrix
+exponential (Lie group). First of all, we don't work in terms of the cell matrix
+$C$, but in terms of its transpose $A = C^T$. We will then write
+%
+\[
+  A = \exp(U) A_0,
+\]
+where $A_0$ is some reference cell matrix.
+
+\subsection*{Virial and Stress}
+%
+First, however, we recap the definition of virial and of stress. Let $R$ be the
+current positions and $A = C^T$ the current cell matrix. When we deform the cell
+matrix, then the positions deform accordingly,
+%
+\[
+   A \mapsto F \cdot A \quad \Rightarrow \quad R \mapsto F \cdot R.
+\]
+The (negative) virial is the derivative of the PES with respect to $F$
+under this transformation. That is, if $E(A, R)$ denotes the PES with
+cell matrix $A$ and positions $R$ then
+\[
+   - T^{\rm vir}_{i\alpha} := \frac{\partial}{\partial F_{i\alpha}}
+      E( F A, F R ) \Big|_{F = I}.
+\]
+For example, for a pair potential,
+\[
+   E = \frac12 \sum_{a \neq b} \phi(r_{ab}),
+\]
+with this definition we obtain
+\[
+   T^{\rm vir} = - \frac12 \sum_{a \neq b} \phi'(r_{ab}) R_{ab} \otimes R_{ab},
+\]
+which should be the correct definition. (For EAM the expression is analogous, in general it can be a bit more complex.)
+
+We can connect this to the Piola--Kirchhoff and Cauchy stresses as follows: Let
+$A_0$ be some reference cell matrix, and $R_0$ the reference cell positions and
+let $A = F A_0, R = F R_0$, then the Cauchy--Born energy per unit (underformed)
+volume is
+\[
+   W(F) = (\det A_0)^{-1} E(F A_0, F R_0)
+\]
+and its derivative $T^{\rm pk} := \partial_F W(F)$ is the first Piola--Kirchhoff
+stress. For a pair potential this can be readily calculated as
+%
+\begin{equation} \label{eq:Tpk-pair}
+   T^{\rm pk} = \frac12 \sum_{a \neq b} \phi'(r_{ab}) R_{ab} \otimes R_{0,ab};
+\end{equation}
+%
+(i.e., $r_{ab} = |F R_{0,ab}|$ and $R_{ab} = F R_{0,ab}$) note in particular
+that this is asymmetric.
+
+The Cauchy--Stress is given by
+\[
+   T^{\rm pk} = T^{\rm c} {\rm cof} F,
+\]
+where ${\rm cof} F = {\rm det F} F^{-T}$,  that is,
+\[
+   T^{\rm c} = (\det F)^{-1} T^{\rm pk} F^T.
+\]
+%
+Returning to the example of a pair potential, inserting this expression into
+\eqref{eq:Tpk-pair}, recalling $A = F A_0, R = F R_0$ and using $\det A_0 \det F
+= \det (F A_0) = \det A$,  we obtain
+%
+\begin{align*}
+   T^{\rm c} &= (\det A_0 \det F)^{-1} \sum_{a \neq b} \phi'(r_{ab}) (F R_{0,ab}) \otimes (F R_{0,ab})  \\
+   &= (\det A)^{-1} \sum_{a \neq b} \phi'(r_{ab}) R_{ab} \otimes R_{ab} \\
+   &= - (\det A)^{-1} T^{\rm vir}.
+\end{align*}
+%
+In general, we take this as the definition of atomistic (Cauchy) stress:
+%
+\begin{equation} \label{eq:defn-at-stress}
+   T^{\rm c} := - (\det A)^{-1} T^{\rm vir},
+\end{equation}
+i.e., negative virial normalised with respect to deformed cell volume.
+
+\subsection*{Cell Deformation via Exponential Map}
+%
+We are now simply replacing the cell deformation  $A_0 \mapsto F A_0$ with $A_0
+\mapsto \exp(U) A_0$. More generally, we allow a cell matrix $A = \exp(U) A_0$
+and positions $R = \exp(U) R_0$ and consider the PES $E$ as a function of $U$
+and $R$, hence we need to compute
+%
+\begin{align*}
+   T^{\rm log}_{i\alpha}
+   &:=  \frac{\partial}{\partial U_{i\alpha}} E\big( \exp(U) A_0, \exp(U) R_0 \big) \\
+   &= \frac{\partial}{\partial V_{i\alpha}} E\big( \exp(V) A, \exp(V) R \big) \Big|_{V = 0}.
+\end{align*}
+There are several ways to derive an expression, we will first start from the
+virial.
+
+Let $L(U, V) := \partial \exp(U) : V$ be the linearisation of the exponential
+map, that is,
+\[
+   L(U, V) := \frac{d}{dt} \exp(U + t V) \Big|_{t = 0},
+\]
+then writing $F = \exp(V)$ and applying the chain rule we clearly have
+%
+\begin{align*}
+   T^{\rm log} : V = T^{\rm log}_{i\alpha} V_{i\alpha}
+   &=
+   \big(-T^{\rm vir}_{j\beta}\big)\,
+   \frac{\partial F_{j\beta}}{\partial V_{i\alpha}} |_{V=0} V_{i\alpha} \\
+   &=
+   - T^{\rm vir}_{j\beta} \, \big[L(0, V) \big]_{j\beta}
+   = - T^{\rm vir} : L(0, V).
+\end{align*}
+Since $\exp(V) = I + V + O(V^2)$ it follows that $L(0, V) = V$, and hence we
+simply have
+\[
+   T^{\rm log} = - T^{\rm vir}.
+\]
+We could have just guessed this, since for infinitesimal $V$ we just
+have $\exp(V) \sim I + V$. The exponential map becomes important
+only when we allow large deformations.
+
+\subsection*{Geometry Optimisation}
+%
+In geometry optimisation it is not always convenient to compute gradients in the
+deformed configuration, but to fit within the standard optimisation frameworks
+it can be expedient to freeze some reference configuration and represent the
+deformed configuration in terms of that reference. In {\tt JuLIP} this is done
+as follows (but other choices are possible and may indeed be better!):
+%
+\begin{itemize}
+   \item At the beginning of the optimisation a reference cell $A_0$ and reference positions $R_0$ are frozen.
+   \item Given a current configuration $A, R$ we represent it
+   as
+   \[
+      A = \exp(U) A_0 \qquad \text{and} \qquad
+      R = \exp(U) X
+   \]
+   \item We take $(U, X)$ as the degrees of freedom with respect to which we
+   optimise. We also enforce that $U$ is symmetric. Any anti-symmetric component
+   corresponds to a rotation and does not change the energy of the system.
+\end{itemize}
+%
+Let $\Phi(U, X) := E(A, R)$ then we need to compute $\nabla_U \Phi, \nabla_X
+\Phi$. We begin with the latter: since $R_i = \exp(U) X_i$ we simply have
+\[
+   \nabla_{X_i} \Phi = \bigg[\frac{\partial R_i}{\partial X_i}\bigg]^T \nabla{R_i} E
+      = \exp(U) \nabla_{R_i} E,
+\]
+where $\nabla_{R_i} E$ is the negative force acting on atom $i$. Here, we also
+employed our assumption that $U$ is symmetric.
+
+We now turn towards $\nabla_{U} \Phi$. Note that we have $\Phi(U, X) := E(A, R)
+= E(\exp(U) A_0, \exp(U) X)$, that is, computing $\nabla_U \Phi$ is similar to
+the computation of the Piola--Kirchhoff stress, except for the volume
+normalisation; that is, with $F = \exp(U)$ we have
+\begin{align*}
+   \nabla_U \Phi : V
+   &=
+   (\partial_{U_{i\alpha}} \Phi)\, V_{i\alpha} \\
+   %
+   &=
+   \partial_{F_{j\beta}} E(F A_0, F X)
+   \frac{\partial F_{j\beta}}{\partial U_{i\alpha}} V_{i\alpha} \\
+   %
+   &=
+   \big[ (\det A_0) T^{\rm pk} \big]_{j\beta} \big[L(U, V)\big]_{j\beta} \\
+   %
+   &=
+   \big[ - T^{\rm vir} \exp(-U) \big]_{j\beta} \big[L(U, V)\big]_{j\beta} \\
+   %
+   &=
+   - \big[ T^{\rm vir} \exp(-U) \big] : L(U, V).
+\end{align*}
+Finally, it only remains to observe that
+\[
+   G : L(U, V) = V : L(U, G),
+\]
+which can be proven directly by manipulating the series representation to obtain
+that
+\begin{equation} \label{eq:grad_U}
+   \nabla_U \Phi = - L(U, T^{\rm vir} \exp(-U)).
+\end{equation}
+
+\end{document}
