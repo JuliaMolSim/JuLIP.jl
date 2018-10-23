@@ -5,7 +5,7 @@ using NeighbourLists
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
 
-@pot struct EAM{T1, T2, T3, T4} <: SitePotential
+@pot struct EAM1{T1, T2, T3, T4} <: SitePotential
    ϕ::T1    # pair potential
    ρ::T2    # electron density potential
    F::T3    # embedding function
@@ -14,7 +14,7 @@ end
 
 
 """
-`struct EAM`
+`struct EAM1`
 
 Generic Single-species EAM potential, to specify it, one needs to
 specify the pair potential ϕ, the electron density ρ and the embedding
@@ -41,23 +41,23 @@ details of how the tabulated values are fitted; see
 
 TODO: implement other file formats.
 """
-EAM
+EAM1
 
 
-EAM(ϕ, ρ, F) = EAM(ϕ, ρ, F, nothing)
+EAM1(ϕ, ρ, F) = EAM1(ϕ, ρ, F, nothing)
 
-cutoff(V::EAM) = max(cutoff(V.ϕ), cutoff(V.ρ))
+cutoff(V::EAM1) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
-# evaluate(V::EAM, r, R) =
+# evaluate(V::EAM1, r, R) =
 #     length(r) == 0 ? V.F(0.0) :
 #            V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
-evaluate(V::TV, r, R) where TV <: EAM =
+evaluate(V::TV, r, R) where TV <: EAM1 =
     length(r) == 0 ? V.F(0.0) :
            V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
 
 # TODO: this creates a lot of unnecessary overhead; probaby better to
 #       define vectorised versions of pair potentials
-function evaluate_d(V::EAM, r, R)
+function evaluate_d(V::EAM1, r, R)
    if length(r) == 0; return JVecF[]; end
    ρ̄ = sum(V.ρ(s) for s in r)
    dF = @D V.F(ρ̄)
@@ -66,7 +66,7 @@ function evaluate_d(V::EAM, r, R)
 end
 
 
-function evaluate_d!(out, V::EAM, rs, Rs)
+function evaluate_d!(out, V::EAM1, rs, Rs)
    if length(rs) == 0; return out; end
    ρ̄ = sum(V.ρ(s) for s in rs)
    dF = @D V.F(ρ̄)
@@ -79,15 +79,15 @@ end
 
 # TODO: which of the two `evaluate_dd` and `hess` should we be using?
 #       probably these two should be equivalent
-evaluate_dd(V::EAM, r, R) = hess(V, r, R)
-hess(V::EAM, r, R) = _hess_(V, r, R, identity)
+evaluate_dd(V::EAM1, r, R) = hess(V, r, R)
+hess(V::EAM1, r, R) = _hess_(V, r, R, identity)
 
 # ff preconditioner specification for EAM potentials
 #   (just replace id with abs and hess with precon in the hessian code)
-precon(V::EAM, r, R) = _hess_(V, r, R, abs)
+precon(V::EAM1, r, R) = _hess_(V, r, R, abs)
 
 
-function _hess_(V::EAM, r, R, fabs)
+function _hess_(V::EAM1, r, R, fabs)
    # allocate storage
    H = zeros(JMatF, length(r), length(r))
    # precompute some stuff
@@ -117,7 +117,7 @@ function EAM(fpair::AbstractString, feden::AbstractString,
    pair = SplinePairPotential(fpair; kwargs...)
    eden = SplinePairPotential(feden; kwargs...)
    embed = SplinePairPotential(feden; fixcutoff = false, kwargs...)
-   return EAM(pair, eden, embed)
+   return EAM1(pair, eden, embed)
 end
 
 #
@@ -150,7 +150,7 @@ evaluate_dd(V::FSEmbed, ρ̄) = 0.25 * ρ̄^(-3/2)
 -√ρ̄.
 """
 FinnisSinclair(pair::PairPotential, eden::PairPotential) =
-   EAM(pair, eden, FSEmbed())
+   EAM1(pair, eden, FSEmbed())
 
 function FinnisSinclair(fpair::AbstractString, feden::AbstractString; kwargs...)
    pair = SplinePairPotential(fpair; kwargs...)
@@ -168,7 +168,7 @@ Read a `.fs` file specifying and EAM / Finnis-Sinclair potential.
 """
 function eam_from_fs(fname; kwargs...)
    F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
-   return EAM( SplinePairPotential(r, ϕfun; kwargs...),
+   return EAM1( SplinePairPotential(r, ϕfun; kwargs...),
                SplinePairPotential(r, ρfun; kwargs...),
                SplinePairPotential(ρ, F; fixcutoff= false, kwargs...),
                info )
@@ -239,7 +239,7 @@ import JuLIP: energy, forces
 # for forces
 # TODO: need a proper julia spline library
 
-function _rhobar(V::EAM, nlist::PairList)
+function _rhobar(V::EAM1, nlist::PairList)
    ρ = V.ρ(nlist.r)
    ρ̄ = zeros(nsites(nlist))
    for n = 1:npairs(nlist)
@@ -248,7 +248,7 @@ function _rhobar(V::EAM, nlist::PairList)
    return ρ̄
 end
 
-function energy(V::EAM{SplinePairPotential, SplinePairPotential, T},
+function energy(V::EAM1{SplinePairPotential, SplinePairPotential, T},
                         at::AbstractAtoms) where T
    nlist = neighbourlist(at, cutoff(V))::PairList
    ρ̄ = _rhobar(V, nlist)
@@ -256,7 +256,7 @@ function energy(V::EAM{SplinePairPotential, SplinePairPotential, T},
    return sum( V.F(s) for s in ρ̄ ) + 0.5 * sum(ϕ)
 end
 
-function forces(V::EAM{SplinePairPotential, SplinePairPotential, T},
+function forces(V::EAM1{SplinePairPotential, SplinePairPotential, T},
                         at::AbstractAtoms) where T
    nlist = neighbourlist(at, cutoff(V))::PairList
    ρ̄ = _rhobar(V, nlist)
@@ -278,12 +278,12 @@ end
 export energy_map, forces_map
 using JuLIP:Atoms
 
-energy_map(V::EAM, at::Atoms) =
+energy_map(V::EAM1, at::Atoms) =
    sum_kbn( maptosites!( (r,R) -> V(r,R),
                          zeros(length(at)),
                          sites(at, cutoff(V)) ) )
 
-forces_map(V::EAM, at::Atoms) =
+forces_map(V::EAM1, at::Atoms) =
    scale!( maptosites_d!( ((r, R) -> @D V(r, R)),
                           zeros(JVecF, length(at)),
                           sites(at, cutoff(V)) ), -1 )
