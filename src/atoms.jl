@@ -323,7 +323,7 @@ end
 
 _read_X(X) = X
 _read_X(X::Vector{Any}) = [ JVecF(x) for x in X ]
-_read_X(X::Matrix) = [ X[:,n] for n = 1:size(X,2) ]
+_read_X(X::Matrix) = [ JVecF(X[:,n]) for n = 1:size(X,2) ]
 
 
 Dict(at::Atoms) =
