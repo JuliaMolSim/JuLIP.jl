@@ -12,8 +12,10 @@ using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       chemical_symbols, set_cell!, set_pbc!, update_data!,
       set_defm!, defm
 
+import Base: union
 
-export repeat, bulk, cluster, autocell!
+export repeat, bulk, cluster, autocell!, append
+
 
 
 
@@ -254,5 +256,25 @@ sets the cell of `at` accordingly (in-place) and returns the same atoms objet
 with the new cell.
 """
 autocell!(at::Atoms) = set_cell!(at, _autocell(positions(at)))
+
+
+union(at1::Atoms, at2::Atoms) =
+   Atoms( X = union(at1.X, at2.X),
+          P = union(at1.P, at2.P),
+          M = union(at1.M, at2.M),
+          Z = union(at1.Z, at2.Z),
+          cell = cell(at1),
+          pbc = pbc(at1) )
+
+append(at::Atoms, X::JVecsF) =
+   Atoms( X = union(at.X, X),
+          P = union(at.P, zeros(JVecF, length(X))),
+          M = union(at.M, zeros(length(X))),
+          Z = union(at.Z, zeros(Int, length(X))),
+          cell = cell(at),
+          pbc = pbc(at) )
+
+
+
 
 end
