@@ -168,7 +168,7 @@ Read a `.fs` file specifying and EAM / Finnis-Sinclair potential.
 """
 function eam_from_fs(fname; kwargs...)
    F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
-   return EAM1( SplinePairPotential(r, ϕfun; kwargs...),
+   return EAM1( SplinePairPotential(r, ϕfun; kwargs...) * (@analytic r -> 1/r),
                SplinePairPotential(r, ρfun; kwargs...),
                SplinePairPotential(ρ, F; fixcutoff= false, kwargs...),
                info )
