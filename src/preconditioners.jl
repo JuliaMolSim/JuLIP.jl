@@ -48,7 +48,7 @@ preconditioner is updated
 * `stab`: stabilisation constant {0.01}, add `stab * I` to `P`
 * `solve`: which solver to used, `:amg` or `:chol`, default is `:amg`
 """
-type IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer} <: Preconditioner
+mutable struct IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer} <: Preconditioner
    p::TV
    solver::TS
    A::SparseMatrixCSC{T, TI}
@@ -58,13 +58,14 @@ type IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer} <: Preconditioner
    updatefreq::TI
    skippedupdates::TI
    stab::T
+   innerstab::T
 end
 
 
 
 function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
          updatedist=0.2 * rnn(at), tol=1e-7, updatefreq=10, stab=0.01,
-         solver = :chol)
+         solver = :chol, innerstab=0.0)
    # make sure we don't use this in a context it is not intended for!
    @assert isa(constraint(at), FixedCell)
    A = AMG.poisson(12)
@@ -75,7 +76,7 @@ function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
    else
       error("`IPPrecon` : unknown solver $(solver)")
    end
-   P = IPPrecon(p, solver, A, positions(at), updatedist, tol, updatefreq, 0, stab)
+   P = IPPrecon(p, solver, A, positions(at), updatedist, tol, updatefreq, 0, stab, innerstab)
    # the force_update! makes the first assembly pass.
    return force_update!(P, at)
 end
@@ -111,7 +112,7 @@ function force_update!(P::IPPrecon, at::AbstractAtoms)
    # perform updates of the potential p (if needed; usually not)
    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
-   Pmat = precon_matrix(P.p, at)
+   Pmat = precon_matrix(P.p, at, P.innerstab)
    Pmat = Pmat + P.stab * speye(size(Pmat, 1))
    Pmat = project!(constraint(at), Pmat)
    # and the AMG solver
@@ -141,8 +142,9 @@ atind2lininds(i::Integer) = (i-1) * 3 + [1;2;3]
 """
 build the preconditioner matrix associated with the potential V
 """
-precon_matrix(V::AbstractCalculator, at::AbstractAtoms) =
-   _pos_to_alldof(_precon_or_hessian_pos(V, at, precon), at)
+precon_matrix(V::AbstractCalculator, at::AbstractAtoms, innerstab=0.0;
+              preconmap = (V, r, R) -> precon(V, r, R, innerstab)) =
+   _pos_to_alldof(_precon_or_hessian_pos(V, at, preconmap), at)
 
 """
 A variant of the `Exp` preconditioner; see
@@ -169,7 +171,7 @@ end
 
 cutoff(P::Exp) = cutoff(P.Vexp)
 
-precon{T}(P::Exp{T}, r, R) = (P.energyscale * P.Vexp(r)) * one(JMat{T})
+precon{T}(P::Exp{T}, r, R, innerstab) = (P.energyscale * P.Vexp(r)) * one(JMat{T})
 
 function Exp(at::AbstractAtoms;
              A=3.0, r0=rnn(at), cutoff_mult=2.2, energyscale = 1.0,
@@ -227,9 +229,10 @@ end
 TODO: thorough documentation and reference once the paper is finished
 """
 FF(at::AbstractAtoms, V::AbstractCalculator; kwargs...) =
-   IPPrecon(V, at; kwargs...)
+      IPPrecon(V, at; kwargs...)
 
-FF(at::AbstractAtoms) = FF(at, calculator(at))
+FF(at::AbstractAtoms; kwargs...) =
+      FF(at, calculator(at); kwargs...)
 
 
 

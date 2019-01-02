@@ -19,14 +19,14 @@ catch
 end
 
 julip_tests = [
-   ("testaux.jl", "Miscellaneous"),
-   ("test_atoms.jl", "Atoms"),
-   ("test_build.jl", "Build"),
-   ("testanalyticpotential.jl", "Analytic Potential"),
-   ("testpotentials.jl", "Potentials"),
-   # ("test_ad.jl", "AD Potentials"),
-   ("testvarcell.jl", "Variable Cell"),
-   ("testhessian.jl", "Hessian"),
+   # ("testaux.jl", "Miscellaneous"),
+   # ("test_atoms.jl", "Atoms"),
+   # ("test_build.jl", "Build"),
+   # ("testanalyticpotential.jl", "Analytic Potential"),
+   # ("testpotentials.jl", "Potentials"),
+   # # ("test_ad.jl", "AD Potentials"),
+   # ("testvarcell.jl", "Variable Cell"),
+   # ("testhessian.jl", "Hessian"),
    ("testsolve.jl", "Solve"),
 ]
 
