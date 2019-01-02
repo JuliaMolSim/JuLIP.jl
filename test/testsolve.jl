@@ -68,11 +68,23 @@ at = bulk(:W, cubic=true) * (10,10,2)
 at = set_pbc!(at, true)
 at = rattle!(at, 0.02)
 X0 = positions(at)
+
+##
+set_positions!(at, X0)
 set_calculator!(at, eam_W)
 set_constraint!(at, FixedCell(at))
 P = FF(at, eam_W)
 minimise!(at, precond = P, method = :lbfgs, robust_energy_difference = true, verbose=2)
 
+##
+println("Optimise again with some different stabilisation options")
+set_positions!(at, X0)
+set_calculator!(at, eam_W)
+set_constraint!(at, FixedCell(at))
+P = FF(at, eam_W, stab=0.1, innerstab=0.2)
+minimise!(at, precond = P, method = :lbfgs, robust_energy_difference = true, verbose=2)
+
+##
 println("for comparison now with Exp")
 set_positions!(at, X0)
 minimise!(at, precond = :exp, method = :lbfgs, robust_energy_difference = true, verbose=2)

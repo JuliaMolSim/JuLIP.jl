@@ -84,10 +84,10 @@ hess(V::EAM1, r, R) = _hess_(V, r, R, identity)
 
 # ff preconditioner specification for EAM potentials
 #   (just replace id with abs and hess with precon in the hessian code)
-precon(V::EAM1, r, R) = _hess_(V, r, R, abs)
+precon(V::EAM1, r, R, stab=0.0) = _hess_(V, r, R, abs, stab)
 
 
-function _hess_(V::EAM1, r, R, fabs)
+function _hess_(V::EAM1, r, R, fabs, stab=0.0)
    # allocate storage
    H = zeros(JMatF, length(r), length(r))
    # precompute some stuff
@@ -95,16 +95,22 @@ function _hess_(V::EAM1, r, R, fabs)
    ∇ρ = [ grad(V.ρ, s, S) for (s, S) in zip(r, R) ]
    dF = @D V.F(ρ̄)
    ddF = @DD V.F(ρ̄)
+   # something to stabilize for the precon version
+   Id = eye(JMatF)
    # assemble
    for i = 1:length(r)
       for j = 1:length(r)
-         H[i,j] = fabs(ddF) * ∇ρ[i] * ∇ρ[j]'
+         H[i,j] = (1-stab) * fabs(ddF) * ∇ρ[i] * ∇ρ[j]'
       end
       S = R[i] / r[i]
-      H[i,i] += ( fabs(0.5 * (@DD V.ϕ(r[i])) + dF * (@DD V.ρ(r[i])))
-                     * S * S'
-                + fabs((0.5 * (@D V.ϕ(r[i])) + dF * (@D V.ρ(r[i]))) / r[i])
-                     * (eye(JMatF) - S * S')  )
+      dϕ = @D V.ϕ(r[i])
+      dρ = @D V.ρ(r[i])
+      ddϕ = @DD V.ϕ(r[i])
+      ddρ = @DD V.ρ(r[i])
+      a = fabs(0.5 * (ddϕ + dF * ddρ))
+      b = fabs((0.5 * (dϕ) + dF * (dρ)) / r[i])
+      H[i,i] += ( (1-stab) * ( a * S * S' + b * (Id - S * S') )
+                   + stab  * ( (a+b) * Id ) )
    end
    return H
 end
