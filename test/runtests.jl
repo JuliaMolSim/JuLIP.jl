@@ -5,12 +5,12 @@ using JuLIP.Testing
 
 verbose=true
 
-# check whether on CI
+## check whether on CI
 isCI = haskey(ENV, "CI")
 notCI = !isCI
 eam_W4 = nothing
 
-# check whether ASE is available
+## check whether ASE is available
 hasase = true
 try
    import ASE
@@ -19,14 +19,14 @@ catch
 end
 
 julip_tests = [
-   # ("testaux.jl", "Miscellaneous"),
-   # ("test_atoms.jl", "Atoms"),
-   # ("test_build.jl", "Build"),
-   # ("testanalyticpotential.jl", "Analytic Potential"),
-   # ("testpotentials.jl", "Potentials"),
-   # # ("test_ad.jl", "AD Potentials"),
-   # ("testvarcell.jl", "Variable Cell"),
-   # ("testhessian.jl", "Hessian"),
+   ("testaux.jl", "Miscellaneous"),
+   ("test_atoms.jl", "Atoms"),
+   ("test_build.jl", "Build"),
+   ("testanalyticpotential.jl", "Analytic Potential"),
+   ("testpotentials.jl", "Potentials"),
+   # ("test_ad.jl", "AD Potentials"),
+   ("testvarcell.jl", "Variable Cell"),
+   ("testhessian.jl", "Hessian"),
    ("testsolve.jl", "Solve"),
 ]
 
@@ -37,9 +37,9 @@ end
 
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
-# ===== some prototype potentials ======
+## ===== some prototype potentials ======
 print("Loading some interatomic potentials . .")
-data = joinpath(dirname(@__FILE__), "..", "data") * "/"
+data = joinpath(Pkg.dir("JuLIP"), "data") * "/"
 eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
 print(" .")
 eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
@@ -51,6 +51,7 @@ catch
 end
 println(" done.")
 
+##
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
 println("  Starting JuLIP Tests")
 println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
