@@ -76,6 +76,14 @@ set_constraint!(at, FixedCell(at))
 P = FF(at, eam_W)
 minimise!(at, precond = P, method = :lbfgs, robust_energy_difference = true, verbose=2)
 
+## steepest descent
+set_positions!(at, X0)
+set_calculator!(at, eam_W)
+set_constraint!(at, FixedCell(at))
+P = FF(at, eam_W)
+minimise!(at, precond = P, method = :sd, robust_energy_difference = true, verbose=2)
+
+
 ##
 println("Optimise again with some different stabilisation options")
 set_positions!(at, X0)
