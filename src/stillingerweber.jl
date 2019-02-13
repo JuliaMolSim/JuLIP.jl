@@ -262,7 +262,7 @@ hess(V::StillingerWeber, r, R) = _ad_ddV(V, r, R)
 
 
 
-function precon(V::StillingerWeber, r, R)
+function precon(V::StillingerWeber, r, R, innerstab=0.0)
    n = length(r)
    pV = zeros(JMatF, n, n)
 

@@ -3,7 +3,7 @@ import JuLIP.Chemistry: rnn
 
 export rattle!, r_sum, r_dot,
       swapxy!, swapxz!, swapyz!,
-      dist, displacement
+      dist, displacement, rmin
 
 
 ############################################################
@@ -176,4 +176,15 @@ function wrap_pbc!(at)
    F = defm(at)
    X = [_project_pbc_min_(F, inv(F), pbc(at), x) for x in X]
    set_positions!(at, X)
+end
+
+
+function rmin(at::AbstractAtoms)
+   at2 = at * 2
+   X = positions(at2)
+   r = norm(X[1]-X[2])
+   for n = 1:length(X)-1, m = n+1:length(X)
+      r = min(r, norm(X[n]-X[m]))
+   end
+   return r
 end
