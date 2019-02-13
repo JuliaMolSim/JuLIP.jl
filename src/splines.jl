@@ -36,7 +36,7 @@ end
 @pot SplinePairPotential
 
 SplinePairPotential(spl::Spline1D) =
-   SplinePairPotential(spl, maximum(spl.t), Vector{Float64}(length(spl.t)))
+   SplinePairPotential(spl, maximum(spl.t), Vector{Float64}(undef, length(spl.t)))
 
 
 
@@ -58,14 +58,14 @@ evaluate_dd(V::SplinePairPotential, r) = _deriv(V, r, 2)
 
 
 function SplinePairPotential(xdat, ydat; s = 1e-2, fixcutoff=true, order=3,
-                             w = (1.0 + abs.(ydat)).^(-2))
+                             w = (1.0 .+ abs.(ydat)).^(-2))
    # this creates a "fit" with s determining the balance between smoothness
    # and fitting the data (basically an error bound)
    spl = Spline1D(xdat, ydat; bc = "zero", s = s, k = order, w = w)
    # set the last few spline data-points to 0 to get a guaranteed
    # smooth transition to 0 at the cutoff.
    if fixcutoff
-      spl.c[end-order+1:end] = 0.0
+      spl.c[end-order+1:end] .= 0.0
    end
    return SplinePairPotential(spl)
 end

@@ -39,9 +39,13 @@ vector
 `vecs(V::Array{T,N})` : If `V` has dimensions 3 x n2 x ... x nN then
 it gets converted to an n2 x ... x nN array with JVec{T} entries.
 """
-vecs(V::Matrix{T}) where {T} = reinterpret(JVec{T}, V, (size(V,2),))
-vecs(V::Vector{T}) where {T} = reinterpret(JVec{T}, V, (length(V) ÷ 3,))
-vecs(V::Array{T,N}) where {T,N} = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
+vecs(V::Matrix{T}) where {T} = (@assert size(V,1) == 3;
+                                reinterpret(JVec{T}, vec(V)))
+vecs(V::Vector{T}) where {T} = reinterpret(JVec{T}, V)
+vecs(V::AbstractArray{T,N}) where {T,N} =
+      reshape( reinterpret(JVec{T}, vec(V)), tuple(size(V)[2:end]...) )
+# TODO: figure out how to convert back by useinf .parent.parent
+
 
 "`JMat{T}` : 3 × 3 immutable matrix"
 const JMat{T,N} = SMatrix{3,3,T,N}
@@ -113,8 +117,9 @@ X = positions(at)          # returns a Vector{JVec}
 X = positions(at) |> mat   # returns a Matrix
 ```
 """
-mat(V::Vector{SVec{N,T}}) where {N,T} = reinterpret(T, V, (N, length(V)))
+mat(V::Vector{SVec{N,T}}) where {N,T} = reshape( reinterpret(T, V), (N, length(V)) )
 mat(X::AbstractVector{SVec{N,T}}) where {N,T} = mat(collect(X))
+mat(X::Base.ReinterpretArray) = reshape(X.parent, 3, :)
 
 # rewrite all of this in terms of `convert` (TODO: is this needed?)
 convert(::Type{Matrix{T}}, V::JVecs{T}) where {T} = mat(V)
@@ -124,8 +129,9 @@ convert(::Type{JVecs{T}}, V::Matrix{T}) where {T} = vec(V)
 zerovecs(n::Integer) = zerovecs(Float64, n)
 zerovecs(T::Type, n::Integer) = zeros(T, 3, n) |> vecs
 
-zeromats(T::Type, n::Integer) = zeros()
-# initialise a matrix of
+# TODO: delete this!
+# zeromats(T::Type, n::Integer) = zeros()
+# # initialise a matrix of
 
 """
 maximum of distances between two sets of JVec's, usually positions;
