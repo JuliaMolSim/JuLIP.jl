@@ -82,8 +82,8 @@ TODO
    Z::Vector{TI} = Int[]           # atomic numbers
    cell::JMat{T} = zero(JMat{T})                   # cell
    pbc::JVec{Bool} = JVec(false, false, false)     # boundary condition
-   calc::Union{Void, AbstractCalculator} = nothing
-   cons::Union{Void, AbstractConstraint} = nothing
+   calc::Union{Nothing, AbstractCalculator} = nothing
+   cons::Union{Nothing, AbstractConstraint} = nothing
    data::Dict{Any,JData} = Dict{Any,JData}()
 end
 

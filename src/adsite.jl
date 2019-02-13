@@ -10,12 +10,13 @@ export ADPotential
 # Implementation of a ForwardDiff site potential
 # ================================================
 
-@pot struct ADPotential{TV, T, FR} <: SitePotential
+struct ADPotential{TV, T, FR} <: SitePotential
    V::TV
    rcut::T
    gradfun::FR
 end
 
+@pot ADPotential
 
 """
 `abstract FDPotential <: SitePotential`
@@ -25,8 +26,9 @@ a concrete type and overload `JuLIP.Potentials.ad_evaluate`.
 
 Example
 ```julia
-@pot mutable struct P1 <: FDPotential
+mutable struct P1 <: FDPotential
 end
+@pot P1
 JuLIP.Potentials.ad_evaluate(pot::P1, R::Matrix{T}) where {T<:Real} =
                sum( exp(-norm(R[:,i])) for i = 1:size(R,2) )
 ```

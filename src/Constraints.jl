@@ -22,6 +22,8 @@ import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient,
 
 export FixedCell, VariableCell, ExpVariableCell, FixedCell2D, atomdofs
 
+using SparseArrays: SparseMatrixCSC
+
 
 function zeros_free(n::Integer, x::Vector{T}, free::Vector{Int}) where T
    z = zeros(T, n)
@@ -173,36 +175,36 @@ end
 #          VARIABLE CELL IMPLEMENTATION
 # ========================================================================
 
-"""
-`VariableCell`: both atom positions and cell shape are free;
-
-**WARNING:** before manipulating the dof-vectors returned by a `VariableCell`
-constraint, read *meaning of dofs* instructions at bottom of help text!
-
-Constructor:
-```julia
-VariableCell(at::AbstractAtoms; free=..., clamp=..., mask=..., fixvolume=false)
-```
-Set at most one of the kwargs:
-* no kwarg: all atoms are free
-* `free` : list of free atom indices (not dof indices)
-* `clamp` : list of clamped atom indices (not dof indices)
-* `mask` : 3 x N Bool array to specify individual coordinates to be clamped
-
-### Meaning of dofs
-
-On call to the constructor, `VariableCell` stored positions and deformation
-`X0, F0`, dofs are understood *relative* to this "initial configuration".
-
-`dofs(at, cons::VariableCell)` returns a vector that represents a pair
-`(Y, F1)` of a displacement and a deformation matrix. These are to be understood
-*relative* to the reference `X0, F0` stored in `cons` as follows:
-* `F = F1`   (the cell is then `F'`)
-* `X = [F1 * (F0 \ y)  for y in Y)]`
-
-One aspect of this definition is that clamped atom positions still change via
-`F`.
-"""
+# """
+# `VariableCell`: both atom positions and cell shape are free;
+#
+# **WARNING:** before manipulating the dof-vectors returned by a `VariableCell`
+# constraint, read *meaning of dofs* instructions at bottom of help text!
+#
+# Constructor:
+# ```julia
+# VariableCell(at::AbstractAtoms; free=..., clamp=..., mask=..., fixvolume=false)
+# ```
+# Set at most one of the kwargs:
+# * no kwarg: all atoms are free
+# * `free` : list of free atom indices (not dof indices)
+# * `clamp` : list of clamped atom indices (not dof indices)
+# * `mask` : 3 x N Bool array to specify individual coordinates to be clamped
+#
+# ### Meaning of dofs
+#
+# On call to the constructor, `VariableCell` stored positions and deformation
+# `X0, F0`, dofs are understood *relative* to this "initial configuration".
+#
+# `dofs(at, cons::VariableCell)` returns a vector that represents a pair
+# `(Y, F1)` of a displacement and a deformation matrix. These are to be understood
+# *relative* to the reference `X0, F0` stored in `cons` as follows:
+# * `F = F1`   (the cell is then `F'`)
+# * `X = [F1 * (F0 \ y)  for y in Y)]`
+#
+# One aspect of this definition is that clamped atom positions still change via
+# `F`.
+# """
 mutable struct VariableCell <: AbstractConstraint
    ifree::Vector{Int}
    X0::JVecsF

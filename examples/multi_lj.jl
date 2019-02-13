@@ -8,11 +8,13 @@ import JuLIP: energy, forces, cutoff
 
 export MLJ
 
-@pot struct MLJ{T} <: AbstractCalculator
+struct MLJ{T} <: AbstractCalculator
    Z2idx::Vector{Int}
    V::Matrix{T}
    rcut::Float64
 end
+
+@pot MLJ
 
 cutoff(V::MLJ) = V.rcut
 

@@ -43,8 +43,7 @@ vecs(V::Matrix{T}) where {T} = reinterpret(JVec{T}, V, (size(V,2),))
 vecs(V::Vector{T}) where {T} = reinterpret(JVec{T}, V, (length(V) ÷ 3,))
 vecs(V::Array{T,N}) where {T,N} = reinterpret(JVec{T}, V, tuple(size(V)[2:end]...))
 
-"`JMat{T}` : 3 × 3 immutable marix"
-
+"`JMat{T}` : 3 × 3 immutable matrix"
 const JMat{T,N} = SMatrix{3,3,T,N}
 const JMatF = SMatrix{3,3,Float64,9}
 const JMatI = JMat{Int}

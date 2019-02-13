@@ -2,7 +2,7 @@
 module Preconditioners
 
 using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
-            constraint, pairs, cutoff, positions, defm, JVecF, forces, mat, vecs,
+            constraint, cutoff, positions, defm, JVecF, forces, mat, vecs,
             set_positions!, julipwarn, chemical_symbols, rnn, JVec, JMat ,
             AbstractCalculator, calculator
 
@@ -11,12 +11,18 @@ using JuLIP.Potentials: @analytic, evaluate, evaluate_d, PairPotential, HS,
 
 using JuLIP.Constraints: project!, FixedCell, _pos_to_alldof
 
-using AMG
+using AlgebraicMultigrid
 
+using SparseArrays: SparseMatrixCSC
+import SuiteSparse
 
 import JuLIP: update!
 import JuLIP.Potentials: precon, cutoff
-import Base: A_ldiv_B!, A_mul_B!, dot, *, \, size
+
+import Base: *, \, size
+
+using LinearAlgebra
+import LinearAlgebra: A_ldiv_B!, A_mul_B!, dot
 
 export Exp, FF
 
@@ -68,7 +74,7 @@ function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
          solver = :chol, innerstab=0.0)
    # make sure we don't use this in a context it is not intended for!
    @assert isa(constraint(at), FixedCell)
-   A = AMG.poisson(12)
+   A = AlgebraicMultigrid.poisson(12)
    if solver == :amg
       solver = ruge_stuben(A)
    elseif solver in [:chol, :direct]
@@ -82,9 +88,9 @@ function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
 end
 
 # some standard Base functionality lifted to IPPrecon
-A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: AMG.MultiLevel =
-   copy!(out, solve(P.solver, f, 200, AMG.V(), P.tol))
-A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: Base.SparseArrays.CHOLMOD.Factor =
+A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: AlgebraicMultigrid.MultiLevel =
+   copy!(out, solve(P.solver, f, 200, AlgebraicMultigrid.V(), P.tol))
+A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: SuiteSparse.CHOLMOD.Factor =
    copy!(out, P.solver \ f)
 A_mul_B!(out::Dofs, P::IPPrecon, x::Dofs) = A_mul_B!(out, P.A, x)
 dot(x, P::IPPrecon, y) = dot(x, P * y)
@@ -101,10 +107,10 @@ update!(P::IPPrecon, at::AbstractAtoms) =
    need_update(P, at) ? force_update!(P, at) : (P.skippedupdates += 1; P)
 
 
-update_solver!(P::IPPrecon{TV, TS}) where TV where TS <: Base.SparseArrays.CHOLMOD.Factor =
+update_solver!(P::IPPrecon{TV, TS}) where TV where TS <: SuiteSparse.CHOLMOD.Factor =
    cholfact(Symmetric(P.A))
 
-update_solver!(P::IPPrecon{TV, TS}) where TV where TS <: AMG.MultiLevel =
+update_solver!(P::IPPrecon{TV, TS}) where TV where TS <: AlgebraicMultigrid.MultiLevel =
    ruge_stuben(P.A)
 
 

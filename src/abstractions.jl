@@ -113,7 +113,10 @@ export AbstractAtoms,
       defm, set_defm!
 
 # length is used for several things
-import Base: length, A_ldiv_B!, A_mul_B!, gradient
+import Base: length
+
+using LinearAlgebra
+import LinearAlgebra: A_ldiv_B!, A_mul_B!, gradient
 
 export AbstractCalculator,
       energy, potential_energy, forces, gradient, hessian,

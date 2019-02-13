@@ -40,13 +40,6 @@ end
 
 # ================== Analytical Potentials ==========================
 
-# documentation attached below
-@pot struct AnalyticFunction{F0,F1,F2} <: PairPotential
-   f::F0
-   f_d::F1
-   f_dd::F2
-end
-
 """
 `struct AnalyticFunction`: described an analytic function, allowing to
 evaluate at least 2 derivatives.
@@ -75,7 +68,13 @@ V = @analytic( r -> exp(s) * s, s = r^2 )
 V = @analytic r -> exp(r^2) * r^2
 ```
 """
-AnalyticFunction
+struct AnalyticFunction{F0,F1,F2} <: PairPotential
+   f::F0
+   f_d::F1
+   f_dd::F2
+end
+
+@pot AnalyticFunction
 
 const WrappedAnalyticFunction = AnalyticFunction{F64fun, F64fun, F64fun}
 

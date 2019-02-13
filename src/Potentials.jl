@@ -163,11 +163,12 @@ include("eam.jl")
 
 export ZeroSitePotential
 
-@pot mutable struct ZeroSitePotential <: SitePotential
+"a site potential that just returns zero"
+mutable struct ZeroSitePotential <: SitePotential
 end
 
-"a site potential that just returns zero"
-ZeroSitePotential
+@pot ZeroSitePotential
+
 
 evaluate(p::ZeroSitePotential, r, R) = 0.0
 evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)   # TODO: is this a bug?
