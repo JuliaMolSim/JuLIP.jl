@@ -2,6 +2,7 @@
 # part of the module JuLIP.Potentials
 
 using JuLIP: zerovecs, JVecsF, JVecF, JMatF, neighbourlist
+using LinearAlgebra: I 
 
 using NeighbourLists
 
@@ -85,10 +86,10 @@ end
 function precon(V::PairPotential, r, R)
    dV = @D V(r)
    hV = @DD V(r)
-   Id = eye(JMatF)
+   # Id = eye(JMatF)
    S = R/r
-   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (Id - S * S')) +
-          0.1 * (abs(hV) + abs(dV / r)) * Id
+   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (I - S * S')) +
+          0.1 * (abs(hV) + abs(dV / r)) * I
 end
 
 

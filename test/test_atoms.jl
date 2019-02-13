@@ -2,6 +2,7 @@
 
 using JuLIP
 using Test
+using LinearAlgebra: I 
 
 h3("check that `bulk` evaluates ok...")
 at = bulk(:Si)

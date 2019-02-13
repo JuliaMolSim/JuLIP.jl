@@ -1,6 +1,7 @@
 
 using JuLIP
 using Test
+using LinearAlgebra: I 
 
 println("===================================================")
 println("          TEST SOLVE ")
@@ -21,7 +22,7 @@ X0 .-= X0[:, 1]
 X1 .-= X1[:, 1]
 F = X1 / X0
 println("check that the optimiser really converged to a lattice")
-@show vecnorm(F'*F - eye(3), Inf)
+@show vecnorm(F'*F - I, Inf)
 @show vecnorm(F*X0 - X1, Inf)
 @test vecnorm(F*X0 - X1, Inf) < 1e-4
 

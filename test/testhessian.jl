@@ -4,6 +4,7 @@ using JuLIP.Potentials
 using JuLIP.Testing
 using StaticArrays
 using JuLIP.Potentials: evaluate_d, evaluate_dd
+using LinearAlgebra: I 
 
 println("============================================")
 println("  Testing pair potential hessian ")
@@ -28,7 +29,7 @@ for R in ( [0.0,-3.61,-3.61], [-1.805,-1.805,-3.61] )
    size(f0)
    # df0 = hess(pp, r, JVecF(R))
    df0 = evaluate_dd(pp, r) * (R/r) * (R/r)' +
-         (evaluate_d(pp, r)/r) * (eye(3) - (R/r) * (R/r)')
+         (evaluate_d(pp, r)/r) * (I - (R/r) * (R/r)')
    dfh = zeros(3,3)
    fh = zeros(3)
    for p = 2:11

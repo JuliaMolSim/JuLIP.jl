@@ -12,6 +12,8 @@ using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       chemical_symbols, set_cell!, set_pbc!, update_data!,
       set_defm!, defm
 
+using LinearAlgebra: I, diagm
+
 import Base: union
 
 export repeat, bulk, cluster, autocell!, append
@@ -43,7 +45,7 @@ _simple_structures = [:fcc, :bcc, :diamond]
 function _simple_bulk(sym::Symbol, cubic::Bool)
    if cubic
       X, scal = _cubic_cells[symmetry(sym)]
-      C = eye(3) / scal
+      C = Matrix(1.0I, 3, 3) / scal
    else
       X, C, scal = _unit_cells[symmetry(sym)]
    end
@@ -198,12 +200,12 @@ function Base.repeat(at::Atoms, n::NTuple{3})
    M = Base.repeat(M0, outer=nrep)
    Z = Base.repeat(Z0, outer=nrep)
    i = 0
-   for a in CartesianIndices( CartesianIndex(1,1,1), CartesianIndex(n...) )
+   for a in CartesianIndices( (1:n[1], 1:n[2], 1:n[3]) )
       b = c1 * (a[1]-1) + c2 * (a[2]-1) + c3 * (a[3]-1)
       X[i+1:i+nat0] = [b+x for x in X0]
       i += nat0
    end
-   return Atoms(X, P, M, Z, JMat(diagm([n...]) * cell(at)), pbc(at))
+   return Atoms(X, P, M, Z, JMat(diagm(0 => [n...]) * cell(at)), pbc(at))
 end
 
 Base.repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
