@@ -5,13 +5,17 @@ only a subset of the `bulk` functionality is supported.
 """
 module Build
 
+import JuLIP
 using ..Chemistry
 using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
-      chemical_symbols, set_cell!, set_pbc!, update_data!
+      chemical_symbols, set_cell!, set_pbc!, update_data!,
+      set_defm!, defm
 
+import Base: union
 
-export repeat, bulk, cluster, autocell!
+export repeat, bulk, cluster, autocell!, append
+
 
 
 
@@ -76,6 +80,20 @@ end
 
 
 """
+auxiliary function to convert a general cell to a cubic one; this is a bit of
+a hack, so to not make a mess of things, this will only work in very restrictive
+circumstances and otherwise throw an error. But it could be revisited.
+"""
+function _cubic_cell(atu::Atoms)
+   @assert length(atu) == 1
+   ru = JuLIP.rmin(atu)
+   at = bulk(chemical_symbol(atu.Z[1]), cubic=true)
+   r = JuLIP.rmin(at)
+   return set_defm!(at, (ru/r) * defm(at); updatepositions=true)
+end
+
+
+"""
 `cluster(args...; kwargs...) -> at::AbstractAtoms`
 
 Produce a cluster of approximately radius R. The center
@@ -105,7 +123,13 @@ the use of an orthorhombic unit cell (for now).
 function cluster(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothing) where T
    sym = chemical_symbols(atu)[1]
    # check that the cell is orthorombic
-   @assert isdiag(cell(atu))
+   if !isdiag(cell(atu))
+      if length(atu) > 1
+         error("""`JuLIP.cluster` requires as argument either a cubic cell or a
+                  one-atom cell.""")
+      end
+      atu = _cubic_cell(atu)
+   end
    # # check that the first index is the centre
    # @assert norm(atu[1]) == 0.0
    # determine by how much to multiply in each direction
@@ -232,5 +256,25 @@ sets the cell of `at` accordingly (in-place) and returns the same atoms objet
 with the new cell.
 """
 autocell!(at::Atoms) = set_cell!(at, _autocell(positions(at)))
+
+
+union(at1::Atoms, at2::Atoms) =
+   Atoms( X = union(at1.X, at2.X),
+          P = union(at1.P, at2.P),
+          M = union(at1.M, at2.M),
+          Z = union(at1.Z, at2.Z),
+          cell = cell(at1),
+          pbc = pbc(at1) )
+
+append(at::Atoms, X::JVecsF) =
+   Atoms( X = union(at.X, X),
+          P = union(at.P, zeros(JVecF, length(X))),
+          M = union(at.M, zeros(length(X))),
+          Z = union(at.Z, zeros(Int, length(X))),
+          cell = cell(at),
+          pbc = pbc(at) )
+
+
+
 
 end

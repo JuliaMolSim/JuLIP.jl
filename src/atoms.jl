@@ -80,7 +80,7 @@ TODO
    P::Vector{JVec{T}} = JVec{Float64}[]       # momenta (or velocities?)
    M::Vector{T} = Float64[]             # masses
    Z::Vector{TI} = Int[]           # atomic numbers
-   cell::JMat{T} = zero(JMat{Float64})                   # cell
+   cell::JMat{T} = zero(JMat{T})                   # cell
    pbc::JVec{Bool} = JVec(false, false, false)     # boundary condition
    calc::Union{Void, AbstractCalculator} = nothing
    cons::Union{Void, AbstractConstraint} = nothing
@@ -91,9 +91,14 @@ _auto_pbc(pbc::Tuple{Bool, Bool, Bool}) = pbc
 _auto_pbc(pbc::Bool) = (pbc, pbc, pbc)
 _auto_pbc(pbc::AbstractVector) = tuple(pbc...)
 
+_auto_cell(cell) = JMat(cell)
+_auto_cell(C::Vector{Any}) = JMatF([ C[1] C[2] C[3] ])
+
+
+
 Atoms(X, P, M, Z, cell, pbc; calc=NullCalculator(),
       cons = NullConstraint(), data = Dict{Any,JData}()) =
-   Atoms(X, P, M, Z, JMat(cell), _auto_pbc(pbc), calc, cons, data)
+   Atoms(X, P, M, Z, _auto_cell(cell), _auto_pbc(pbc), calc, cons, data)
 
 Atoms(Z::Vector{TI}, X::Vector{JVec{T}}; kwargs...
      ) where {TI <: Integer, T <: AbstractFloat} =
@@ -316,6 +321,10 @@ end
 
 # ------------------------ workaround for JLD bug  ----------------------
 
+_read_X(X) = X
+_read_X(X::Vector{Any}) = [ JVecF(x) for x in X ]
+_read_X(X::Matrix) = [ JVecF(X[:,n]) for n = 1:size(X,2) ]
+
 
 Dict(at::Atoms) =
    Dict( "id"   => "JuLIP.Atoms",
@@ -327,15 +336,17 @@ Dict(at::Atoms) =
          "pbc"  => at.pbc,
          "calc" => nothing,
          "cons" => nothing,
-         "data" => at.data )
+         "data" => nothing )
+         # "data" => at.data )
 
 Atoms(D::Dict) =
-   Atoms( X    = D["X"],
-          P    = D["P"],
-          M    = D["M"],
-          Z    = D["Z"],
-          cell = D["cell"],
-          pbc  = D["pbc"],
-          calc = D["calc"],
-          cons = D["cons"],
-          data = D["data"] )
+   Atoms( _read_X(D["X"]),
+          _read_X(D["P"]),
+          Vector{Float64}(D["M"]),
+          Vector{Int}(D["Z"]),
+          D["cell"],
+          D["pbc"] )
+          # calc = D["calc"],
+          # cons = D["cons"],
+          # data = Dict{Any, JData}(),
+          # data = D["data"] )

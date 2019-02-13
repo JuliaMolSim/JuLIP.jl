@@ -75,7 +75,7 @@ function minimise!(at::AbstractAtoms;
                   verbose = 1,
                   robust_energy_difference = false,
                   store_trace = false,
-		  extended_trace = false,
+                  extended_trace = false,
                   maxstep = Inf,
                   callback = nothing)
 
@@ -111,7 +111,7 @@ function minimise!(at::AbstractAtoms;
    end
 
    # choose the optimisation method Optim.jl
-   if method == :auto || method == :cg 
+   if method == :auto || method == :cg
       if isa(precond, Identity)
          optimiser = ConjugateGradient(linesearch = BackTracking(order=2, maxstep=maxstep))
       else
@@ -124,6 +124,10 @@ function minimise!(at::AbstractAtoms;
                         precondprep = (P, x) -> update!(P, at, x),
                         alphaguess = LineSearches.InitialHagerZhang(),
                         linesearch = BackTracking(order=2, maxstep=maxstep) )
+   elseif method == :sd
+      optimiser = Optim.GradientDescent( P = precond,
+                  precondprep = (P, x) -> update!(P, at, x),
+                  linesearch = BackTracking(order=2, maxstep=maxstep) )
    else
       error("JuLIP.Solve.minimise!: unknown `method` option")
    end

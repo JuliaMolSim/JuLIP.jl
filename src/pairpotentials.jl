@@ -225,3 +225,10 @@ evaluate(psp::PairSitePotential, r, R) = 0.5 * _sumpair_(psp.pp, r)
 
 evaluate_d(psp::PairSitePotential, r, R) =
             [ 0.5 * grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
+
+
+
+struct MultiPairPotential{TV <: PairPotential}
+   V::Matrix{TV}
+   Z2V::Dict{Int, Int}
+end
