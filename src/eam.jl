@@ -1,17 +1,10 @@
 export EAM
 
 using NeighbourLists
+using DelimitedFiles: readdlm
 
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
-
-@pot struct EAM1{T1, T2, T3, T4} <: SitePotential
-   ϕ::T1    # pair potential
-   ρ::T2    # electron density potential
-   F::T3    # embedding function
-   info::T4
-end
-
 
 """
 `struct EAM1`
@@ -41,7 +34,15 @@ details of how the tabulated values are fitted; see
 
 TODO: implement other file formats.
 """
-EAM1
+struct EAM1{T1, T2, T3, T4} <: SitePotential
+   ϕ::T1    # pair potential
+   ρ::T2    # electron density potential
+   F::T3    # embedding function
+   info::T4
+end
+
+@pot EAM1
+
 
 
 EAM1(ϕ, ρ, F) = EAM1(ϕ, ρ, F, nothing)
@@ -146,7 +147,8 @@ end
 # ================= Finnis-Sinclair Potential =======================
 
 
-@pot mutable struct FSEmbed end
+mutable struct FSEmbed end
+@pot FSEmbed
 evaluate(V::FSEmbed, ρ̄) = - sqrt(ρ̄)
 evaluate_d(V::FSEmbed, ρ̄) = - 0.5 / sqrt(ρ̄)
 evaluate_dd(V::FSEmbed, ρ̄) = 0.25 * ρ̄^(-3/2)

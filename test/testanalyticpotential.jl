@@ -1,13 +1,17 @@
 
 import JuLIP.Potentials: @pot, @D, evaluate, evaluate_d, PairPotential, @analytic
 
-@pot mutable struct Morseold <: PairPotential
+mutable struct Morseold <: PairPotential
    e0::Float64
    A::Float64
    r0::Float64
 end
+
+@pot Morseold
+
 evaluate(p::Morseold, r) = p.e0 * (exp(-2*p.A*(r/p.r0-1.0)) - 2.0*exp(-p.A*(r/p.r0-1.0)))
 evaluate_d(p::Morseold, r) = -2.0*p.e0*p.A/p.r0*(exp(-2*p.A*(r/p.r0-1.0)) - exp(-p.A*(r/p.r0-1.0)))
+
 
 const e0 = 0.99
 const r0 = 1.05

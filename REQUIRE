@@ -2,7 +2,7 @@ julia 0.7
 StaticArrays
 Optim
 Calculus
-AMG
+AlgebraicMultigrid
 JSON
 Reexport
 FunctionWrappers
@@ -11,3 +11,4 @@ ForwardDiff
 Parameters
 NeighbourLists
 MacroTools
+LineSearches

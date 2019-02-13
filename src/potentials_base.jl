@@ -27,11 +27,11 @@ for `evaluate, evaluate_d, evaluate_dd, grad`.
 
 For example, the declaration
 ```julia
-@pot mutable struct LennardJones <: PairPotential
+"documentation for `LennardJones`"
+mutable struct LennardJones <: PairPotential
    r0::Float64
 end
-"documentation for `LennardJones`"
-LennardJones
+@pot LennardJones
 ```
 creates the following aliases:
 ```julia
@@ -46,22 +46,22 @@ Usage of `@pot` is not restricted to pair potentials, but can be applied to
 *any* type.
 """
 macro pot(fsig)
-   @assert fsig.head == :type
-   tname, tparams = t_info(fsig.args[2])
-   # isa(tname, Symbol) ? name_only = tname : name_only = tname.args[1]
-   # @show name_only
-   tname = esc(tname)
-   for n = 1:length(tparams)
-      tparams[n] = esc(tparams[n])
-   end
-   sym = esc(:x)
+   # @assert fsig.head == :type
+   # tname, tparams = t_info(fsig.args[2])
+   # # isa(tname, Symbol) ? name_only = tname : name_only = tname.args[1]
+   # # @show name_only
+   # tname = esc(tname)
+   # for n = 1:length(tparams)
+   #    tparams[n] = esc(tparams[n])
+   # end
+   # sym = esc(:x)
    quote
       $(esc(fsig))
       # Docs.@__doc__ $(name_only)
-      @inline ($sym::$tname)(args...) where {$(tparams...)} = evaluate($sym, args...)
-      @inline ($sym::$tname)(::Type{Val{:D}}, args...) where {$(tparams...)} = evaluate_d($sym, args...)
-      @inline ($sym::$tname)(::Type{Val{:DD}}, args...) where {$(tparams...)} = evaluate_dd($sym, args...)
-      @inline ($sym::$tname)(::Type{Val{:GRAD}}, args...) where {$(tparams...)} = grad($sym, args...)
+      # @inline ($sym::$tname)(args...) where {$(tparams...)} = evaluate($sym, args...)
+      # @inline ($sym::$tname)(::Type{Val{:D}}, args...) where {$(tparams...)} = evaluate_d($sym, args...)
+      # @inline ($sym::$tname)(::Type{Val{:DD}}, args...) where {$(tparams...)} = evaluate_dd($sym, args...)
+      # @inline ($sym::$tname)(::Type{Val{:GRAD}}, args...) where {$(tparams...)} = grad($sym, args...)
    end
 end
 
@@ -117,13 +117,13 @@ end
 # ==================================
 #   Basic Potential Arithmetic
 
-@pot mutable struct SumPot{P1, P2} <: PairPotential
+"sum of two pair potentials"
+mutable struct SumPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
 
-# "sum of two pair potentials"
-# SumPot
+@pot SumPot
 
 import Base.+
 +(p1::PairPotential, p2::PairPotential) = SumPot(p1, p2)
@@ -136,12 +136,13 @@ function Base.show(io::Base.IO, p::SumPot)
    print(io, p.p2)
 end
 
-@pot mutable struct ProdPot{P1, P2} <: PairPotential
+"product of two pair potentials"
+mutable struct ProdPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
-"product of two pair potentials"
-ProdPot
+
+@pot ProdPot
 import Base.*
 *(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
 @inline evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)

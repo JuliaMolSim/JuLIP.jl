@@ -29,12 +29,6 @@ Implementation of the C^∞ Stillinger-Weber type cut-off potential
 end
 
 
-# doc below
-@pot mutable struct SWCutoff <: PairPotential
-    Rc::Float64
-    Lc::Float64
-    e0::Float64
-end
 
 """
 `type SWCutoff`: SW type cut-off potential with C^∞ regularity
@@ -48,7 +42,13 @@ by avoiding multiple evaluations.
 * `Rc` : cut-off radius
 * `Lc` : scale
 """
-SWCutoff
+mutable struct SWCutoff <: PairPotential
+    Rc::Float64
+    Lc::Float64
+    e0::Float64
+end
+
+@pot SWCutoff
 
 evaluate(p::SWCutoff, r) = p.e0 * cutsw(r, p.Rc, p.Lc)
 evaluate_d(p::SWCutoff, r) = p.e0 * cutsw_d(r, p.Rc, p.Lc)
@@ -63,16 +63,6 @@ SWCutoff(; Rc=1.8, Lc=1.0, e0=1.0) = SWCutoff(Rc, Lc, e0)
 
 
 ######################## Shift-Cutoff:
-
-
-@pot struct Shift{ORD, TV} <: PairPotential
-   ord::Val{ORD}
-   V::TV
-   rcut::Float64
-   Vcut::Float64
-   dVcut::Float64
-   ddVcut::Float64
-end
 
 """
 `Shift{ORD}` : a shift-cutoff function
@@ -101,7 +91,16 @@ lj = LennardJones()  # standard lennad-jones potential
 V = lj * C2Shift(2.5)
 ```
 Now `V` is a C2-continuous `PairPotential` with support (0, 2.5]."""
-Shift
+struct Shift{ORD, TV} <: PairPotential
+   ord::Val{ORD}
+   V::TV
+   rcut::Float64
+   Vcut::Float64
+   dVcut::Float64
+   ddVcut::Float64
+end
+
+@pot Shift
 
 
 const HS{TV} = Shift{-1, TV}
@@ -179,11 +178,6 @@ function fcut_dd(r, r0, r1)
   return (0 < s < 1) * (@fastmath (120*s^3 - 180 * s^2 + 60 * s) / (r1-r0)^2)
 end
 
-@pot mutable struct SplineCutoff <: PairPotential
-   r0::Float64
-   r1::Float64
-end
-
 """
 `SplineCutoff` : Piecewise quintic C^{2,1} regular polynomial.
 
@@ -192,7 +186,13 @@ Parameters:
 * r0 : inner cut-off radius
 * r1 : outer cut-off radius.
 """
-SplineCutoff
+mutable struct SplineCutoff <: PairPotential
+   r0::Float64
+   r1::Float64
+end
+
+@pot SplineCutoff
+
 
 @inline evaluate(p::SplineCutoff, r) = fcut(r, p.r0, p.r1)
 @inline evaluate_d(p::SplineCutoff, r) = fcut_d(r, p.r0, p.r1)

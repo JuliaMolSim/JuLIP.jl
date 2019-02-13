@@ -187,11 +187,13 @@ morse(;A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0)) = (
          :  SplineCutoff(rcut[1], rcut[2]) * Morse(A, e0, r0) )
 
 
-@pot struct ZeroPairPotential <: PairPotential end
-
 """
 `ZeroPairPotential()`: creates a potential that just returns zero
-""" ZeroPairPotential
+"""
+struct ZeroPairPotential <: PairPotential end
+
+@pot ZeroPairPotential
+
 evaluate(p::ZeroPairPotential, r::Float64) = 0.0
 evaluate_d(p::ZeroPairPotential, r::Float64) = 0.0
 evaluate_dd(p::ZeroPairPotential, r::Float64) = 0.0
@@ -203,9 +205,11 @@ cutoff(p::ZeroPairPotential) = 0.0
 
 SitePotential(pp::PairPotential) = PairSitePotential(pp)
 
-@pot struct PairSitePotential{P} <: SitePotential
+struct PairSitePotential{P} <: SitePotential
    pp::P
 end
+
+@pot PairSitePotential
 
 cutoff(psp::PairSitePotential) = cutoff(psp.pp)
 
