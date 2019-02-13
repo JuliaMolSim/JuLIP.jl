@@ -20,4 +20,4 @@ function h2(str)
    printstyled(dashes, color=:magenta); println()
 end
 
-h3(str) = (printstyled(str*"\n", bold=true, color=:magenta); println())
+h3(str) = printstyled(str*"\n", bold=true, color=:magenta)

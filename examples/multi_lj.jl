@@ -4,6 +4,7 @@ module MultiLJ
 
 using JuLIP
 using JuLIP.Potentials: pairs
+using LinearAlgebra: I
 import JuLIP: energy, forces, cutoff
 
 export MLJ
@@ -76,7 +77,7 @@ x, o = 0:n, ones(n)
 X = [ kron(x, o, o)[:]'; kron(o, x, o)'; kron(o, o, x)' ]
 X = vecs( X + 0.05 * rand(size(X)) )
 Nat = length(X)
-at = Atoms(X, zeros(X), ones(Nat), rand(z, Nat), 5 * eye(3), false;  calc = V)
+at = Atoms(X, zeros(X), ones(Nat), rand(z, Nat), 5 * Matrix(1.0I, 3,3), false;  calc = V)
 
 # check that energy and forces evaluate ok
 energy(V, at)
