@@ -3,60 +3,59 @@
 using JuLIP
 using Test
 
-
-println("check that `bulk` evaluates ok...")
+h3("check that `bulk` evaluates ok...")
 at = bulk(:Si)
-@test typeof(at) == Atoms{Float64, Int64}
+println(@test typeof(at) == Atoms{Float64, Int64})
 
-println("... and that we can repeat it.")
-@test length(at * (1,2,3)) == 6 * length(at)
+h3("... and that we can repeat it.")
+println(@test length(at * (1,2,3)) == 6 * length(at))
 
-println("check deepcopy and == ...")
+h3("check deepcopy and == ...")
 at = bulk(:Si)
 at1 = deepcopy(at)
-@test at == at1
+println(@test at == at1)
 
 if hasase
-   println("Check correct implementation of `repeat` and `*` ...")
+   h3("Check correct implementation of `repeat` and `*` ...")
    for n in [ (2,1,1), (2,2,1), (2,3,4), (2,3,1) ]
-      @test (at * n) == Atoms(ASE.bulk(:Si) * n) == repeat(at, n)
+      println(@test (at * n) == Atoms(ASE.bulk(:Si) * n) == repeat(at, n))
    end
 
-   println("   check correct repeat of momenta ...")
+   h3("   check correct repeat of momenta ...")
    at_ase = ASE.bulk("Si")
    P = rand(JVecF, 2)
    set_momenta!(at_ase, P)
    set_momenta!(at, P)
-   @test Atoms(at_ase) == at
-   @test Atoms(at_ase * (2,4,3)) == (at * (2,4,3))
-end 
+   println(@test Atoms(at_ase) == at)
+   println(@test Atoms(at_ase * (2,4,3)) == (at * (2,4,3)))
+end
 
-println("Check setindex! and getindex ...")
+h3("Check setindex! and getindex ...")
 at = bulk(:Si, cubic=true)
 x = at[2]
-@test x == JVec(1.3575, 1.3575, 1.3575)
+println(@test x == JVec(1.3575, 1.3575, 1.3575))
 x += 0.1
 at[2] = x
 X = positions(at)
-@test !(X === at.X)
-@test X[2] == x
+println(@test !(X === at.X))
+println(@test X[2] == x)
 
 
-println("set_positions ...")
+h3("set_positions ...")
 at = bulk(:Si, cubic=true) * 2
 X = positions(at)
-@test !(X === at.X)
-@test X == at.X
+println(@test !(X === at.X))
+println(@test X == at.X)
 X += 0.1 * rand(JVecF, length(at))
-@test X != at.X
+println(@test X != at.X)
 set_positions!(at, X)
-@test X == at.X
-@test !(X === at.X)
+println(@test X == at.X)
+println(@test !(X === at.X))
 
 # TODO: set_momenta, set_masses, set_numbers
 
-@test chemical_symbols(at) == fill(:Si, 64)
-@test chemical_symbols(bulk(:W)) == [:W]
+println(@test chemical_symbols(at) == fill(:Si, 64))
+println(@test chemical_symbols(bulk(:W)) == [:W])
 
 
 

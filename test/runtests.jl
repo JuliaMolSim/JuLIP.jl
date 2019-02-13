@@ -2,6 +2,7 @@
 using JuLIP, Test, Printf
 using JuLIP.Testing
 
+include("aux.jl")
 verbose=true
 
 ## check whether on CI
@@ -19,7 +20,7 @@ end
 
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
-   # ("test_atoms.jl", "Atoms"),
+   ("test_atoms.jl", "Atoms"),
    # ("test_build.jl", "Build"),
    # ("testanalyticpotential.jl", "Analytic Potential"),
    # ("testpotentials.jl", "Potentials"),
@@ -43,23 +44,20 @@ eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.p
 print(" .")
 eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
 print(" .")
+global eam_W4
 try
-   eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
+   global eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
 catch
-   eam_W4 = nothing
+   global eam_W4 = nothing
 end
 println(" done.")
 
 ##
-println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
-println("  Starting JuLIP Tests")
-println("≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡")
+h0("Starting JuLIP Tests")
 
 @testset "JuLIP" begin
    for (testfile, testid) in julip_tests
-      println("=======================")
-      println("Testset $(testid)")
-      println("=======================")
+      h1("Testset $(testid)")
       @testset "$(testid)" begin include(testfile); end
    end
 end
