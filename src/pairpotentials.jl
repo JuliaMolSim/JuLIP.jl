@@ -2,7 +2,7 @@
 # part of the module JuLIP.Potentials
 
 using JuLIP: zerovecs, JVecsF, JVecF, JMatF, neighbourlist
-using LinearAlgebra: I 
+using LinearAlgebra: I
 
 using NeighbourLists
 
@@ -128,7 +128,8 @@ Constructor with kw arguments: `LennardJones(; kwargs...)`
 
 (`r0, a0` cannot both be specified at the same time)
 """
-LennardJones(σ, e0) = @analytic r -> e0 * 4.0 * ((σ/r)^(12) - (σ/r)^(6))
+LennardJones(σ, e0) = (@analytic r -> e0 * 4.0 * ((σ/r)^(12) - (σ/r)^(6)))
+
 
 function ljparams(; σ=1.0, e0=1.0, r0 = nothing, a0 = nothing)
    if r0 != nothing && a0 != nothing
