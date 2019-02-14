@@ -3,6 +3,7 @@ using MacroTools: @capture, prewalk
 using Calculus: differentiate
 
 export AnalyticFunction, @analytic
+using CommonSubexpressions
 
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper
@@ -20,9 +21,15 @@ const F64fun = ScalarFun{Float64}
 take an expression of the form `r -> f(r)` and return the expression
 `r -> f'(r)`
 """
-function fdiff( ex )
+function fdiff( ex, ndiff )
+   @assert 1 <= ndiff <= 2
    @assert @capture(ex, var_ -> expr_)
-   return :(  $var -> $(differentiate(expr.args[2], var)) )
+   d_ex = differentiate(expr.args[2], var)
+   if ndiff == 2
+      d_ex = differentiate(d_ex, var)
+   end
+   d_ex = CommonSubexpressions.cse(d_ex)
+   return :(  $var -> $d_ex )
 end
 
 """
@@ -95,8 +102,8 @@ macro analytic(args...)
    quote
       AnalyticFunction(
         $(Base.FastMath.make_fastmath(esc(fexpr))),
-        $(Base.FastMath.make_fastmath(esc(fdiff(fexpr)))),
-        $(Base.FastMath.make_fastmath(esc(fdiff(fdiff(fexpr)))))
+        $(Base.FastMath.make_fastmath(esc(fdiff(fexpr, 1)))),
+        $(Base.FastMath.make_fastmath(esc(fdiff(fexpr, 2))))
       )
    end
 end

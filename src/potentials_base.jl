@@ -46,28 +46,17 @@ Usage of `@pot` is not restricted to pair potentials, but can be applied to
 *any* type.
 """
 macro pot(fsig)
-   # @assert fsig.head == :type
-   # tname, tparams = t_info(fsig.args[2])
-   # # isa(tname, Symbol) ? name_only = tname : name_only = tname.args[1]
-   # # @show name_only
-   # tname = esc(tname)
-   # for n = 1:length(tparams)
-   #    tparams[n] = esc(tparams[n])
-   # end
-   # sym = esc(:x)
+   @assert fsig isa Symbol
+   sym = esc(:x)
+   tsym = esc(fsig)
    quote
-      $(esc(fsig))
-      # Docs.@__doc__ $(name_only)
-      # @inline ($sym::$tname)(args...) where {$(tparams...)} = evaluate($sym, args...)
-      # @inline ($sym::$tname)(::Type{Val{:D}}, args...) where {$(tparams...)} = evaluate_d($sym, args...)
-      # @inline ($sym::$tname)(::Type{Val{:DD}}, args...) where {$(tparams...)} = evaluate_dd($sym, args...)
-      # @inline ($sym::$tname)(::Type{Val{:GRAD}}, args...) where {$(tparams...)} = grad($sym, args...)
+      @inline ($sym::$tsym)(args...) = evaluate($sym, args...)
+      @inline ($sym::$tsym)(::Type{Val{:D}}, args...) = evaluate_d($sym, args...)
+      @inline ($sym::$tsym)(::Type{Val{:DD}}, args...) = evaluate_dd($sym, args...)
+      @inline ($sym::$tsym)(::Type{Val{:GRAD}}, args...) = grad($sym, args...)
    end
 end
 
-# t_info extracts type name as symbol and type parameters as an array
-t_info(ex::Symbol) = (ex, tuple())
-t_info(ex::Expr) = ex.head == :(<:) ? t_info(ex.args[1]) : (ex, ex.args[2:end])
 
 # --------------------------------------------------------------------------
 
