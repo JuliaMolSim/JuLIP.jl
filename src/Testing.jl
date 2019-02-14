@@ -15,6 +15,7 @@ using JuLIP: AbstractCalculator, AbstractAtoms, energy, gradient, forces,
 using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, grad, @D
 using JuLIP.Constraints: FixedCell
 using Printf
+using LinearAlgebra: norm
 
 export fdtest, fdtest_hessian
 
@@ -41,7 +42,7 @@ function fdtest(F::Function, dF::Function, x; verbose=true)
          dEh[n] = (F(x) - E) / h
          x[n] -= h
       end
-      push!(errors, vecnorm(dE - dEh, Inf))
+      push!(errors, norm(dE - dEh, Inf))
       @printf(" %1.1e | %4.2e  \n", h, errors[end])
    end
    @printf("---------|----------- \n")
@@ -77,7 +78,7 @@ function fdtest_hessian(F::Function, dF::Function, x; verbose=true)
          dFh[:, n] = (F(x) - F0) / h
          x[n] -= h
       end
-      push!(errors, vecnorm(dFh - dF0, Inf))
+      push!(errors, norm(dFh - dF0, Inf))
       @printf(" %1.1e | %4.2e  \n", h, errors[end])
    end
    @printf("---------|----------- \n")
@@ -109,7 +110,7 @@ function fdtest_R2R(F::Function, dF::Function, x::Vector{Float64};
    for p = 2:11
       h = 0.1^p
       dEh = ([F(t+h) for t in x ] - E) / h
-      push!(errors, vecnorm(dE - dEh, Inf))
+      push!(errors, norm(dE - dEh, Inf))
       if verbose
          @printf(" %1.1e | %4.2e  \n", h, errors[end])
       end

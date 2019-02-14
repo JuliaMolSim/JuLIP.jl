@@ -3,6 +3,8 @@ using JuLIP
 using JuLIP.Potentials
 using JuLIP.Testing
 
+using LinearAlgebra
+
 
 pairpotentials = [
    LennardJones(1.0,1.0);
@@ -12,38 +14,34 @@ pairpotentials = [
    LennardJones(1.0, 1.0) * C2Shift(2.0);
 ]
 
-println("============================================")
-println("  Testing pair potential implementations ")
-println("============================================")
+h2("Testing pair potential implementations")
 r = range(0.8, stop=4.0, length=100) |> collect
 push!(r, 2.0-1e-12)
 for pp in pairpotentials
-   println("--------------------------------")
-   println(pp)
-   println("--------------------------------")
-   @test fdtest(pp, r, verbose=verbose)
+   h3(pp)
+   println(@test fdtest(pp, r, verbose=verbose))
 end
 
-print("testing shift-cutoffs: ")
+h2("testing shift-cutoffs: ")
 V = @analytic r -> exp(r)
 Vhs = V * HS(1.0)
 r1 = range(0.0, stop=1.0-1e-14, length=20)
 r2 = range(1.0+1e-14, stop=3.0, length=20)
-print("HS")
-@test Vhs.(r1) == exp.(r1)
-@test norm(Vhs.(r2)) == 0.0
-print(", V0")
+h3("HS")
+println(@test Vhs.(r1) == exp.(r1))
+println(@test norm(Vhs.(r2)) == 0.0)
+h3("V0")
 V0 = V * C0Shift(1.0)
-@test V0.(r1) ≈ exp.(r1) - exp(1.0)
-@test norm(V0.(r2)) == 0.0
-print(", V1")
+println(@test V0.(r1) ≈ exp.(r1) .- exp(1.0))
+println(@test norm(V0.(r2)) == 0.0)
+h3("V1")
 V1 = V * C1Shift(1.0)
-@test V1.(r1) ≈ exp.(r1) - exp(1.0) - exp(1.0) * (r1-1.0)
-@test norm(V1.(r2)) == 0.0
-println(", V2")
+println(@test V1.(r1) ≈ exp.(r1) .- exp(1.0) .- exp(1.0) .* (r1.-1.0))
+println(@test norm(V1.(r2)) == 0.0)
+h3("V2")
 V2 = V * C2Shift(1.0)
-@test V2.(r1) ≈ exp.(r1) - exp(1.0) - exp(1.0) * (r1-1.0) - 0.5 * exp(1.0) * (r1-1.0).^2
-@test norm(V2.(r2)) == 0.0
+println(@test V2.(r1) ≈ exp.(r1) .- exp(1.0) .- exp(1.0) .* (r1.-1.0) .- 0.5 .* exp(1.0) .* (r1.-1.0).^2)
+println(@test norm(V2.(r2)) == 0.0)
 
 
 # =============================================================
@@ -83,7 +81,7 @@ println("--------------------------------------------------")
 println(" E_pp - E_psp = ", energy(pp, at8) - energy(psp, at8))
 println(" |Frc_pp - Frc_psp| = ", maxnorm(forces(pp, at8) - forces(psp, at8)))
 println("--------------------------------------------------")
-@test abs(energy(pp, at8) - energy(psp, at8)) < 1e-11
+println(@test abs(energy(pp, at8) - energy(psp, at8)) < 1e-11)
 
 
 # EAM Potential
@@ -100,45 +98,41 @@ end
 
 # ========== Run the finite-difference tests for all calculators ============
 
-println("============================================")
-println("  Testing calculator implementations ")
-println("============================================")
-for (calc, at) in calculators
+h2("Testing calculator implementations")
+for (calc, at_) in calculators
    println("--------------------------------")
-   println(typeof(calc))
-   @show length(at)
+   h3(typeof(calc))
+   @show length(at_)
+   println(@test fdtest(calc, at_, verbose=true))
    println("--------------------------------")
-   @test fdtest(calc, at, verbose=true)
 end
 
 
 # ========== Test correct implementation of site_energy ============
 #            and of partial_energy
 
-println("--------------------------------------------------")
-println("Testing `site_energy` and `partial_energy` ...")
-println("--------------------------------------------------")
+h2("Testing `site_energy` and `partial_energy` ...")
 at = bulk(:Si, pbc=true, cubic=true) * 3
 sw = StillingerWeber()
 atsm = bulk(:Si, pbc = true)
 println("checking site energy identity . . .")
-@test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm) / 2 ) < 1e-10
+println(@test abs( JuLIP.Potentials.site_energy(sw, at, 1) - energy(sw, atsm) / 2 ) < 1e-10)
 rattle!(at, 0.01)
-@test abs( energy(sw, at) - sum(site_energies(sw, at)) ) < 1e-10
+println(@test abs( energy(sw, at) - sum(site_energies(sw, at)) ) < 1e-10)
 
 println("fd test for site_energy")
 # finite-difference test
 set_constraint!(at, FixedCell(at))
 f(x) = JuLIP.Potentials.site_energy(sw, set_dofs!(at, x), 1)
 df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1) |> mat)[:]
-@test fdtest(f, df, dofs(at); verbose=true)
+println(@test fdtest(f, df, dofs(at); verbose=true))
 
 
 println("fd test for partial_energy")
 Idom = [2,4,10]
 f(x) = JuLIP.Potentials.partial_energy(sw, set_dofs!(at, x), Idom)
 df(x) = (JuLIP.Potentials.partial_energy_d(sw, set_dofs!(at, x), Idom) |> mat)[:]
-@test fdtest(f, df, dofs(at); verbose=true)
+println(@test fdtest(f, df, dofs(at); verbose=true))
 
 
 

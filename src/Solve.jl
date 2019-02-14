@@ -16,7 +16,7 @@ using LineSearches: BackTracking
 
 using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
             dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
-            Dofs, calculator, constraint, AbstractCalculator
+            Dofs, calculator, constraint, AbstractCalculator, r_sum
 
 using JuLIP.Potentials: SitePotential
 using JuLIP.Preconditioners: Exp
@@ -33,7 +33,7 @@ export minimise!
 
 
 Ediff(V::AbstractCalculator, at::AbstractAtoms, Es0::Vector{Float64}) =
-   sum_kbn(site_energies(V, at) - Es0)
+   r_sum(site_energies(V, at) - Es0)
 
 Ediff(at::AbstractAtoms, Es0::Vector{Float64}, x::Dofs) =
    Ediff(calculator(at), set_dofs!(at, x), Es0)

@@ -1,3 +1,4 @@
+using LinearAlgebra: det
 
 # here we define and document the prototypes that are implemented
 

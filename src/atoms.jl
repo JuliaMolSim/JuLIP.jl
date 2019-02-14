@@ -125,21 +125,21 @@ chemical_symbols(at::Atoms) = Chemistry.chemical_symbol.(at.Z)
 
 # ----- setters
 
-function set_positions!(at::Atoms{T}, X::Vector{JVec{T}})  where T
+function set_positions!(at::Atoms{T}, X::AbstractVector{JVec{T}})  where T
    update_data!(at, dist(at, X))
    at.X .= X
    return at
 end
-function set_momenta!(at::Atoms{T}, P::Vector{JVec{T}})  where T
+function set_momenta!(at::Atoms{T}, P::AbstractVector{JVec{T}})  where T
    at.P .= P
    return at
 end
-function set_masses!(at::Atoms{T}, M::Vector{T})  where T
+function set_masses!(at::Atoms{T}, M::AbstractVector{T})  where T
    update_data!(at, Inf)
    at.M .= M
    return at
 end
-function set_numbers!(at::Atoms{T, TI}, Z::Vector{TI}) where T where TI
+function set_numbers!(at::Atoms{T, TI}, Z::AbstractVector{TI}) where {T, TI}
    update_data!(at, Inf)
    at.Z .= Z
    return at

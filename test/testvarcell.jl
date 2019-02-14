@@ -1,7 +1,7 @@
 
 using JuLIP
 using JuLIP.Potentials
-
+using LinearAlgebra: det 
 
 println("-------------------------------------------------")
 println("   Variable Cell Test")

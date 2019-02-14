@@ -26,7 +26,10 @@ using StaticArrays: @SMatrix
 
 using NeighbourLists
 
-import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian, site_energies
+using LinearAlgebra: norm 
+
+import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
+              site_energies, r_sum
 
 export Potential, PairPotential, SitePotential,
      site_energy, site_energy_d, partial_energy, partial_energy_d
@@ -69,7 +72,7 @@ NeighbourLists.pairs(at::AbstractAtoms, rcut::AbstractFloat) =
 site_energies(V::SitePotential, at::AbstractAtoms) =
    Float64[ V(r, R) for (_₁, _₂, r, R) in sites(at, cutoff(V)) ]
 
-energy(V::SitePotential, at::AbstractAtoms) = sum_kbn(site_energies(V, at))
+energy(V::SitePotential, at::AbstractAtoms) = r_sum(site_energies(V, at))
 
 evaluate(V::SitePotential, R::AbstractVector{JVecF}) = evaluate(V, norm.(R), R)
 

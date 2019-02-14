@@ -24,6 +24,8 @@ export FixedCell, VariableCell, ExpVariableCell, FixedCell2D, atomdofs
 
 using SparseArrays: SparseMatrixCSC
 
+using LinearAlgebra: rmul!, det
+
 
 function zeros_free(n::Integer, x::Vector{T}, free::Vector{Int}) where T
    z = zeros(T, n)
@@ -31,7 +33,8 @@ function zeros_free(n::Integer, x::Vector{T}, free::Vector{Int}) where T
    return z
 end
 
-function insert_free!(p::Array{T}, x::Vector{T}, free::Vector{Int}) where T
+function insert_free!(p::AbstractArray{T}, x::AbstractVector{T},
+                      free::AbstractVector{Int}) where T
    p[free] = x
    return p
 end
@@ -108,7 +111,7 @@ project!(at::AbstractAtoms, cons::FixedCell) = at
 project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 gradient(at::AbstractAtoms, cons::FixedCell) =
-               scale!(mat(forces(at))[cons.ifree], -1.0)
+               rmul!(mat(forces(at))[cons.ifree], -1.0)
 
 energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
 
