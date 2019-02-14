@@ -17,6 +17,8 @@
 
 import StaticArrays
 
+using LinearAlgebra: det 
+
 _expm(A::StaticArrays.SMatrix{N,N,T}) where {N,T} =
    StaticArrays.SMatrix{N,N,T}(exp(Array(A)))
 

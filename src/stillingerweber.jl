@@ -24,6 +24,8 @@
 using ForwardDiff
 export StillingerWeber
 
+using LinearAlgebra: dot 
+
 # using JuLIP.Potentials: evaluate_dd, @D, @DD
 # import JuLIP.Potentials: evaluate, evaluate_d
 

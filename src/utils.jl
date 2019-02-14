@@ -12,8 +12,8 @@ export rattle!, r_sum, r_dot,
 ###   Robust Summation and Dot Products
 ############################################################
 
-"Robust summation. Uses `sum_kbn`."
-r_sum(a) = sum_kbn(a)
+"Robust summation."
+r_sum(a) = sum(a)
 
 
 ## NOTE: if I see this correctly, then r_dot allocates a temporary
@@ -41,11 +41,11 @@ function rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0, respect_constraint = 
    end
    if respect_constraint
       x = dofs(at)
-      x += r * rnn * 2.0/sqrt(3) * (rand(length(x)) - 0.5)
+      x += r * rnn * 2.0/sqrt(3) * (rand(Float64, length(x)) .- 0.5)
       set_dofs!(at, x)
    else
       X = positions(at) |> mat
-      X += r * rnn * 2.0/sqrt(3) * (rand(size(X)) - 0.5)
+      X += r * rnn * 2.0/sqrt(3) * (rand(Float64, size(X)) .- 0.5)
       set_positions!(at, X)
    end
    return at
@@ -109,7 +109,7 @@ This implementation accounts for periodic boundary conditions (in those
 coordinate directions where they are set to `true`)
 """
 function dist(at::AbstractAtoms,
-              X1::Vector{JVec{T}}, X2::Vector{JVec{T}},
+              X1::AbstractVector{JVec{T}}, X2::AbstractVector{JVec{T}},
               p = Inf) where T
    @assert length(X1) == length(X2)
    F = cell(at)'
@@ -120,7 +120,7 @@ function dist(at::AbstractAtoms,
    return norm(d, p)
 end
 
-dist(at::AbstractAtoms, X::Vector) = dist(at, positions(at), X)
+dist(at::AbstractAtoms, X::AbstractVector) = dist(at, positions(at), X)
 
 function dist(at1::AbstractAtoms, at2::AbstractAtoms, p = Inf)
    @assert vecnorm(cell(at1) - cell(at2), Inf) < 1e-14
@@ -154,7 +154,10 @@ function _project_pbc_min_(F, Finv, p, x)
 end
 
 
-function displacement(at::AbstractAtoms, X1::Vector{JVec{T}}, X2::Vector{JVec{T}}) where T
+function displacement(at::AbstractAtoms,
+                      X1::AbstractVector{JVec{T}},
+                      X2::AbstractVector{JVec{T}}
+                ) where T
    @assert length(X1) == length(X2)
    F = defm(at)
    Finv = inv(F)

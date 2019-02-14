@@ -2,6 +2,9 @@ export EAM
 
 using NeighbourLists
 using DelimitedFiles: readdlm
+using JuLIP: r_sum
+
+using LinearAlgebra: scale! 
 
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
@@ -287,7 +290,7 @@ export energy_map, forces_map
 using JuLIP:Atoms
 
 energy_map(V::EAM1, at::Atoms) =
-   sum_kbn( maptosites!( (r,R) -> V(r,R),
+   r_sum( maptosites!( (r,R) -> V(r,R),
                          zeros(length(at)),
                          sites(at, cutoff(V)) ) )
 

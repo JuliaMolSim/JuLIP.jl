@@ -22,6 +22,7 @@ import JuLIP.Potentials: precon, cutoff
 import Base: *, \, size
 
 using LinearAlgebra
+
 import LinearAlgebra: A_ldiv_B!, A_mul_B!, dot
 
 export Exp, FF
