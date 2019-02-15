@@ -65,8 +65,8 @@ println("test a single stencil")
 r = []
 R = []
 for (_1, _2, r1, R1) in sites(at, cutoff(eam))
-   r = r1
-   R = R1
+   global r = r1
+   global R = R1
    break
 end
 
@@ -99,7 +99,7 @@ end
 
 h3("full finite-difference test")
 println(@test fdtest( x -> energy(at, x), x -> gradient(at, x), dofs(at) ))
-@warn "fdtest_hessian test has been turned off!"  # TODO: put back in 
+@warn "fdtest_hessian test has been turned off!"  # TODO: put back in
 # println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
 
 

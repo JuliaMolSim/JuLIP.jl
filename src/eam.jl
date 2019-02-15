@@ -4,7 +4,7 @@ using NeighbourLists
 using DelimitedFiles: readdlm
 using JuLIP: r_sum
 
-using LinearAlgebra: scale!
+using LinearAlgebra: rmul!
 
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
@@ -295,6 +295,6 @@ energy_map(V::EAM1, at::Atoms) =
                          sites(at, cutoff(V)) ) )
 
 forces_map(V::EAM1, at::Atoms) =
-   scale!( maptosites_d!( ((r, R) -> @D V(r, R)),
+   rmul!( maptosites_d!( ((r, R) -> @D V(r, R)),
                           zeros(JVecF, length(at)),
                           sites(at, cutoff(V)) ), -1 )

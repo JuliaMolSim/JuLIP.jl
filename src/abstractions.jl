@@ -117,7 +117,7 @@ export AbstractAtoms,
 import Base: length
 
 using LinearAlgebra
-import LinearAlgebra: A_ldiv_B!, A_mul_B!, gradient
+import LinearAlgebra: ldiv!, mul!
 
 export AbstractCalculator,
       energy, potential_energy, forces, gradient, hessian,
@@ -538,8 +538,8 @@ Identity preconditioner, i.e., no preconditioner.
 mutable struct Identity <: Preconditioner
 end
 
-A_ldiv_B!(out::Dofs, P::Identity, x::Dofs) = copyto!(out, x)
-A_mul_B!(out::Dofs, P::Identity, f::Dofs) = copyto!(out, f)
+ldiv!(out::Dofs, P::Identity, x::Dofs) = copyto!(out, x)
+mul!(out::Dofs, P::Identity, f::Dofs) = copyto!(out, f)
 update!(P::Identity, at::AbstractAtoms) = P
 
 

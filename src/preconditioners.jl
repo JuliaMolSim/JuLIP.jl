@@ -13,7 +13,7 @@ using JuLIP.Constraints: project!, FixedCell, _pos_to_alldof
 
 using AlgebraicMultigrid
 
-using SparseArrays: SparseMatrixCSC, speye
+using SparseArrays: SparseMatrixCSC
 import SuiteSparse
 
 import JuLIP: update!
@@ -120,7 +120,7 @@ function force_update!(P::IPPrecon, at::AbstractAtoms)
    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
    Pmat = precon_matrix(P.p, at, P.innerstab)
-   Pmat = Pmat + P.stab * I   # * speye(size(Pmat, 1))
+   Pmat = Pmat + P.stab * I
    Pmat = project!(constraint(at), Pmat)
    # and the AMG solver
    P.A = Pmat
@@ -208,7 +208,7 @@ function estimate_energyscale(at, P)
    # determine direction in which the cell is maximal
    F = Matrix(defm(at))
    X0 = positions(at)
-   _, i = findmax( [norm(F[:, j]) for j = 1:3] )   # TODO: superfuous [] => Julia Bug?
+   _, i = maximum( (norm(F[:, j]), j) for j = 1:3 ) # hack to make findmax work again
    Fi = JVecF(F[:, i])
    # an associated perturbation
    V = [sin(2*pi * dot(Fi, x)/dot(Fi,Fi)) * Fi for x in X0]
