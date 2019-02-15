@@ -17,7 +17,7 @@
 
 import StaticArrays
 
-using LinearAlgebra: det 
+using LinearAlgebra: det
 
 _expm(A::StaticArrays.SMatrix{N,N,T}) where {N,T} =
    StaticArrays.SMatrix{N,N,T}(exp(Array(A)))
@@ -51,7 +51,7 @@ function logm_defm(at::AbstractAtoms, cons::ExpVariableCell)
    U = log(expU |> Array) |> JMat
    U = real(0.5 * (U + U'))
    # check that expm(U) * F0 ≈ F (if not, then something has gone horribly wrong)
-   if vecnorm(F - _expm(U) * cons.F0, Inf) > 1e-12
+   if norm(F - _expm(U) * cons.F0, Inf) > 1e-12
       @show F
       @show _expm(U) * cons.F0
       error("something has gone wrong; U is not symmetric?")

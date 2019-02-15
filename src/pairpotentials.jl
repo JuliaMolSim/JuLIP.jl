@@ -83,13 +83,13 @@ function hess(V::PairPotential, r, R)
 end
 
 # an FF preconditioner for pair potentials
-function precon(V::PairPotential, r, R)
+function precon(V::PairPotential, r, R, innerstab=0.1)
    dV = @D V(r)
    hV = @DD V(r)
    # Id = eye(JMatF)
    S = R/r
-   return 0.9 * (abs(hV) * S * S' + abs(dV / r) * (I - S * S')) +
-          0.1 * (abs(hV) + abs(dV / r)) * I
+   return (1-innerstab) * (abs(hV) * S * S' + abs(dV / r) * (I - S * S')) +
+             innerstab  * (abs(hV) + abs(dV / r)) * one(JMatF)
 end
 
 

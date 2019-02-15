@@ -19,15 +19,15 @@ catch
 end
 
 julip_tests = [
-   # ("testaux.jl", "Miscellaneous"),
-   # ("test_atoms.jl", "Atoms"),
-   # ("test_build.jl", "Build"),
-   # ("testanalyticpotential.jl", "Analytic Potential"),
-   # ("testpotentials.jl", "Potentials"),
-   # ("test_ad.jl", "AD Potentials"),
+   ("testaux.jl", "Miscellaneous"),
+   ("test_atoms.jl", "Atoms"),
+   ("test_build.jl", "Build"),
+   ("testanalyticpotential.jl", "Analytic Potential"),
+   ("testpotentials.jl", "Potentials"),
+   ("test_ad.jl", "AD Potentials"),
    ("testvarcell.jl", "Variable Cell"),
-   # ("testhessian.jl", "Hessian"),
-   # ("testsolve.jl", "Solve"),
+   ("testhessian.jl", "Hessian"),
+   ("testsolve.jl", "Solve"),
 ]
 
 # remove testsolve if on Travis
@@ -64,4 +64,4 @@ end
 
 
 # TODO:
-# - stillinger-weber
+# - stillinger-weber => is this not in the hessian tests???
