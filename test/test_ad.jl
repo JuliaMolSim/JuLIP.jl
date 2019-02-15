@@ -1,4 +1,4 @@
-using JuLIP, ForwardDiff, StaticArrays, ReverseDiff, BenchmarkTools, Test
+using JuLIP, ForwardDiff, StaticArrays, BenchmarkTools, Test, LinearAlgebra
 
 # simple EAM-like potential
 f(R) = sqrt( 1.0 + sum( exp(-norm(r)) for r in R ) )
@@ -12,19 +12,19 @@ function f_d(R::JVecsF)
 end
 
 # ForwardDiff gradient
-f_fd(R) =  ForwardDiff.gradient( T -> f(vecs(T)),  mat(R)[:] ) |> vecs
+f_fd(R) =  collect(ForwardDiff.gradient( T -> f(vecs(T)),  collect(mat(R)[:]) ) |> vecs)
 
 # turn it into an AD potential
-const V = JuLIP.Potentials.ADPotential(f)
+V = JuLIP.Potentials.ADPotential(f, Inf)
 
 # a test configuration
 nneigs = 30
 R0 = [ @SVector rand(3) for n = 1:nneigs ]
 
 # check that all of them are the same
-@test V(R0) == f(R0)
-@test (@D V(R0)) == f_fd(R0)
-@test f_d(R0) ≈ f_fd(R0)
+println(@test V(R0) == f(R0))
+println(@test (@D V(R0)) == f_fd(R0))
+println(@test f_d(R0) ≈ f_fd(R0))
 
 # timings
 print("Timing for      f: ")
@@ -36,4 +36,4 @@ print("Timing for    f_d: ")
 print("Timing for   f_fd: ")
 @btime f_fd($R0);
 print("Timing for   @D V: ")
-@btime (@D V($R0));
+@btime (@D $V($R0));

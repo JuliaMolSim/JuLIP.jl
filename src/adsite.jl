@@ -10,14 +10,6 @@ export ADPotential
 # Implementation of a ForwardDiff site potential
 # ================================================
 
-struct ADPotential{TV, T, FR} <: SitePotential
-   V::TV
-   rcut::T
-   gradfun::FR
-end
-
-@pot ADPotential
-
 """
 `abstract FDPotential <: SitePotential`
 
@@ -40,7 +32,13 @@ Notes:
 `ForwardDiff`. Hopefully it can be fixed.
 * TODO: allow arguments `(r, R)` then use chain-rule to combine them.
 """
-ADPotential
+struct ADPotential{TV, T, FR} <: SitePotential
+   V::TV
+   rcut::T
+   gradfun::FR
+end
+
+@pot ADPotential
 
 ADPotential(V, rcut) = ADPotential(V, rcut, ForwardDiff.gradient)
 
@@ -52,7 +50,7 @@ evaluate(V::ADPotential, r, R) = V.V(R)
 #    ForwardDiff.gradient( S -> V.V(vecs(S)), mat(R)[:] ) |> vecs
 
 evaluate_d(V::ADPotential, r, R) =
-   V.gradfun( S -> V.V(vecs(S)), mat(R)[:] ) |> vecs
+   V.gradfun( S -> V.V(vecs(S)), collect(mat(R)[:]) ) |> vecs |> collect
 
 # function evaluate_dd(V::ADPotential, r, R)
 #

@@ -143,4 +143,4 @@ function maxdist(x::AbstractArray{JVec{T}}, y::AbstractArray{JVec{T}}) where T
 end
 
 "`maximum(norm(y) for y in x);` typically, x is a vector of forces"
-maxnorm(x::JVecs{T}) where {T} = maximum( norm.(x) )
+maxnorm(X::AbstractVector{JVec{T}}) where {T} = maximum( norm(x) for x in X )

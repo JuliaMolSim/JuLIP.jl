@@ -26,7 +26,9 @@ using StaticArrays: @SMatrix
 
 using NeighbourLists
 
-using LinearAlgebra: norm 
+using LinearAlgebra: norm
+
+using SparseArrays: sparse
 
 import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum

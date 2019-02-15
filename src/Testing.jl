@@ -65,7 +65,7 @@ function fdtest_hessian(F::Function, dF::Function, x; verbose=true)
    errors = Float64[]
    F0 = F(x)
    dF0 = dF(x)
-   dFh = copy(full(dF0))
+   dFh = copy(Matrix(dF0))
    @assert size(dFh) == (length(F0), length(x))
    # loop through finite-difference step-lengths
    @printf("---------|----------- \n")
