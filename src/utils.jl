@@ -123,7 +123,7 @@ end
 dist(at::AbstractAtoms, X::AbstractVector) = dist(at, positions(at), X)
 
 function dist(at1::AbstractAtoms, at2::AbstractAtoms, p = Inf)
-   @assert vecnorm(cell(at1) - cell(at2), Inf) < 1e-14
+   @assert norm(cell(at1) - cell(at2), Inf) < 1e-14
    return dist(at1, positions(at1), positions(at2), p)
 end
 

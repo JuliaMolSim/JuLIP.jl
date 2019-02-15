@@ -200,9 +200,9 @@ function isapprox(at1::Atoms{T,TI}, at2::Atoms{T,TI}; tol = sqrt(eps(T))) where 
    p2 = sortperm(X2)
    return (maxdist(at1.X[p1], at2.X[p2]) <= tol) &&
           (maxdist(at1.P[p1], at2.P[p2]) <= tol) # &&
-          (vecnorm(at1.M[p1] - at2.M[p2], Inf) <= tol) &&
+          (norm(at1.M[p1] - at2.M[p2], Inf) <= tol) &&
           (at1.Z[p1] == at2.Z[p2]) &&
-          (vecnorm(at1.cell - at2.cell, Inf) <= tol) &&
+          (norm(at1.cell - at2.cell, Inf) <= tol) &&
           (at1.pbc == at2.pbc) &&
           (at1.calc == at2.calc) &&
           (at1.cons == at2.cons)

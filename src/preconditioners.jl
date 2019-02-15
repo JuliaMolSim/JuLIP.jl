@@ -13,7 +13,7 @@ using JuLIP.Constraints: project!, FixedCell, _pos_to_alldof
 
 using AlgebraicMultigrid
 
-using SparseArrays: SparseMatrixCSC, speye 
+using SparseArrays: SparseMatrixCSC, speye
 import SuiteSparse
 
 import JuLIP: update!
@@ -23,7 +23,7 @@ import Base: *, \, size
 
 using LinearAlgebra
 
-import LinearAlgebra: A_ldiv_B!, A_mul_B!, dot
+import LinearAlgebra: ldiv!, mul!, dot
 
 export Exp, FF
 
@@ -79,7 +79,7 @@ function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
    if solver == :amg
       solver = ruge_stuben(A)
    elseif solver in [:chol, :direct]
-      solver = cholfact(A)
+      solver = cholesky(A)
    else
       error("`IPPrecon` : unknown solver $(solver)")
    end
@@ -89,14 +89,14 @@ function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
 end
 
 # some standard Base functionality lifted to IPPrecon
-A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: AlgebraicMultigrid.MultiLevel =
-   copy!(out, solve(P.solver, f, 200, AlgebraicMultigrid.V(), P.tol))
-A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: SuiteSparse.CHOLMOD.Factor =
-   copy!(out, P.solver \ f)
-A_mul_B!(out::Dofs, P::IPPrecon, x::Dofs) = A_mul_B!(out, P.A, x)
+ldiv!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: AlgebraicMultigrid.MultiLevel =
+   copyto!(out, solve(P.solver, f, 200, AlgebraicMultigrid.V(), P.tol))
+ldiv!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: SuiteSparse.CHOLMOD.Factor =
+   copyto!(out, P.solver \ f)
+mul!(out::Dofs, P::IPPrecon, x::Dofs) = mul!(out, P.A, x)
 dot(x, P::IPPrecon, y) = dot(x, P * y)
 *(P::IPPrecon, x::AbstractVector) = P.A * x
-\(P::IPPrecon, x::AbstractVector) = A_ldiv_B!(zeros(length(x)), P, x)
+\(P::IPPrecon, x::AbstractVector) = ldiv!(zeros(length(x)), P, x)
 Base.size(P::IPPrecon) = size(P.A)
 
 
@@ -109,7 +109,7 @@ update!(P::IPPrecon, at::AbstractAtoms) =
 
 
 update_solver!(P::IPPrecon{TV, TS}) where TV where TS <: SuiteSparse.CHOLMOD.Factor =
-   cholfact(Symmetric(P.A))
+   cholesky(Symmetric(P.A))
 
 update_solver!(P::IPPrecon{TV, TS}) where TV where TS <: AlgebraicMultigrid.MultiLevel =
    ruge_stuben(P.A)
@@ -120,13 +120,13 @@ function force_update!(P::IPPrecon, at::AbstractAtoms)
    P.p = update_inner!(P.p, at)
    # construct the preconditioner matrix ...
    Pmat = precon_matrix(P.p, at, P.innerstab)
-   Pmat = Pmat + P.stab * speye(size(Pmat, 1))
+   Pmat = Pmat + P.stab * I   # * speye(size(Pmat, 1))
    Pmat = project!(constraint(at), Pmat)
    # and the AMG solver
    P.A = Pmat
    P.solver = update_solver!(P)
    # remember the atom positions
-   copy!(P.oldX, positions(at))
+   copyto!(P.oldX, positions(at))
    # and remember that we just did a full update
    P.skippedupdates = 0
    return P
@@ -149,7 +149,11 @@ atind2lininds(i::Integer) = (i-1) * 3 + [1;2;3]
 """
 build the preconditioner matrix associated with the potential V
 """
-precon_matrix(V::AbstractCalculator, at::AbstractAtoms, innerstab=0.0;
+precon_matrix(V::AbstractCalculator, at::AbstractAtoms;
+              preconmap = (V, r, R) -> precon(V, r, R)) =
+   _pos_to_alldof(_precon_or_hessian_pos(V, at, preconmap), at)
+
+precon_matrix(V::AbstractCalculator, at::AbstractAtoms, innerstab;
               preconmap = (V, r, R) -> precon(V, r, R, innerstab)) =
    _pos_to_alldof(_precon_or_hessian_pos(V, at, preconmap), at)
 
@@ -178,7 +182,8 @@ end
 
 cutoff(P::Exp) = cutoff(P.Vexp)
 
-precon(P::Exp{T}, r, R) where {T} = (P.energyscale * P.Vexp(r)) * one(JMat{T})
+# innerstab is ignored here
+precon(P::Exp{T}, r, R, innerstab=0.0) where {T} = (P.energyscale * P.Vexp(r)) * one(JMat{T})
 
 function Exp(at::AbstractAtoms;
              A=3.0, r0=rnn(at), cutoff_mult=2.2, energyscale = 1.0,
@@ -203,7 +208,7 @@ function estimate_energyscale(at, P)
    # determine direction in which the cell is maximal
    F = Matrix(defm(at))
    X0 = positions(at)
-   _, i = findmax( norm(F[:, j]) for j = 1:3 )
+   _, i = findmax( [norm(F[:, j]) for j = 1:3] )   # TODO: superfuous [] => Julia Bug?
    Fi = JVecF(F[:, i])
    # an associated perturbation
    V = [sin(2*pi * dot(Fi, x)/dot(Fi,Fi)) * Fi for x in X0]
@@ -215,7 +220,7 @@ function estimate_energyscale(at, P)
    f1 = forces(at) |> mat
    # return the estimated value for the energyscale
    V = mat(V)
-   μ = - vecdot((f1 - f0)/h, V) / dot(A * V[:], V[:])
+   μ = - dot((f1 - f0)/h, V) / dot(A * V[:], V[:])
    if μ < 0.1 || μ > 100.0
       warn("""
       e0 = $(μ) in `estimate_energyscale`; this is likely due to a poor

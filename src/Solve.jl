@@ -86,7 +86,7 @@ function minimise!(at::AbstractAtoms;
    else
       obj_f = x->energy(at, x)
    end
-   obj_g! = (g, x) -> copy!(g, gradient(at, x))
+   obj_g! = (g, x) -> copyto!(g, gradient(at, x))
 
    # create a preconditioner
    if isa(precond, Symbol)

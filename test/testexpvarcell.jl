@@ -1,5 +1,6 @@
 using JuLIP: stress
 using JuLIP.Potentials
+using LinearAlgebra
 
 println("-------------------------------------------------")
 println("   Variable Cell Test")
@@ -35,7 +36,7 @@ x = dofs(at)
 y = x + 0.01 * rand(size(x))
 set_dofs!(at, y)
 z = dofs(at)
-@test vecnorm(y - z, Inf) < 1e-12
+@test norm(y - z, Inf) < 1e-12
 println("ok")
 
 # perform the finite-difference test
@@ -52,19 +53,19 @@ set_calculator!(at, StillingerWeber())
 set_constraint!(at, ExpVariableCell(at))
 #
 println("For the initial state, stress is far from 0:")
-@show vecnorm(virial(at), Inf)
+@show norm(virial(at), Inf)
 JuLIP.Solve.minimise!(at, verbose=2)
 # dt = 1e-6
 # for n = 1:100
 #    x = dofs(at)
 #    ∇E = gradient(at)
-#    @printf(" %3d  |  %4.2e \n", n, vecnorm(∇E, Inf))
+#    @printf(" %3d  |  %4.2e \n", n, norm(∇E, Inf))
 #    x -= dt * ∇E
 #    set_dofs!(at, x)
 # end
 println("After optimisation, stress is 0:")
-@show vecnorm(virial(at), Inf)
-# @test vecnorm(virial(at), Inf) < 1e-4
+@show norm(virial(at), Inf)
+# @test norm(virial(at), Inf) < 1e-4
 
 println("Test for comparison with the standard VariableCell")
 at = bulk("Si") * 2   # cubic=true,
@@ -73,7 +74,7 @@ set_calculator!(at, StillingerWeber())
 set_constraint!(at, VariableCell(at))
 #
 println("For the initial state, stress is far from 0:")
-@show vecnorm(virial(at), Inf)
+@show norm(virial(at), Inf)
 JuLIP.Solve.minimise!(at, verbose=2)
 
 
@@ -88,5 +89,5 @@ JuLIP.Solve.minimise!(at, verbose=2)
 # set_calculator!(at, calc)
 # set_constraint!(at, VariableCell(at, pressure=0.01))
 # JuLIP.Solve.minimise!(at)
-# @show vecnorm(stress(at), Inf)
-# @test vecnorm(gradient(at), Inf) < 1e-4
+# @show norm(stress(at), Inf)
+# @test norm(gradient(at), Inf) < 1e-4
