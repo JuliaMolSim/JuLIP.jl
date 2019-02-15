@@ -24,7 +24,7 @@
 using ForwardDiff
 export StillingerWeber
 
-using LinearAlgebra: dot 
+using LinearAlgebra: dot
 
 # using JuLIP.Potentials: evaluate_dd, @D, @DD
 # import JuLIP.Potentials: evaluate, evaluate_d
@@ -217,7 +217,7 @@ function _ad_ddV(V::StillingerWeber, r, R)
    n = length(r)
    hV = zeros(JMatF, n, n)
    for i = 1:n, j = 1:n
-      hV[i, j] = ddV[ ((i-1)*3)+(1:3), ((j-1)*3)+(1:3) ]
+      hV[i, j] = ddV[ ((i-1)*3).+(1:3), ((j-1)*3).+(1:3) ]
    end
    return hV
 end

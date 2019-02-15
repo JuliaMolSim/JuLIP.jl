@@ -79,7 +79,7 @@ function hess(V::PairPotential, r, R)
    R̂ = R/r
    P = R̂ * R̂'
    dV = (@D V(r))/r
-   return ((@DD V(r)) - dV) * P + dV * eye(JMatF)
+   return ((@DD V(r)) - dV) * P + dV * one(JMatF)
 end
 
 # an FF preconditioner for pair potentials

@@ -1,7 +1,7 @@
 
 using JuLIP
 using Test
-using LinearAlgebra: I 
+using LinearAlgebra: I
 
 println("===================================================")
 println("          TEST SOLVE ")
@@ -97,3 +97,32 @@ minimise!(at, precond = P, method = :lbfgs, robust_energy_difference = true, ver
 println("for comparison now with Exp")
 set_positions!(at, X0)
 minimise!(at, precond = :exp, method = :lbfgs, robust_energy_difference = true, verbose=2)
+
+
+println("-------------------------------------------------")
+println("Test optimisation with VariableCell")
+# start with a clean `at`
+at = bulk(:Al) * 2   # cubic=true,
+set_calculator!(at, calc)
+set_constraint!(at, VariableCell(at))
+
+println("For the initial state, stress/virial is far from 0:")
+@show vecnorm(virial(at), Inf)
+JuLIP.Solve.minimise!(at, verbose=2)
+println("After optimisation, stress/virial should be 0:")
+@show vecnorm(virial(at), Inf)
+@test vecnorm(virial(at), Inf) < 1e-4
+
+
+println("-------------------------------------------------")
+println("And now with pressure . . .")
+set_constraint!(at, VariableCell(at, pressure=10.0123))
+JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1)
+at = bulk(:Al) * 2
+set_calculator!(at, calc)
+set_constraint!(at, VariableCell(at, pressure=0.01))
+JuLIP.Solve.minimise!(at, verbose = 2)
+@show vecnorm(virial(at), Inf)
+@show vecnorm(gradient(at), Inf)
+@test vecnorm(gradient(at), Inf) < 1e-4
+println("note it is correct that virial is O(1) since we applied pressure")

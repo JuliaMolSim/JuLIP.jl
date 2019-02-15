@@ -13,7 +13,7 @@ using JuLIP.Constraints: project!, FixedCell, _pos_to_alldof
 
 using AlgebraicMultigrid
 
-using SparseArrays: SparseMatrixCSC
+using SparseArrays: SparseMatrixCSC, speye 
 import SuiteSparse
 
 import JuLIP: update!

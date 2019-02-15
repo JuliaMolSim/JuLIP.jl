@@ -22,7 +22,7 @@ import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient,
 
 export FixedCell, VariableCell, ExpVariableCell, FixedCell2D, atomdofs
 
-using SparseArrays: SparseMatrixCSC
+using SparseArrays: SparseMatrixCSC, nnz, sparse, findnz 
 
 using LinearAlgebra: rmul!, det
 

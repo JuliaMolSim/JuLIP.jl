@@ -4,7 +4,7 @@ using NeighbourLists
 using DelimitedFiles: readdlm
 using JuLIP: r_sum
 
-using LinearAlgebra: scale! 
+using LinearAlgebra: scale!
 
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
@@ -100,7 +100,7 @@ function _hess_(V::EAM1, r, R, fabs, stab=0.0)
    dF = @D V.F(ρ̄)
    ddF = @DD V.F(ρ̄)
    # something to stabilize for the precon version
-   Id = eye(JMatF)
+   Id = one(JMatF)
    # assemble
    for i = 1:length(r)
       for j = 1:length(r)
