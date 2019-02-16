@@ -9,7 +9,7 @@ FunctionWrappers
 Dierckx
 ForwardDiff
 Parameters
-NeighbourLists
+NeighbourLists 0.3
 MacroTools
 LineSearches
 CommonSubexpressions
