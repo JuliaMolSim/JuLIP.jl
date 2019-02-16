@@ -22,7 +22,7 @@ set_constraint!(at, VariableCell(at))
 h3("check that energy, forces, virial, stress, dofs, gradient evaluate ... ")
 energy(at)
 forces(at)
-gradient(at)
+JuLIP.gradient(at)
 # JuLIP.hessian_pos(at)
 # JuLIP.hessian(at)     # this has no implementation for variable cells yet
 virial(at)

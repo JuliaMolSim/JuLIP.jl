@@ -104,6 +104,6 @@ set_calculator!(at, calc)
 set_constraint!(at, VariableCell(at, pressure=0.01))
 JuLIP.Solve.minimise!(at, verbose = 2)
 @show norm(virial(at), Inf)
-@show norm(gradient(at), Inf)
-@test norm(gradient(at), Inf) < 1e-4
+@show norm(JuLIP.gradient(at), Inf)
+@test norm(JuLIP.gradient(at), Inf) < 1e-4
 @info "note it is correct that virial is O(1) since we applied pressure"

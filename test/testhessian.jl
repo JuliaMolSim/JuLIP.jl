@@ -49,7 +49,7 @@ at = at * 2
 set_pbc!(at, false)
 set_constraint!(at, FixedCell(at))
 set_calculator!(at, pp)
-println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
+println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
 
 
 h2("Testing EAM hessian")
@@ -98,7 +98,7 @@ for p = 3:9
 end
 
 h3("full finite-difference test")
-println(@test fdtest( x -> energy(at, x), x -> gradient(at, x), dofs(at) ))
+println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
 @warn "fdtest_hessian test has been turned off!"  # TODO: put back in
 # println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
 
@@ -114,5 +114,5 @@ sw = StillingerWeber()
 set_calculator!(at, sw)
 
 h3("full finite-difference test")
-println(@test fdtest( x -> energy(at, x), x -> gradient(at, x), dofs(at) ))
-println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
+println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
+println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
