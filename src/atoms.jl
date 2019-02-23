@@ -98,7 +98,15 @@ _auto_cell(C::Vector{Any}) = JMatF([ C[1] C[2] C[3] ])
 
 Atoms(X, P, M, Z, cell, pbc; calc=NullCalculator(),
       cons = NullConstraint(), data = Dict{Any,JData}()) =
-   Atoms(X, P, M, Z, _auto_cell(cell), _auto_pbc(pbc), calc, cons, data)
+   Atoms(_read_X(X),
+         _read_X(P),
+         Vector(M),
+         Vector(Z),
+         _auto_cell(cell),
+         _auto_pbc(pbc),
+         calc,
+         cons,
+         data)
 
 Atoms(Z::Vector{TI}, X::Vector{JVec{T}}; kwargs...
      ) where {TI <: Integer, T <: AbstractFloat} =
@@ -321,9 +329,16 @@ end
 
 # ------------------------ workaround for JLD bug  ----------------------
 
+# if we have no clue about X just return it and see what happens
 _read_X(X) = X
-_read_X(X::Vector{Any}) = [ JVecF(x) for x in X ]
-_read_X(X::Matrix) = [ JVecF(X[:,n]) for n = 1:size(X,2) ]
+# if the elements of X weren't inferred, try to infer before reading
+# (note, this might lead to a stack overflow!!)
+_read_X(X::AbstractVector) = _read_X( [x for x in X] )
+# the cases where we know what to do ...
+_read_X(X::AbstractVector{T}) where {T <: AbstractVector} = [ JVecF(x) for x in X ]
+_read_X(X::AbstractVector{T}) where {T <: Real} = _read_V(reshape(X, 3, :))
+_read_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
+                              [ JVecF(X[:,n]) for n = 1:size(X,2) ])
 
 
 Dict(at::Atoms) =

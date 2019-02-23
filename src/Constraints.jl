@@ -22,7 +22,7 @@ import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient,
 
 export FixedCell, VariableCell, ExpVariableCell, FixedCell2D, atomdofs
 
-using SparseArrays: SparseMatrixCSC, nnz, sparse, findnz 
+using SparseArrays: SparseMatrixCSC, nnz, sparse, findnz
 
 using LinearAlgebra: rmul!, det
 
@@ -81,7 +81,7 @@ function analyze_mask(at, free, clamp, mask)
    end
    if free != nothing
       # revert to setting mask
-      mask = Matrix{Bool}(3, Nat)
+      mask = Matrix{Bool}(undef, 3, Nat)
       fill!(mask, false)
       mask[:, free] = true
    end
