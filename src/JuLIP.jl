@@ -24,6 +24,10 @@ include("chemistry.jl")
 # the main atoms type
 include("atoms.jl")
 
+# File IO
+include("FIO.jl")
+@reexport using JuLIP.FIO
+
 # how to build some simple domains
 include("build.jl")
 @reexport using JuLIP.Build

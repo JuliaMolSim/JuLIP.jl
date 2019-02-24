@@ -547,3 +547,5 @@ update!(P::Identity, at::AbstractAtoms) = P
 preconditioner(at::AbstractAtoms) = preconditioner(at, calculator(at), constraint(at))
 preconditioner(at::AbstractAtoms, calc::AbstractCalculator, con::AbstractConstraint) =
          Identity()
+
+

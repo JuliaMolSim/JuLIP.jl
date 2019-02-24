@@ -28,6 +28,7 @@ julip_tests = [
    ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
    ("testsolve.jl", "Solve"),
+   ("test_fio.jl", "File IO"), 
 ]
 
 # remove testsolve if on Travis

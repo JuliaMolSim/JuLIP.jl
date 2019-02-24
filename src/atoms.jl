@@ -327,7 +327,7 @@ end
 
 
 
-# ------------------------ workaround for JLD bug  ----------------------
+# ------------------------ workaround for JLD bugs  ----------------------
 
 # if we have no clue about X just return it and see what happens
 _read_X(X) = X
@@ -341,18 +341,19 @@ _read_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
                               [ JVecF(X[:,n]) for n = 1:size(X,2) ])
 
 
+# for the time being we won't store calculators, constraints and data 
+# TODO: this should be implemented asap 
 Dict(at::Atoms) =
-   Dict( "id"   => "JuLIP.Atoms",
-         "X"    => at.X,
-         "P"    => at.P,
-         "M"    => at.M,
-         "Z"    => at.Z,
-         "cell" => at.cell,
-         "pbc"  => at.pbc,
-         "calc" => nothing,
-         "cons" => nothing,
-         "data" => nothing )
-         # "data" => at.data )
+   Dict( "__id__" => "JuLIP_Atoms",
+         "X"      => at.X,
+         "P"      => at.P,
+         "M"      => at.M,
+         "Z"      => at.Z,
+         "cell"   => at.cell,
+         "pbc"    => at.pbc,
+         "calc"   => nothing,
+         "cons"   => nothing,
+         "data"   => nothing )
 
 Atoms(D::Dict) =
    Atoms( _read_X(D["X"]),
@@ -363,5 +364,6 @@ Atoms(D::Dict) =
           D["pbc"] )
           # calc = D["calc"],
           # cons = D["cons"],
-          # data = Dict{Any, JData}(),
           # data = D["data"] )
+
+Base.convert(::Val{:JuLIP_Atoms}, D) = Atoms(D)
