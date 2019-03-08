@@ -76,9 +76,9 @@ TODO
 * `get_data`, `set_data!`
 """
 @with_kw mutable struct Atoms{T <: AbstractFloat, TI <: Integer} <: AbstractAtoms
-   X::Vector{JVec{T}} = JVec{Float64}[]       # positions
-   P::Vector{JVec{T}} = JVec{Float64}[]       # momenta (or velocities?)
-   M::Vector{T} = Float64[]             # masses
+   X::Vector{JVec{T}} = JVec{T}[]       # positions
+   P::Vector{JVec{T}} = JVec{T}[]       # momenta (or velocities?)
+   M::Vector{T} = T[]             # masses
    Z::Vector{TI} = Int[]           # atomic numbers
    cell::JMat{T} = zero(JMat{T})                   # cell
    pbc::JVec{Bool} = JVec(false, false, false)     # boundary condition
@@ -130,9 +130,8 @@ Atoms(X, P, M, Z, cell, pbc; calc=NullCalculator(),
          cons,
          data)
 
-Atoms(Z::Vector{TI}, X::Vector{JVec{T}}; kwargs...
-     ) where {TI <: Integer, T <: AbstractFloat} =
-  Atoms(;Z=Z, X=X, P = zeros(JVec{T}, length(X)), M = zeros(length(X)), kwargs...)
+Atoms(Z::Vector{TI}, X::Vector{JVec{T}}; kwargs...) where {TI, T} =
+  Atoms{T, TI}(;Z=Z, X=X, P = zeros(eltype(X), length(X)), M = zeros(length(X)), kwargs...)
 
 # derived properties
 length(at::Atoms) = length(at.X)
