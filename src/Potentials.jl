@@ -164,6 +164,7 @@ include("splines.jl")
 include("eam.jl")
 # EAM, FinnisSinclair
 
+include("onebody.jl") 
 
 
 export ZeroSitePotential

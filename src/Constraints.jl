@@ -83,7 +83,9 @@ function analyze_mask(at, free, clamp, mask)
       # revert to setting mask
       mask = Matrix{Bool}(undef, 3, Nat)
       fill!(mask, false)
-      mask[:, free] = true
+      if !isempty(free)
+         mask[:, free] = true
+      end
    end
    return findall(mask[:])
 end
