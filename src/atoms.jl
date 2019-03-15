@@ -159,10 +159,14 @@ function set_positions!(at::Atoms{T}, X::AbstractVector{JVec{T}})  where T
    at.X .= X
    return at
 end
+set_positions!(at::Atoms{T}, X::AbstractMatrix) where {T} =
+   set_positions!(at, _auto_X(X))
 function set_momenta!(at::Atoms{T}, P::AbstractVector{JVec{T}})  where T
    at.P .= P
    return at
 end
+set_momenta!(at::Atoms{T}, P::AbstractMatrix) where {T} =
+   set_momenta!(at, _auto_X(P))
 function set_masses!(at::Atoms{T}, M::AbstractVector{T})  where T
    update_data!(at, Inf)
    at.M .= M
