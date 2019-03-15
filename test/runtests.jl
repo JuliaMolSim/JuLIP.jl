@@ -66,8 +66,3 @@ end
 
 # TODO:
 # - stillinger-weber => is this not in the hessian tests???
-
-using JuLIP
-at = rattle!(bulk(:Cu, cubic=true) * 2, 0.02)
-at_positions = mat(copy(positions(at)))
-set_positions!(at,at_positions)
