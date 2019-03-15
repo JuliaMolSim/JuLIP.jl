@@ -151,7 +151,7 @@ get_positions = positions
 "Set positions of all atoms"
 @protofun set_positions!(::AbstractAtoms, ::Any)
 
-set_positions!(at::AbstractAtoms, p::Matrix) = set_positions!(at, vecs(p))
+set_positions!(at::AbstractAtoms, p::AbstractMatrix) = set_positions!(at, vecs(p))
 set_positions!(at::AbstractAtoms, x, y, z) = set_positions!(at, [x'; y'; z'])
 
 xyz(at::AbstractAtoms) = xyz(positions(at))
@@ -166,7 +166,7 @@ get_momenta = momenta
 "Set momenta of all atoms as a `3 x N` array."
 @protofun set_momenta!(::AbstractAtoms, ::Any)
 
-set_momenta!(at::AbstractAtoms, p::Matrix) = set_momenta!(at, vecs(p))
+set_momenta!(at::AbstractAtoms, p::AbstractMatrix) = set_momenta!(at, vecs(p))
 
 @protofun masses(::AbstractAtoms)
 get_masses = masses
@@ -547,5 +547,3 @@ update!(P::Identity, at::AbstractAtoms) = P
 preconditioner(at::AbstractAtoms) = preconditioner(at, calculator(at), constraint(at))
 preconditioner(at::AbstractAtoms, calc::AbstractCalculator, con::AbstractConstraint) =
          Identity()
-
-
