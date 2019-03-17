@@ -12,6 +12,7 @@ pairpotentials = [
    SWCutoff(1.0, 3.0) * LennardJones(1.0,1.0);
    SplineCutoff(2.0, 3.0) * LennardJones(1.0,1.0);
    LennardJones(1.0, 1.0) * C2Shift(2.0);
+   ZBLPotential(5, 8)
 ]
 
 h2("Testing pair potential implementations")
@@ -60,6 +61,11 @@ push!(calculators,
 # emt2 = JuLIP.Potentials.EMTCalculator(at2)
 # set_calculator!(at2, emt2)
 # push!(calculators, (emt2, at2))
+
+# ZBL Calculator
+push!(calculators,
+      ( ZBLPotential(4, 7) * SplineCutoff(6.0, 8.0),
+        rattle!(bulk(:W, cubic=true, pbc=false) * (3,3,2), 0.1) ) )
 
 # Stillinger-Weber model
 at3 = set_pbc!( bulk(:Si, cubic=true) * 2, (false, true, false) )
