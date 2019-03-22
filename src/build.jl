@@ -12,7 +12,7 @@ using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       chemical_symbols, set_cell!, set_pbc!, update_data!,
       set_defm!, defm
 
-using LinearAlgebra: I, diagm
+using LinearAlgebra: I, Diagonal 
 
 import Base: union
 
@@ -245,8 +245,8 @@ Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
 
 
 function _autocell(X::Vector{JVec{T}}) where T
-   ext = extrema(mat(X), 2)
-   C = diagm([ e[2] - e[1] + 1.0  for e in ext ][:])
+   ext = extrema(mat(X), dims = (2,))
+   C = Diagonal([ e[2] - e[1] + 1.0  for e in ext ][:])
    return JMat{T}(C)
 end
 
