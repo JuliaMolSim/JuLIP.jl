@@ -12,7 +12,7 @@ using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
       chemical_symbols, set_cell!, set_pbc!, update_data!,
       set_defm!, defm
 
-using LinearAlgebra: I, Diagonal 
+using LinearAlgebra: I, Diagonal, isdiag, norm
 
 import Base: union
 
@@ -139,9 +139,9 @@ function cluster(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothi
    L = [ j ∈ dims ? 2 * (ceil(Int, R/Fu[j,j])+3) : 1    for j = 1:3]
    # multiply
    at = Atoms(atu) * L
-   # find point closes to centre
-   x̄ = mean( x[dims] for x in at.X)
-   i0 = findmin( norm(x[dims] - x̄) for x in at.X )[2]
+   # find point closest to centre
+   x̄ = sum( x[dims] for x in at.X ) / length(at.X)
+   i0 = findmin( [norm(x[dims] - x̄) for x in at.X] )[2]
    if x0 == nothing
       x0 = at[i0]
    else
@@ -150,7 +150,7 @@ function cluster(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothi
    # swap positions
    X = positions(at)
    X[1], X[i0] = X[i0], X[1]
-   F = diagm([Fu[j,j]*L[j] for j = 1:3])
+   F = Diagonal([Fu[j,j]*L[j] for j = 1:3])
    # carve out a cluster with mini-buffer to account for round-off
    r = [ norm(x[dims] - x0[dims]) for x in X ]
    IR = findall( r .<= R+sqrt(eps(T)) )
@@ -205,7 +205,7 @@ function Base.repeat(at::Atoms, n::NTuple{3})
       X[i+1:i+nat0] = [b+x for x in X0]
       i += nat0
    end
-   return Atoms(X, P, M, Z, JMat(diagm(0 => [n...]) * cell(at)), pbc(at))
+   return Atoms(X, P, M, Z, Diagonal(n...) * cell(at), pbc(at))
 end
 
 Base.repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
@@ -214,7 +214,6 @@ Base.repeat(at::Atoms, n::AbstractArray) = repeat(at, (n...,))
 import Base.*
 *(at::Atoms, n) = repeat(at, n)
 *(n, at::Atoms) = repeat(at, n)
-
 
 
 """
