@@ -205,7 +205,7 @@ function Base.repeat(at::Atoms, n::NTuple{3})
       X[i+1:i+nat0] = [b+x for x in X0]
       i += nat0
    end
-   return Atoms(X, P, M, Z, Diagonal(n...) * cell(at), pbc(at))
+   return Atoms(X, P, M, Z, Diagonal(collect(n)) * cell(at), pbc(at))
 end
 
 Base.repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
