@@ -1,11 +1,11 @@
+
 @info("Compare JuLIP EAM Implementation against ASE EAM Implementation")
 
 @info("Loading libraries...")
 using PyCall, JuLIP, ASE
 @pyimport ase.calculators.eam as eam
 
-
-pot_file = joinpath(dirname(pathof(JuLIP))) * "/data/w_eam4.fs"
+pot_file = joinpath(dirname(pathof(JuLIP))[1:end-3], "data", "w_eam4.fs")
 
 @info("Generate the ASE potential")
 eam4_ase = eam.EAM(potential=pot_file) |> ASECalculator
