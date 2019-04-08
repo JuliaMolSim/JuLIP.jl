@@ -83,7 +83,7 @@ end
 
 # some standard Base functionality lifted to IPPrecon
 A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: AMG.MultiLevel =
-   copy!(out, solve(P.solver, f, 200, AMG.V(), P.tol))
+   copy!(out, solve(P.solver, f; maxiter = 200, tol = P.tol))
 A_ldiv_B!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: Base.SparseArrays.CHOLMOD.Factor =
    copy!(out, P.solver \ f)
 A_mul_B!(out::Dofs, P::IPPrecon, x::Dofs) = A_mul_B!(out, P.A, x)
