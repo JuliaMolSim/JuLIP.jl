@@ -4,9 +4,9 @@ import Base: convert, ==
 # import JuLIP: energy, virial, site_energies, forces
 # import JuLIP.Potentials: evaluate
 
-using JuLIP: JVec, JMat
+using JuLIP: JVec, JMat, chemical_symbols
 
-export OneBody
+export OneBody, MOneBody
 
 """
 `mutable struct OneBody{T}  <: NBodyFunction{1}`
@@ -38,3 +38,43 @@ OneBody(D::Dict) = OneBody(D["E0"])
 convert(::Val{:OneBody}, D::Dict) = OneBody(D)
 
 ==(V1::OneBody, V2::OneBody) = (V1.E0 == V2.E0)
+
+
+
+"""
+`mutable struct MOneBody{T}  <: NBodyFunction{1}`
+
+this should not normally be constructed by a user, but instead E0 should be
+passed to the relevant lsq functions, which will construct it.
+This structure deals with multi-species configurations.
+"""
+mutable struct MOneBody{T} <: AbstractCalculator
+   E0::Dict{Symbol, T}
+end
+
+@pot MOneBody
+
+
+evaluate(V::MOneBody,sp) = V.E0[sp]
+
+function site_energies(V::MOneBody{T}, at::Atoms) where {T}
+   E = zeros(T, 1, length(at))
+   for i in 1:length(at)
+      E[i] = V(chemical_symbols(at)[i])
+   end
+   return E
+end
+
+energy(V::MOneBody, at::Atoms) = sum(site_energies(V,at))
+
+forces(V::MOneBody, at::Atoms{T}) where {T} = zeros(JVec{T}, length(at))
+
+virial(V::MOneBody, at::Atoms{T}) where {T} = zero(JMat{T})
+
+Dict(V::MOneBody) = Dict("__id__" => "MOneBody", "E0" => V.E0)
+
+MOneBody(D::Dict) = MOneBody(D["E0"])
+
+convert(::Val{:MOneBody}, D::Dict) = MOneBody(D)
+
+==(V1::MOneBody, V2::MOneBody) = (V1.E0 == V2.E0)
