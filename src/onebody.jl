@@ -73,8 +73,17 @@ virial(V::MOneBody, at::Atoms{T}) where {T} = zero(JMat{T})
 
 Dict(V::MOneBody) = Dict("__id__" => "MOneBody", "E0" => V.E0)
 
-MOneBody(D::Dict) = MOneBody(D["E0"])
+function convert_str_2_symb(D::Dict{String,T}) where {T}
+   Dout = Dict{Symbol,T}()
+   for key in keys(D)
+      Dout[Symbol(key)] = D[key]
+   end
+   return Dout
+end
 
-convert(::Val{:MOneBody}, D::Dict) = MOneBody(D)
+MOneBody(D::Dict{String, T}) where {T} = MOneBody(convert_str_2_symb(D["E0"]))
+
+convert(::Val{:MOneBody}, D::Dict) = MOneBody(convert_str_2_symb(D["E0"]))
+
 
 ==(V1::MOneBody, V2::MOneBody) = (V1.E0 == V2.E0)
