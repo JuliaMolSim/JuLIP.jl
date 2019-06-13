@@ -119,26 +119,3 @@ h3(" ... SW forces")
 println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
 h3(" ... SW hessian")
 println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
-
-
-
-# # ======== DEBUGGING ==========
-#
-# r = []
-# R = []
-# for (_1, _2, r1, R1) in sites(at, cutoff(eam))
-#    global r = r1
-#    global R = R1
-#    break
-# end
-#
-# # r = r[1:11]
-# # R = R[1:11]
-# # r = collect(r)
-# # R = collect(R)
-#
-# matR = reshape( reinterpret(Float64, R), (3, length(R)) )
-# # matR = mat(R)
-# matR[1] = 0
-# @show matR[1]
-# @show R[1]
