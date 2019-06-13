@@ -1,10 +1,7 @@
-using Test
-using JuLIP
+using Test, JuLIP, StaticArrays, Printf, LinearAlgebra
 using JuLIP.Potentials
 using JuLIP.Testing
-using StaticArrays
 using JuLIP.Potentials: evaluate_d, evaluate_dd
-using LinearAlgebra
 
 h2("Testing pair potential hessian")
 
@@ -60,18 +57,18 @@ set_constraint!(at, FixedCell(at))
 dir = joinpath(dirname(@__FILE__), "..", "data") * "/"
 eam = eam_Fe
 set_calculator!(at, eam)
+rattle!(at, 0.1)
 
-println("test a single stencil")
+h3("test a single stencil")
 r = []
 R = []
-for (_1, _2, r1, R1) in sites(at, cutoff(eam))
-   global r = r1
-   global R = R1
-   break
+for (idx, _2, r1, R1) in sites(at, cutoff(eam))
+   if idx == 3
+      global r = r1
+      global R = R1
+      break
+   end
 end
-
-r = r[1:3]
-R = R[1:3]
 
 # evaluate site gradient and hessian
 dVs = evaluate_d(eam, r, R)
@@ -84,7 +81,8 @@ for i = 1:size(hVs,1), j = 1:size(hVs,2)
 end
 matR = mat(R)
 
-for p = 3:9
+errs = []
+for p = 2:9
    h = 0.1^p
    hVh = fill(0.0, size(hV))
    for n = 1:length(matR)
@@ -94,13 +92,16 @@ for p = 3:9
       hVh[:, n] = (dVh - dV) / h
       matR[n] -= h
    end
-   @printf("%1.1e | %4.2e \n", h, norm(hVh - hV, Inf))
+   push!(errs, norm(hVh - hV, Inf))
+   @printf("%1.1e | %4.2e \n", h, errs[end])
 end
+println(@test /(extrema(errs)...) < 1e-3)
 
-h3("full finite-difference test")
+h3("full finite-difference test ...")
+h3(" ... EAM forces")
 println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
-@warn "fdtest_hessian test has been turned off!"  # TODO: put back in
-# println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
+h3(" ... EAM hessian")
+println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
 
 
 h2("Testing Stillinger-Weber hessian")
@@ -113,6 +114,31 @@ set_constraint!(at, FixedCell(at))
 sw = StillingerWeber()
 set_calculator!(at, sw)
 
-h3("full finite-difference test")
+h3("full finite-difference test ...")
+h3(" ... SW forces")
 println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
+h3(" ... SW hessian")
 println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
+
+
+
+# # ======== DEBUGGING ==========
+#
+# r = []
+# R = []
+# for (_1, _2, r1, R1) in sites(at, cutoff(eam))
+#    global r = r1
+#    global R = R1
+#    break
+# end
+#
+# # r = r[1:11]
+# # R = R[1:11]
+# # r = collect(r)
+# # R = collect(R)
+#
+# matR = reshape( reinterpret(Float64, R), (3, length(R)) )
+# # matR = mat(R)
+# matR[1] = 0
+# @show matR[1]
+# @show R[1]

@@ -95,7 +95,7 @@ function _hess_(V::EAM1, r, R, fabs, stab=0.0)
    # allocate storage
    H = zeros(JMatF, length(r), length(r))
    # precompute some stuff
-   ρ̄ = sum( V.ρ(s, S)  for (s, S) in zip(r, R) )
+   ρ̄ = sum(V.ρ(s) for s in r)
    ∇ρ = [ grad(V.ρ, s, S) for (s, S) in zip(r, R) ]
    dF = @D V.F(ρ̄)
    ddF = @DD V.F(ρ̄)
@@ -111,7 +111,7 @@ function _hess_(V::EAM1, r, R, fabs, stab=0.0)
       dρ = @D V.ρ(r[i])
       ddϕ = @DD V.ϕ(r[i])
       ddρ = @DD V.ρ(r[i])
-      a = fabs(0.5 * (ddϕ + dF * ddρ))
+      a = fabs(0.5 * (ddϕ) + dF * ddρ)
       b = fabs((0.5 * (dϕ) + dF * (dρ)) / r[i])
       H[i,i] += ( (1-stab) * ( a * S * S' + b * (Id - S * S') )
                    + stab  * ( (a+b) * Id ) )

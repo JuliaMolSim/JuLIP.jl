@@ -117,8 +117,7 @@ X = positions(at)          # returns a Vector{JVec}
 X = positions(at) |> mat   # returns a Matrix
 ```
 """
-mat(V::Vector{SVec{N,T}}) where {N,T} = reshape( reinterpret(T, V), (N, length(V)) )
-mat(X::AbstractVector{SVec{N,T}}) where {N,T} = mat(collect(X))
+mat(V::AbstractVector{SVec{N,T}}) where {N,T} = reshape( reinterpret(T, V), (N, length(V)) )
 mat(X::Base.ReinterpretArray) = reshape(X.parent, 3, :)
 
 # rewrite all of this in terms of `convert` (TODO: is this needed?)
@@ -129,9 +128,6 @@ convert(::Type{JVecs{T}}, V::Matrix{T}) where {T} = vec(V)
 zerovecs(n::Integer) = zerovecs(Float64, n)
 zerovecs(T::Type, n::Integer) = zeros(T, 3, n) |> vecs
 
-# TODO: delete this!
-# zeromats(T::Type, n::Integer) = zeros()
-# # initialise a matrix of
 
 """
 maximum of distances between two sets of JVec's, usually positions;
