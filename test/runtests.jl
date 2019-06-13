@@ -62,7 +62,3 @@ h0("Starting JuLIP Tests")
       @testset "$(testid)" begin include(testfile); end
    end
 end
-
-
-# TODO:
-# - stillinger-weber => is this not in the hessian tests???
