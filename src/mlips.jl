@@ -94,9 +94,9 @@ SumIP(D::Dict) = SumIP( decode_dict.( D["components"] ) )
 convert(::Val{:JuLIP_SumIP}, D::Dict) = SumIP(D)
 
 SumIP(V::AbstractCalculator, sumip::SumIP) =
-   SumIP( [ [v]; sumip.components ]  )
+   SumIP( [ [V]; sumip.components ]  )
 SumIP(sumip::SumIP, V::AbstractCalculator) =
-   SumIP( [ sumip.components; [v] ]  )
+   SumIP( [ sumip.components; [V] ]  )
 SumIP(sum1::SumIP, sum2::SumIP) =
    SumIP( [ sum1.components; sum2.components ]  )
 
