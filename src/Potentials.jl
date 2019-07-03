@@ -164,7 +164,7 @@ include("splines.jl")
 include("eam.jl")
 # EAM, FinnisSinclair
 
-include("onebody.jl") 
+include("onebody.jl")
 
 
 export ZeroSitePotential
@@ -177,7 +177,7 @@ end
 
 
 evaluate(p::ZeroSitePotential, r, R) = 0.0
-evaluate_d(p::ZeroSitePotential, r, R) = zeros(r)   # TODO: is this a bug?
+evaluate_d(p::ZeroSitePotential, r, R) = zero(r)   # TODO: is this a bug?
 cutoff(::ZeroSitePotential) = 3.0
 
 
