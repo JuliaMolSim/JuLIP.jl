@@ -26,20 +26,21 @@ evaluate(V::OneBody) = V.E0
 site_energies(V::OneBody, at::Atoms) = fill(V(), length(at))
 
 energy(V::OneBody, at::Atoms) = length(at) * V()
-
 forces(V::OneBody, at::Atoms{T}) where {T} = zeros(JVec{T}, length(at))
-
 virial(V::OneBody, at::Atoms{T}) where {T} = zero(JMat{T})
+site_energy(V::OneBody, at::Atoms, i0::Integer) = V()
+site_energy_d(V::OneBody, at::Atoms{T}, i0::Integer) where {T} =
+      zeros(JVec{T}, length(at))
 
 Dict(V::OneBody) = Dict("__id__" => "OneBody", "E0" => V.E0)
-
 OneBody(D::Dict) = OneBody(D["E0"])
-
 convert(::Val{:OneBody}, D::Dict) = OneBody(D)
 
 ==(V1::OneBody, V2::OneBody) = (V1.E0 == V2.E0)
 
-
+import Base: *
+*(c::Real, V::OneBody) = OneBody(V.E0 * c)
+*(V::OneBody, c::Real) = c * V
 
 """
 `mutable struct MOneBody{T}  <: NBodyFunction{1}`

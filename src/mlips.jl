@@ -8,7 +8,7 @@ module MLIPs
 using JuLIP:      AbstractCalculator, AbstractAtoms
 using JuLIP.FIO:  decode_dict
 
-import JuLIP:      energy, forces, virial
+import JuLIP:      energy, forces, virial, site_energy, site_energy_d
 import Base:       Dict, convert, ==
 
 export IPSuperBasis, combine
@@ -33,6 +33,40 @@ of energies.
 """
 abstract type IPBasis end
 
+# ========== wrap one more more calculators into a basis =================
+
+struct IPCollection{T} <: IPBasis
+   coll::Vector{T}
+end
+
+IPCollection(args...) = IPCollection([args...])
+Base.length(coll::IPCollection) = length(coll.coll)
+combine(basis::IPCollection, coeffs::AbstractVector{<:Number}) =
+      SumIP([ c * b for (c, b) in zip(coeffs, basis.coll) ])
+
+energy(coll::IPCollection, at::AbstractAtoms) =
+         [ energy(B, at) for B in coll.coll ]
+forces(coll::IPCollection, at::AbstractAtoms) =
+         [ forces(B, at) for B in coll.coll ]
+virial(coll::IPCollection, at::AbstractAtoms) =
+         [ virial(B, at) for B in coll.coll ]
+site_energy(coll::IPCollection, at::AbstractAtoms, i0::Integer) =
+         [ site_energy(V, at, i0) for V in coll.coll ]
+site_energy_d(coll::IPCollection, at::AbstractAtoms, i0::Integer) =
+         [ site_energy_d(V, at, i0) for V in coll.coll ]
+
+Dict(coll::IPCollection) = Dict(
+      "__id__" => "JuLIP_IPCollection",
+      "coll" => Dict.(coll.BB) )
+IPCollection(D::Dict) = IPCollection( decode_dict.( D["coll"] ) )
+convert(::Val{:JuLIP_IPCollection}, D::Dict) = IPCollection(D)
+import Base.==
+==(B1::IPCollection, B2::IPCollection) = all(B1.coll .== B2.coll)
+
+
+# ========== IPSuperBasis : combine multiple sub-basis =================
+
+
 """
 `struct IPSuperBasis:` a collection of IP basis sets, re-interpreted
 as a large basis
@@ -41,7 +75,11 @@ struct IPSuperBasis{TB <: IPBasis} <: IPBasis
    BB::Vector{TB}
 end
 
-IPSuperBasis(args...) = IPSuperBasis([args...])
+_convert_basis_(b::IPBasis) = b
+_convert_basis_(b::AbstractCalculator) = IPCollection(b)
+_convert_basis_(b::AbstractVector) = IPCollection(b)
+
+IPSuperBasis(args...) = IPSuperBasis([_convert_basis_(b) for b in args])
 
 Base.length(super::IPSuperBasis) = sum(length.(super.BB))
 
@@ -62,6 +100,10 @@ forces(superB::IPSuperBasis, at::AbstractAtoms) =
          vcat([ forces(B, at) for B in superB.BB ]...)
 virial(superB::IPSuperBasis, at::AbstractAtoms) =
          vcat([ virial(B, at) for B in superB.BB ]...)
+site_energy(superB::IPSuperBasis, at::AbstractAtoms, i0::Integer) =
+         vcat([ site_energy(B, at, i0) for B in superB.BB ]...)
+site_energy_d(superB::IPSuperBasis, at::AbstractAtoms, i0::Integer) =
+         vcat([ site_energy_d(B, at, i0) for B in superB.BB ]...)
 
 Dict(superB::IPSuperBasis) = Dict(
       "__id__" => "JuLIP_IPSuperBasis",
@@ -86,6 +128,11 @@ forces(sumip::SumIP, at::AbstractAtoms) =
          sum(forces(calc, at) for calc in sumip.components)
 virial(sumip::SumIP, at::AbstractAtoms) =
          sum(virial(calc, at) for calc in sumip.components)
+site_energy(sumip::SumIP, at::AbstractAtoms, i0::Integer) =
+         sum(site_energy(V, at, i0) for V in sumip.components)
+site_energy_d(sumip::SumIP, at::AbstractAtoms, i0::Integer) =
+         sum(site_energy_d(V, at, i0) for V in sumip.components)
+
 
 Dict(sumip::SumIP) = Dict(
       "__id__" => "JuLIP_SumIP",
