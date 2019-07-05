@@ -57,7 +57,7 @@ site_energy_d(coll::IPCollection, at::AbstractAtoms, i0::Integer) =
 
 Dict(coll::IPCollection) = Dict(
       "__id__" => "JuLIP_IPCollection",
-      "coll" => Dict.(coll.BB) )
+      "coll" => Dict.(coll.coll) )
 IPCollection(D::Dict) = IPCollection( decode_dict.( D["coll"] ) )
 convert(::Val{:JuLIP_IPCollection}, D::Dict) = IPCollection(D)
 import Base.==
