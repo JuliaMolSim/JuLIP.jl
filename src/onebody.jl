@@ -59,7 +59,7 @@ end
 evaluate(V::MOneBody,sp) = V.E0[sp]
 
 function site_energies(V::MOneBody{T}, at::Atoms) where {T}
-   E = zeros(T, 1, length(at))
+   E = zeros(T, length(at))
    for i in 1:length(at)
       E[i] = V(chemical_symbols(at)[i])
    end
@@ -81,6 +81,8 @@ function convert_str_2_symb(D::Dict{String,T}) where {T}
    end
    return Dout
 end
+
+convert_str_2_symb(D::Dict{Symbol,T}) where {T} = D #already in the correct form
 
 MOneBody(D::Dict{String, T}) where {T} = MOneBody(convert_str_2_symb(D["E0"]))
 
