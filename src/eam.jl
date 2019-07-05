@@ -276,7 +276,7 @@ function forces(V::EAM1{SplinePairPotential, SplinePairPotential, T},
    dϕ = @D V.ϕ(nlist.r)
 
    # compute the forces
-   dE = zerovecs(length(at))
+   dE = zeros(JVec{T}, length(at))
    for n = 1:npairs(nlist)
       f = ((0.5 * dϕ[n] + dF[nlist.i[n]] * dρ[n])/nlist.r[n]) * nlist.R[n]
       dE[nlist.i[n]] += f

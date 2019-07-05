@@ -1,7 +1,7 @@
 
 module Preconditioners
 
-using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
+using JuLIP: AbstractAtoms, Preconditioner, Dofs, maxdist,
             constraint, cutoff, positions, defm, JVecF, forces, mat, vecs,
             set_positions!, julipwarn, chemical_symbols, rnn, JVec, JMat ,
             AbstractCalculator, calculator

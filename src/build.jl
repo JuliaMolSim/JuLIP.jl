@@ -7,7 +7,7 @@ module Build
 
 import JuLIP
 using ..Chemistry
-using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
+using JuLIP: JVec, JMat, JVecF, JMatF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
       chemical_symbols, set_cell!, set_pbc!, update_data!,
       set_defm!, defm
@@ -267,7 +267,7 @@ union(at1::Atoms, at2::Atoms) =
           cell = cell(at1),
           pbc = pbc(at1) )
 
-append(at::Atoms, X::JVecsF) =
+append(at::Atoms, X::AbstractVector{<:JVec}) =
    Atoms( X = union(at.X, X),
           P = union(at.P, zeros(JVecF, length(X))),
           M = union(at.M, zeros(length(X))),

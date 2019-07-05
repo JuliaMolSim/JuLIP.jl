@@ -28,7 +28,7 @@ JuLIP.Potentials.ad_evaluate(pot::P1, R::Matrix{T}) where {T<:Real} =
 Notes:
 
 * For an `FDPotential`, the argument to `ad_evaluate` will be
-`R::Matrix` rather than `R::JVecsF`; this is an unfortunate current limitation of
+`R::Matrix` rather than `R::Vector{<:JVec}`; this is an unfortunate current limitation of
 `ForwardDiff`. Hopefully it can be fixed.
 * TODO: allow arguments `(r, R)` then use chain-rule to combine them.
 """
