@@ -1,6 +1,6 @@
 
 import LinearAlgebra: ldiv!, mul!
-using LinearAlgebra: det
+using LinearAlgebra: det, UniformScaling
 import Base: length, getindex, setindex!, deleteat!
 
 # export AbstractAtoms, AbstractCalculator, AbstractConstraint, NullConstraint,
@@ -25,6 +25,10 @@ export positions, get_positions, set_positions!,
        dofs, set_dofs!,
        preconditioner,
        volume
+
+# temporary prototypes while rewriting 
+export rattle!
+function rattle! end
 
 
 # here we define and document the prototypes that are implemented
@@ -116,7 +120,7 @@ volume(at) = abs(det(cell(at)))
 
 """
 `apply_defm!(at, F, t = zero(JVec)) -> at` : for a 3 x 3 matrix `F` and
-`at::AbstractAtoms` the affine deformation $x \mapsto Fx + t$ is applied
+`at::AbstractAtoms` the affine deformation `x -> Fx + t` is applied
 to the configuration, modifying `at` inplace and returning it. This
 modifies both the cell and the positions.
 """
@@ -266,7 +270,7 @@ forces(at::AbstractAtoms) = forces(calculator(at), at)
 """
 `hessian_pos(calc, at):` block-hessian with respect to all atom positions
 """
-function hessian_pos end(calc::AbstractCalculator, at::AbstractAtoms)
+function hessian_pos end
 hessian_pos(at::AbstractAtoms) = hessian_pos(calculator(at), at)
 
 """
@@ -424,9 +428,9 @@ hessian(at::AbstractAtoms, cons::AbstractConstraint) =
 # we don't create an abstract type, but somewhere we should
 # document that a preconditioner must implement the following
 # operations:
-#   - update!
-#   - ldiv!
-#   - mul!
+#   - update!(precond, at)
+#   - ldiv!(out, P, f)
+#   - mul!)(out, P, x)
 #######################################################################
 
 """
@@ -435,7 +439,7 @@ hessian(at::AbstractAtoms, cons::AbstractConstraint) =
 Update the preconditioner with the new geometry information.
 """
 function update! end
-update!(precond::Preconditioner, at::AbstractAtoms, x::Dofs) =
+update!(precond, at::AbstractAtoms, x::Dofs) =
             update!(precond, set_dofs!(at, x))
 
 # TODO: make a Julia PR? do this in-place
