@@ -1,35 +1,49 @@
+
+import LinearAlgebra: ldiv!, mul!
 using LinearAlgebra: det
+import Base: length, getindex, setindex!, deleteat!
+
+# export AbstractAtoms, AbstractCalculator, AbstractConstraint, NullConstraint,
+#        Preconditioner, NullCalculator
+
+# function defined primarily on AbstractAtoms
+export positions, get_positions, set_positions!,
+       momenta, get_momenta, set_momenta!,
+       masses, get_masses, set_masses,
+       cell, get_cell, set_cell!, is_cubic,
+       pbc, get_pbc, set_pbc!,
+       set_data!, get_data, has_data,
+       set_calculator!, calculator, get_calculator,
+       set_constraint!, constraint, get_constraint,
+       neighbourlist, cutoff,
+       apply_defm!,
+       energy, potential_energy, forces, gradient, hessian,
+       site_energies, site_energy, partial_energy,
+       stress, virial, site_virials,
+       position_dofs, set_position_dofs!,
+       momentum_dofs, set_momentum_dofs!,
+       dofs, set_dofs!,
+       preconditioner,
+       volume
+
 
 # here we define and document the prototypes that are implemented
 
 """
-`AbstractAtoms`
+`AbstractAtoms{T}`
 
-theabstractsupertype for storing atomistic
-configurations. A basic implementation might simply store a list of positions.
+the abstract supertype for storing atomistic configurations. A basic
+implementation might simply store a list of positions, see e.g. `Atoms`.
+
+Some Base functions that should be overloaded for atoms objects:
+- length
+- deleteat
+- getindex
+- setindex!
 """
-abstract type AbstractAtoms end
-
-
-"""
-abstract supertype of neighbourlists.
-
-The standard contructor should be of the form
-```
-   NeighbourList(at::AbstractAtoms, rcut)
-```
-where `rcut` should be either a scalar or a vector of cut-offs.
-"""
-abstract type AbstractNeighbourList end
+abstract type AbstractAtoms{T} end
 
 abstract type AbstractConstraint end
-
-"""
-`Dofs`: dof vector
-"""
-const Dofs = Vector{Float64}
-
-
 
 """
 `AbstractCalculator`: theabstractsupertype of calculators. These
@@ -39,178 +53,103 @@ forces, and so forth.
 abstract type AbstractCalculator end
 
 
-"""
-`Preconditioner`:abstractbase type for preconditioners
-
-Preconditioners need to implement the following three functions:
-* `update!(P, at::AbstractAtoms)`
-* `A_mul_B!(out::Dof, P, x::Dof)`
-* `A_ldiv_B!(out::Dof, P, f::Dof)`
-"""
-abstract type Preconditioner end # <: AbstractMatrix{Float64} end
-
-
 
 """
-`macro protofun(fsig::Expr)`
-
-generates "function prototypes" which throw an error message
-with a little extra information in case a certain function has not been
-implemented. This is in some way duplicating default Julia behaviour, but it
-has the advantage that we can write documention for non-existing functions and
-it also emphasizes that this specific function is part of theabstractatoms
-interface.
-
-## Usage
-
-```julia
-"Returns number of atoms"
-@protofun length(::AbstractAtoms)
-```
-
-This will create a function `length(at::AbstractAtoms)`; if somebody
-calls `length(at)` on a concrete sub-type of `AbstractAtoms` for which
-`length` hasn't been implemented, it will throw an error.
+`Dofs{T}`: dof vector; simply an alias for `Vector{T}`
 """
-macro protofun(fsig::Expr)
-    @assert fsig.head == :call
-    fname = fsig.args[1]
-    argnames = Any[]
-    for idx in 2:length(fsig.args)
-        arg = fsig.args[idx]
-        if isa(arg, Expr) && arg.head == :kw
-            arg = arg.args[1]
-        end
-        if isa(arg, Symbol)
-            push!(argnames, arg)
-        elseif isa(arg, Expr) && arg.head == :(::)
-            if length(arg.args) != 2
-                @gensym s
-                insert!(arg.args, 1, s)
-            end
-            push!(argnames, arg.args[1])
-        end
-    end
-    body = quote
-        error(string("JuLIP: ", $fname,
-                     ($([:(typeof($(esc(arg)))) for arg in argnames]...),),
-                     " ) has no implementation."))
-    end
-    return Expr(:function, esc(fsig), body)
-end
+const Dofs{T} = Vector{T}
 
-
-# function defined primarily on AbstractAtoms
-export AbstractAtoms,
-      positions, get_positions, set_positions!,
-      momenta, get_momenta, set_momenta!,
-      masses, get_masses, set_masses,
-      cell, get_cell, set_cell!, is_cubic,
-      pbc, get_pbc, set_pbc!,
-      set_data!, get_data, has_data,
-      set_calculator!, calculator, get_calculator,
-      set_constraint!, constraint, get_constraint,
-      neighbourlist, cutoff,
-      defm, set_defm!
-
-# length is used for several things
-import Base: length
-
-using LinearAlgebra
-import LinearAlgebra: ldiv!, mul!
-
-export AbstractCalculator,
-      energy, potential_energy, forces, gradient, hessian,
-      site_energies,
-      stress, virial, site_virials
-
-export AbstractNeighbourList,
-       sites, bonds
-
-export AbstractConstraint, NullConstraint,
-         position_dofs, set_position_dofs!,
-         momentum_dofs, set_momentum_dofs!,
-         dofs, set_dofs!
-
-export Preconditioner, preconditioner
 
 # TODO: probably rename Preconditioner to AbstractPreconditioner and
 #       AMGPrecon to Preconditioner
-# TODO: iterators for angles, dihedrals
 
 
-"Return number of atoms"
-@protofun length(::AbstractAtoms)
-
-"Return copy of positions of all atoms as a `3 x N` array."
-@protofun positions(::AbstractAtoms)
+"""
+`positions(at)` : Return copy of positions of all atoms as a `Vector{JVec}`
+"""
+function positions end
 
 "alias for `positions`"
 get_positions = positions
 
-"Set positions of all atoms"
-@protofun set_positions!(::AbstractAtoms, ::Any)
+"`set_positions!(at, X) -> at` : Set positions of all atoms"
+function set_positions! end
 
 set_positions!(at::AbstractAtoms, p::AbstractMatrix) = set_positions!(at, vecs(p))
 set_positions!(at::AbstractAtoms, x, y, z) = set_positions!(at, [x'; y'; z'])
 
+# this is already documented at its first definition in `arrayconversions`?
 xyz(at::AbstractAtoms) = xyz(positions(at))
 
 
-"Return copy of momenta of all atoms as a `3 x N` array."
-@protofun momenta(::AbstractAtoms)
+"`momenta(at)` : Return copy of momenta of all atoms as a `Vector{<:JVec}`."
+function momenta end
 
 "alias for `momenta`"
 get_momenta = momenta
 
-"Set momenta of all atoms as a `3 x N` array."
-@protofun set_momenta!(::AbstractAtoms, ::Any)
+"`set_momenta!(at, P) -> at` : Set momenta of all atoms"
+function set_momenta! end
 
 set_momenta!(at::AbstractAtoms, p::AbstractMatrix) = set_momenta!(at, vecs(p))
 
-@protofun masses(::AbstractAtoms)
-get_masses = masses
-@protofun set_masses!(::AbstractAtoms, ::Any)
+"`masses` : return vector of all masses"
+function masses end
 
-"get computational cell (the rows are the lattice vectors)"
-@protofun cell(::AbstractAtoms)
+"`get_masses` : alias for `masses`"
+get_masses = masses
+
+"`set_masses!(at, M) -> at` : set the atom masses"
+function set_masses! end
+
+"`cell(at) -> JMat` : get computational cell (the rows are the lattice vectors)"
+function cell end
 
 "alias for `cell`"
 get_cell = cell
 
-"set computational cell"
-@protofun set_cell!(::AbstractAtoms, ::AbstractMatrix)
+"`set_cell!(at, C) -> at` : set computational cell; cf. `?cell`"
+function set_cell! end
 
-# TODO: deprecate these!
-"deformation matrix; `defm(at) = cell(at)'`"
-defm(at::AbstractAtoms) = JMat(cell(at)')
+"`volume(at)` : return volume of computational cell"
+volume(at) = abs(det(cell(at)))
 
 """
-`set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false) -> at`
-
-set the deformation matrix
+`apply_defm!(at, F, t = zero(JVec)) -> at` : for a 3 x 3 matrix `F` and
+`at::AbstractAtoms` the affine deformation $x \mapsto Fx + t$ is applied
+to the configuration, modifying `at` inplace and returning it. This
+modifies both the cell and the positions.
 """
-function set_defm!(at::AbstractAtoms, F::AbstractMatrix; updatepositions=false)
-   if updatepositions
-      A = JMatF(F * inv(defm(at)))
-      X = [A * x for x in positions(at)]
-      set_positions!(at, X)
+function apply_defm!(at::AbstractAtoms, F::AbstractMatrix, t::AbstractVector)
+   @assert size(F) == (3,3)
+   @assert length(T) == 3
+   C = cell(at)
+   X = positions(at)
+   Cnew = C * F'
+   for n = 1:length(X)
+      # TODO: project back into the cell?
+      X[n] = F * X[n] + t
    end
-   set_cell!(at, Matrix(F'))
+   set_positions!(at, X)
+   set_cell!(at, C)
+   return at
 end
 
 
-"set periodic boundary conditions"
-@protofun set_pbc!(::AbstractAtoms, ::Union{AbstractVector, Tuple})
+"`set_pbc!(at, p) -> at` : set periodic boundary conditions"
+function set_pbc! end
 set_pbc!(at::AbstractAtoms, p::Bool) = set_pbc!(at, (p,p,p))
 
-"get array (or tuple) determining which directions are periodic"
-@protofun pbc(::AbstractAtoms)
+"`pbc(at)` : get array or tuple determining which directions are periodic"
+function pbc end
 
-"alias for `pbc`"
+"`get_pbc(at)` : alias for `pbc`"
 get_pbc = pbc
 
-"determines whether a cubic cell is used (i.e. cell is a diagonal matrix)"
+"""
+`is_cubic(at) -> Bool` : determines whether a cubic cell is used
+(i.e. cell is a diagonal matrix)
+"""
 is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 
 
@@ -219,110 +158,50 @@ is_cubic(a::AbstractAtoms) = isdiag(cell(a))
 associate some data with `at`; to be stored in a Dict within `at`
 
 if `name::Union{Symbol, AbstractString}`, then `setindex!` is an alias
-for `set_data!`.
+for `set_data!`, i.e., we may write `at[:id] = val`
 """
-@protofun set_data!(a::AbstractAtoms, name::Any, value::Any)
-Base.setindex!(at::AbstractAtoms, value,
-               name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
+function set_data! end
+setindex!(at::AbstractAtoms, value,
+          name::Union{Symbol, AbstractString}) = set_data!(at, name, value)
 
 """
-`get_data(a, name)`:
+`get_data(at, name)`:
 obtain some data stored with `set_data!`
 
 if `name::Union{Symbol, AbstractString}`, then `getindex` is an alias
 for `get_data`.
 """
-@protofun get_data(a::AbstractAtoms, name::Any)
+function get_data end
 
-Base.getindex(at::AbstractAtoms,
-               name::Union{Symbol, AbstractString}) = get_data(at, name)
+getindex(at::AbstractAtoms,
+         name::Union{Symbol, AbstractString}) = get_data(at, name)
 
-"check whether some data with id `name` is already stored"
-@protofun has_data(a::AbstractAtoms, name::Any)
-
-"delete an atom"
-@protofun deleteat!(a::AbstractAtoms, n::Integer)
+"`has_data(at, key)` : check whether some data with id `key` is already stored"
+function has_data end
 
 "alias for `deleteat!`"
 delete_atom! = deleteat!
 
-"return an attached calculator"
-@protofun calculator(at::AbstractAtoms)
+"`calculator(at)` : return an attached calculator"
+function calculator end
 
-"attach a calculator"
-@protofun set_calculator!(at::AbstractAtoms, calc::AbstractCalculator)
+"`set_calculator!(at, calc) -> at` : attach a calculator"
+function set_calculator! end
 
-"return attached constraint"
-@protofun constraint(at::AbstractAtoms)
+"`constraint(at)` : return attached constraint"
+function constraint end
 
-"attach a constraint"
-@protofun set_constraint!(at::AbstractAtoms, cons::AbstractConstraint)
+"`set_constraint!(at, cons) -> at` : attach a constraint"
+function set_constraint! end
 
-
-
-#######################################################################
-#  NEIGHBOURLIST
-#######################################################################
 
 """
-`neighbourlist(a::AbstractAtoms, rcut)`
+`neighbourlist(at, rcut)`
 
 construct a suitable neighbourlist for this atoms object. `rcut` should
 be allowed to be either a scalar or a vector.
 """
-@protofun neighbourlist(a::AbstractAtoms, rcut::AbstractFloat)
-
-
-
-# """
-# `sites(::AbstractNeighbourList)` or `sites(::AbstractAtoms, rcut)`
-#
-# Returns an iterator over atomic sites.
-# ```julia
-# for (idx, neigs, r, R, S) in sites(nlist)
-#     # do something at this site
-# end
-# ```
-# Here `idx` is the current center-atom, `neigs` a collection
-# indexing the neighbouring atoms, `r` a vector if distances and
-# `R` a vector of distance vectors. `S` stores information
-# about which copy of the cell the neighbours belong to
-#
-# A quicker way, if `nlist` won't be reused is
-# ```julia
-# for (n, ...) in sites(at, rcut)
-# ```
-#
-# It should be assumed that `neigs, r, R, S` are views and therefore
-# should not be modified!
-# """
-# @protofun sites(::AbstractNeighbourList)
-#
-# sites(at::AbstractAtoms, rcut::Float64) = sites(neighbourlist(at, rcut))
-#
-#
-# """
-# `bonds` : iterator over (pair-) bonds
-#
-# E.g., the a pair potential can be implemented as follows:
-# ```julia
-# ϕ(r) = r^(-12) - 2.0 * r^(-6)
-# dϕ(r) = -12 * (r^(-13) - r^(-7))
-# function lj(at::AbstractAtoms)
-#    E = 0.0; dE = zeros(3, length(at)) |> vecs
-#    for (i, j, r, R, S) in bonds(at, 4.1)
-#       E += ϕ(r)
-#       dE[j] += (dϕ(r)/r) * R
-#       dE[i] -= (dϕ(r)/r) * R
-#    end
-#    return E, dE
-# end
-# ```
-# """
-# @protofun bonds(::AbstractNeighbourList)
-#
-# bonds(at::AbstractAtoms, cutoff::Float64) = bonds(neighbourlist(at, cutoff))
-
+function neighbourlist end
 
 
 
@@ -330,64 +209,73 @@ be allowed to be either a scalar or a vector.
 #     CALCULATOR
 #######################################################################
 
-mutable struct  NullCalculator <: AbstractCalculator end
+struct NullCalculator <: AbstractCalculator end
 
-"Returns the cut-off radius of the potential."
-@protofun cutoff(::AbstractCalculator)
+"""
+`cutoff(calc)` : Returns the cut-off radius of the attached potential.
+
+`cutoff(at)` : returns the cutoff of the attached calculator
+"""
+function cutoff end
 
 cutoff(at::AbstractAtoms) = cutoff(calculator(at))
 
 """
-`energy`: can be called in various ways
+`energy(calc, at)`: Return the total potential energy of a configuration of
+atoms `at`, using the calculator `calc`. In addition, `energy` can be
+called in the following ways:
 *  `energy(calc, at)`: base definition; this is normally the only method that
      needs to be overloaded when a new calculator is implemented.
-* `energy(at) = energy(calculator(at), at)`: if a calculator is attached to `at`
-* `energy(calc, at, const, dof) = energy(calc, dof2at!(at,const,dof))`
-* `energy(calc, at, dof) = energy(calc, at, constraint(dof), dof)`
-* `energy(at, dof) = energy`
-
-
-Return the total potential energy of a configuration of atoms `a`, using the calculator
-`c`.
+* `energy(at)`: if a calculator is attached to `at`
+* `energy(calc, at, const, dof)`
+* `energy(calc, at, dof)`
+* `energy(at, dofs)`
 """
-@protofun energy(c::AbstractCalculator, a::AbstractAtoms)
+function energy end
 energy(at::AbstractAtoms) = energy(calculator(at), at)
-
-"`potential_energy` : alias for `energy`"
 potential_energy = energy
 
+# TODO : move the aliases for energy to here
 
-@protofun site_energies(c::AbstractCalculator, a::AbstractAtoms)
+"""
+`site_energy(calc, at, n)` : return site energy at atom idx `n`
+"""
+function site_energy end
+site_energy(at::AbstractAtoms, n::Integer) = site_energy(calculator(at), at, n)
+
+"""
+`site_energies(calc, at)` : return vector of all site energies
+"""
+function site_energies end
 site_energies(a::AbstractAtoms) = site_energies(calculator(a), a)
 
-# """
-# energy difference between two configurations; default is to just compute the
-# two energies, but this allows implementation of numerically robust
-# differences,w hich can be important for very large problems.
-# """
-# energy_difference(c::AbstractCalculator, a::AbstractAtoms, aref::AbstractAtoms) =
-#    energy(c, a) - energy(c, aref)
+"""
+`partial_energy(calc, at, subset)` : return energy contained in a `subset` of the
+configuration
+"""
+function partial_energy end
+partial_energy(at::AbstractAtoms, subset) =
+      partial_energy(calculator(at), at, subset)
 
 """
-forces in `Vector{JVecF}`  (negative gradient w.r.t. atom positions only)
+`forces(calc, at)` : forces as `Vector{<:JVec}`  (negative gradient w.r.t. atom positions only)
 """
-@protofun forces(c::AbstractCalculator, a::AbstractAtoms)
+function forces end
 forces(at::AbstractAtoms) = forces(calculator(at), at)
 
 """
-hessian with respect to all atom positions
+`hessian_pos(calc, at):` block-hessian with respect to all atom positions
 """
-@protofun hessian_pos(calc::AbstractCalculator, at::AbstractAtoms)
+function hessian_pos end(calc::AbstractCalculator, at::AbstractAtoms)
 hessian_pos(at::AbstractAtoms) = hessian_pos(calculator(at), at)
 
 """
-* `virial(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
-* `virial(a::AbstractAtoms) -> JMatF`
+* `virial(c::AbstractCalculator, a::AbstractAtoms) -> JMat`
+* `virial(a::AbstractAtoms) -> JMat`
 
-returns virial, (- ∂E / ∂F) where `F = defm(a)`
+returns virial, (- ∂E / ∂F) where `F = cell(a)'`
 """
-@protofun virial(c::AbstractCalculator, a::AbstractAtoms)
-
+function virial end
 virial(a::AbstractAtoms) = virial(calculator(a), a)
 
 """
@@ -397,20 +285,17 @@ virial(a::AbstractAtoms) = virial(calculator(a), a)
 stress = - virial / volume; this function should *not* be overloaded;
 instead overload virial
 """
-stress(c::AbstractCalculator, a::AbstractAtoms) = - virial(c, a) / det(defm(a))
+stress(calc::AbstractCalculator, at::AbstractAtoms) =
+      - virial(calc, at) / volume(a)
 
 stress(at::AbstractAtoms) = stress(calculator(at), at)
-
-# remove these for now; not clear they are useful.
-# @protofun site_virials(c::AbstractCalculator, a::AbstractAtoms)
-# site_virials(a::AbstractAtoms) = site_virials(calculator(a), a)
 
 
 #######################################################################
 #  Constraints and DoF Handling
 #######################################################################
 
-mutable struct NullConstraint <: AbstractConstraint end
+struct NullConstraint <: AbstractConstraint end
 
 """
 `position_dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
@@ -420,11 +305,11 @@ mutable struct NullConstraint <: AbstractConstraint end
 Take an atoms object `at` and return a Dof-vector that fully describes the
 state given the constraint `cons`
 """
-@protofun position_dofs(at::AbstractAtoms, cons::AbstractConstraint)
+function position_dofs end
 position_dofs(at::AbstractAtoms) = position_dofs(at, constraint(at))
 
 """
-`dofs` is an alias for `positions_dofs`
+`dofs` is an alias for `position_dofs`
 """
 dofs(args...) = position_dofs(args...)
 
@@ -436,8 +321,10 @@ dofs(args...) = position_dofs(args...)
 
 change configuration stored in `at` according to `cons` and `x`.
 """
-@protofun set_position_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs)
-set_position_dofs!(at::AbstractAtoms, x::Dofs) = set_position_dofs!(at, constraint(at), x)
+function set_position_dofs! end
+set_position_dofs!(at::AbstractAtoms, x::Dofs) =
+      set_position_dofs!(at, constraint(at), x)
+
 """
 `set_dofs!` is an alias for `set_position_dofs!`
 """
@@ -451,9 +338,8 @@ set_dofs!(args...) = set_position_dofs!(args...)
 Take an atoms object `at` and return a Dof-vector that fully describes the
 momenta (given the constraint `cons`)
 """
-@protofun momentum_dofs(at::AbstractAtoms, cons::AbstractConstraint)
+function momentum_dofs end
 momentum_dofs(at::AbstractAtoms) = momentum_dofs(at, constraint(at))
-
 
 """
 * `set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, p::Dofs) -> at`
@@ -461,8 +347,9 @@ momentum_dofs(at::AbstractAtoms) = momentum_dofs(at, constraint(at))
 
 change configuration stored in `at` according to `cons` and `p`.
 """
-@protofun set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, q::Dofs)
-set_momentum_dofs!(at::AbstractAtoms, q::Dofs) = set_momentum_dofs!(at, constraint(at), q)
+function set_momentum_dofs! end
+set_momentum_dofs!(at::AbstractAtoms, q::Dofs) =
+      set_momentum_dofs!(at, constraint(at), q)
 
 """
 * `project!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
@@ -470,7 +357,7 @@ set_momentum_dofs!(at::AbstractAtoms, q::Dofs) = set_momentum_dofs!(at, constrai
 
 project the `at` onto the constraint manifold.
 """
-@protofun project!(at::AbstractAtoms, cons::AbstractConstraint)
+function project! end
 
 project!(at::AbstractAtoms) = project!(at, constraint(at))
 
@@ -478,72 +365,93 @@ project!(at::AbstractAtoms) = project!(at, constraint(at))
 # converting calculator functionality
 
 """
-* `gradient(at, cons::AbstractConstraint) -> Float64`
-* `gradient(at, x::Dofs) -> Float64`
+* `energy(at, x::Dofs) -> Float64`
 
 `potential_energy`; with potentially added cell terms, e.g., if there is
 applied stress or applied pressure.
 """
-@protofun energy(at::AbstractAtoms, cons::AbstractConstraint)
-
-energy(at::AbstractAtoms, x::Dofs) = energy(set_dofs!(at, x), constraint(at))
-
+energy(at::AbstractAtoms, x::Dofs) = energy(set_dofs!(at, x))
+energy(calc::AbstractCalculator, at::AbstractAtoms, x::Dofs) = energy(calc, set_dofs!(at, x))
 
 """
+* `gradient(calc, at, cons::AbstractConstraint, c::Dofs) -> Dofs`
 * `gradient(at) -> Dofs`
-* `gradient(at, cons::AbstractConstraint) -> Dofs`
 * `gradient(at, x::Dofs) -> Dofs`
 
 gradient of `potential_energy` in dof-format;
 depending on the constraint this could include e.g. a gradient w.r.t. cell
-shape
+shape; normally only the form `gradient(calc, at, cons)` should be
+overloaded by an `AbstractConstraints` object.
 """
-@protofun gradient(at::AbstractAtoms, cons::AbstractConstraint)
+function gradient end
+gradient(at::AbstractAtoms, x::Dofs) =
+      gradient(set_dofs!(at, x))
+gradient(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) =
+      gradient(set_dofs!(at, cons, x), cons)
+gradient(calc::AbstractCalculator, at::AbstractAtoms, x::Dofs) =
+      gradient(calc, set_dofs!(at, x))
+gradient(at::AbstractAtoms) =
+      gradient(calculator(at), at, constraint(at))
+gradient(calc::AbstractCalculator, at::AbstractAtoms) =
+      gradient(calc, at, constraint(at))
+gradient(at::AbstractAtoms, cons::AbstractConstraint) =
+      gradient(calculator(at), at, cons)
 
-gradient(at::AbstractAtoms, x::Dofs) = gradient(set_dofs!(at, x), constraint(at))
-
-gradient(at::AbstractAtoms) = gradient(at, constraint(at))
 
 """
 `hessian`: compute hessian of total energy with respect to DOFs!
 
-TODO: write docs
+same as gradient, just returns the hessian; new constraints should only
+overload `hessian(calc, at, cons)`
 """
-@protofun hessian(at::AbstractAtoms, cons::AbstractConstraint)
-
-hessian(at::AbstractAtoms, x::Dofs) = hessian(set_dofs!(at, x), constraint(at))
-hessian(at::AbstractAtoms) = hessian(at, constraint(at))
+function hessian end
+hessian(at::AbstractAtoms, x::Dofs) =
+      hessian(set_dofs!(at, x))
+hessian(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) =
+      hessian(set_dofs!(at, cons, x), cons)
+hessian(calc::AbstractCalculator, at::AbstractAtoms, x::Dofs) =
+      hessian(calc, set_dofs!(at, x))
+hessian(at::AbstractAtoms) =
+      hessian(calculator(at), at, constraint(at))
+hessian(calc::AbstractCalculator, at::AbstractAtoms) =
+      hessian(calc, at, constraint(at))
+hessian(at::AbstractAtoms, cons::AbstractConstraint) =
+      hessian(calculator(at), at, cons)
 
 
 #######################################################################
 #                     PRECONDITIONER
+# we don't create an abstract type, but somewhere we should
+# document that a preconditioner must implement the following
+# operations:
+#   - update!
+#   - ldiv!
+#   - mul!
 #######################################################################
 
-
 """
-`update!(precond::Preconditioner, at::AbstractAtoms)`
+`update!(precond, at)`
 
 Update the preconditioner with the new geometry information.
 """
-@protofun update!(precond::Preconditioner, at::AbstractAtoms)
+function update! end
 update!(precond::Preconditioner, at::AbstractAtoms, x::Dofs) =
             update!(precond, set_dofs!(at, x))
-# TODO: this is a bit of a problem with the niceabstractframework we
-#       are constructing here; it can easily happen now that we
-#       update positions multiple times
+
+# TODO: make a Julia PR? do this in-place
+ldiv!(out::Dofs, P::UniformScaling, x::Dofs) =
+      copyto!(out, P \ x)
+
+# mul! is already correctly defined -> no need to define it here.
+update!(P::UniformScaling, at::AbstractAtoms) = P
 
 """
-Identity preconditioner, i.e., no preconditioner.
+construct a preconditioner suitable for this atoms object
+
+default is `I`
 """
-mutable struct Identity <: Preconditioner
-end
+preconditioner(at::AbstractAtoms) =
+            preconditioner(at, calculator(at), constraint(at))
 
-ldiv!(out::Dofs, P::Identity, x::Dofs) = copyto!(out, x)
-mul!(out::Dofs, P::Identity, f::Dofs) = copyto!(out, f)
-update!(P::Identity, at::AbstractAtoms) = P
-
-
-"construct a preconditioner suitable for this atoms object"
-preconditioner(at::AbstractAtoms) = preconditioner(at, calculator(at), constraint(at))
-preconditioner(at::AbstractAtoms, calc::AbstractCalculator, con::AbstractConstraint) =
-         Identity()
+preconditioner(at::AbstractAtoms, calc::AbstractCalculator,
+               con::AbstractConstraint) = I

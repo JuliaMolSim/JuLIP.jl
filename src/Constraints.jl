@@ -7,7 +7,7 @@ TODO: write documentation
 module Constraints
 
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
-             mat, vecs, JMatF, JMat, JVecF, JVec, 
+             mat, vecs, JMatF, JMat, JVecF, JVec,
              set_positions!, set_cell!, virial, defm, set_defm!,
              forces, momenta, set_momenta!,
              constraint, rnn, AbstractCalculator, calculator

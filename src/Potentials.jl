@@ -19,7 +19,7 @@ TODO: write documentation
 """
 module Potentials
 
-using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
+using JuLIP: AbstractAtoms, AbstractCalculator,
       JVec, mat, vec, JMat, JVecF, SVec, vecs, SMat,
       positions, set_positions!
 using StaticArrays: @SMatrix
