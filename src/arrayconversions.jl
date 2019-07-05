@@ -1,6 +1,8 @@
 
-
+using StaticArrays
 using Base: ReinterpretArray, ReshapedArray
+using LinearAlgebra: norm
+
 import Base.convert
 
 export mat, vecs, xyz

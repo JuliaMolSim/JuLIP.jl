@@ -3,14 +3,13 @@ import LinearAlgebra: ldiv!, mul!
 using LinearAlgebra: det, UniformScaling
 import Base: length, getindex, setindex!, deleteat!
 
-# export AbstractAtoms, AbstractCalculator, AbstractConstraint, NullConstraint,
-#        Preconditioner, NullCalculator
+import NeighbourLists: cutoff
 
 # function defined primarily on AbstractAtoms
 export positions, get_positions, set_positions!,
        momenta, get_momenta, set_momenta!,
        masses, get_masses, set_masses,
-       cell, get_cell, set_cell!, is_cubic,
+       cell, get_cell, set_cell!, is_cubic, cell_vecs,
        pbc, get_pbc, set_pbc!,
        set_data!, get_data, has_data,
        set_calculator!, calculator, get_calculator,
@@ -24,11 +23,20 @@ export positions, get_positions, set_positions!,
        momentum_dofs, set_momentum_dofs!,
        dofs, set_dofs!,
        preconditioner,
-       volume
+       volume,
+       chemical_symbols,
+       atomic_numbers
 
-# temporary prototypes while rewriting 
-export rattle!
-function rattle! end
+
+# temporary prototypes while rewriting
+
+
+# todo: prototype and document these here
+function chemical_symbols end
+function atomic_numbers end
+
+
+# -----
 
 
 # here we define and document the prototypes that are implemented
@@ -114,6 +122,16 @@ get_cell = cell
 
 "`set_cell!(at, C) -> at` : set computational cell; cf. `?cell`"
 function set_cell! end
+
+"""
+`cell_vecs(at) -> (SVec, SVec, SVec)` : return the three cell vectors
+"""
+function cell_vecs(at::AbstractAtoms)
+   C = cell(at)
+   @assert size(C) == (3,3)
+   return C[1,:], C[2,:], C[3,:]
+end
+
 
 "`volume(at)` : return volume of computational cell"
 volume(at) = abs(det(cell(at)))
@@ -208,12 +226,36 @@ be allowed to be either a scalar or a vector.
 function neighbourlist end
 
 
+"""
+`static_neighbourlist(at::AbstractAtoms, cutoff; key = :staticnlist)`
+
+This function first checks whether a static neighbourlist already exists
+with cutoff `cutoff` and if it does then it returns the existing list.
+If it does not, then it computes a new neighbour list with the current
+configuration, stores it for later use and returns it.
+"""
+function static_neighbourlist(at::AbstractAtoms, cutoff; key=:staticnlist)
+   recompute = false
+   if has_data(at, key)
+      nlist = get_data(at, key)
+      if cutoff(nlist) != cutoff
+         recompute = true
+      end
+   else
+      recompute = true
+   end
+   if recompute
+      set_data!( at, key, neighbourlist(at, cutoff) )
+   end
+   return get_data(at, key)
+end
+
+static_neighbourlist(at::AbstractAtoms) = static_neighbourlist(at, cutoff(at))
+
 
 #######################################################################
 #     CALCULATOR
 #######################################################################
-
-struct NullCalculator <: AbstractCalculator end
 
 """
 `cutoff(calc)` : Returns the cut-off radius of the attached potential.
@@ -299,7 +341,6 @@ stress(at::AbstractAtoms) = stress(calculator(at), at)
 #  Constraints and DoF Handling
 #######################################################################
 
-struct NullConstraint <: AbstractConstraint end
 
 """
 `position_dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`

@@ -1,38 +1,8 @@
-# TODO:
-# * defm, set_defm!         >>> decide what to do about those
-# * Base.read, Base.write   >>> rename as read_xyz, write_xyz
-# * if we make Atoms immutable, then we could make the calculator
-#   etc a type parameter, but it has the disadvantage that we would need
-#   to create a new object every time we change it significantly.
-#   maybe a good thing.
-#
-# * `JData` has a hard-coded floating point type. this seems necessary
-#       because otherwise the kw-constructor doesn't work. probably this is
-#       not important, but could be fixed at some point (low priority)
-#
-# * the kwconstructor only allows Float64, this is a bad shortcoming that
-#   needs to be fixed I think
-#
-# * decide whether == should check equality of data
-#
-# * implement a softer `isequal` which checks for "physical" equality, i.e.,
-#   it accounts for PBC, ignores any data, and allows for a controllable
-#   error in the positions, momenta and masses
-#
-# * add fields for charges and magnetic moments?
-#
 
-const CH = JuLIP.Chemistry
-
+using Parameters
 import Base.Dict
 
-export Atoms,
-       bulk,
-       cell_vecs,
-       chemical_symbols,
-       atomic_numbers, numbers,
-       chemical_symbols
-
+export Atoms
 
 """
 `JData`: datatype for storing any data
@@ -75,17 +45,22 @@ TODO
 * `constraint`, `set_constraint!`
 * `get_data`, `set_data!`
 """
-@with_kw mutable struct Atoms{T <: AbstractFloat, TI <: Integer} <: AbstractAtoms
+@with_kw mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
    X::Vector{JVec{T}} = JVec{T}[]       # positions
    P::Vector{JVec{T}} = JVec{T}[]       # momenta (or velocities?)
-   M::Vector{T} = T[]             # masses
-   Z::Vector{TI} = Int[]           # atomic numbers
+   M::Vector{T} = T[]                   # masses
+   Z::Vector{Int16} = Int16[]                      # atomic numbers
    cell::JMat{T} = zero(JMat{T})                   # cell
    pbc::JVec{Bool} = JVec(false, false, false)     # boundary condition
    calc::Union{Nothing, AbstractCalculator} = nothing
    cons::Union{Nothing, AbstractConstraint} = nothing
    data::Dict{Any,JData} = Dict{Any,JData}()
 end
+
+Base.eltype(::Atoms{T}) where {T} = T
+
+# default type is Float64
+Atoms(;kwargs...) = Atoms{Float64}(;kwargs...)
 
 _auto_pbc(pbc::Tuple{Bool, Bool, Bool}) = pbc
 _auto_pbc(pbc::Bool) = (pbc, pbc, pbc)
@@ -106,7 +81,7 @@ _auto_X(X) = X
 _auto_X(X::AbstractVector) = _auto_X( [x for x in X] )
 # the cases where we know what to do ...
 _auto_X(X::AbstractVector{T}) where {T <: AbstractVector} = [ JVecF(x) for x in X ]
-_auto_X(X::AbstractVector{T}) where {T <: Real} = _auto_V(reshape(X, 3, :))
+_auto_X(X::AbstractVector{T}) where {T <: Real} = _auto_X(reshape(X, 3, :))
 _auto_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
                               [ JVecF(X[:,n]) for n = 1:size(X,2) ])
 
@@ -118,8 +93,10 @@ _auto_Z(Z::Vector{TI}) where {TI <: Integer}  =
 
 
 
-Atoms(X, P, M, Z, cell, pbc; calc=NullCalculator(),
-      cons = NullConstraint(), data = Dict{Any,JData}()) =
+Atoms(X, P, M, Z, cell, pbc;
+      calc = nothing,
+      cons = nothing,
+      data = Dict{Any,JData}()) =
    Atoms(_auto_X(X),
          _auto_X(P),
          _auto_M(M),
@@ -131,10 +108,16 @@ Atoms(X, P, M, Z, cell, pbc; calc=NullCalculator(),
          data)
 
 Atoms(Z::Vector{TI}, X::Vector{JVec{T}}; kwargs...) where {TI, T} =
-  Atoms{T, TI}(;Z=Z, X=X, P = zeros(eltype(X), length(X)), M = zeros(length(X)), kwargs...)
+  Atoms{T}(;Z=Z, X=X, P = zeros(eltype(X), length(X)), M = zeros(length(X)), kwargs...)
 
 # derived properties
 length(at::Atoms) = length(at.X)
+
+getindex(at::Atoms, i::Integer) = at.X[i]
+function setindex!(at::Atoms{T}, val, i::Integer) where {T}
+   at.X[i] = convert(JVec{T}, val)
+   return val
+end
 
 # ------------------------ access to struct fields ----------------------
 
@@ -168,17 +151,22 @@ function set_masses!(at::Atoms{T}, M::AbstractVector{T})  where T
    at.M .= M
    return at
 end
-function set_numbers!(at::Atoms{T, TI}, Z::AbstractVector{TI}) where {T, TI}
+function set_numbers!(at::Atoms, Z::AbstractVector{<:Integer})
    update_data!(at, Inf)
    at.Z .= Z
    return at
 end
 function set_cell!(at::Atoms{T}, C::AbstractMatrix) where T
+   update_data!(at, Inf)
    at.cell = JMat{T}(C)
    return at
 end
 function set_pbc!(at::Atoms, p::Union{AbstractVector, Tuple})
-   at.pbc = JVec{Bool}(p...)
+   q = JVec{Bool}(p...)
+   if at.pbc != q
+      update_data!(at, Inf)
+      at.pbc = q
+   end
    return at
 end
 function set_calculator!(at::Atoms, calc::AbstractCalculator)
@@ -192,29 +180,15 @@ end
 
 # --------------- equality tests -------------------
 
-# we need to sort vectors of vectors to test equality of configurations
-# note this is a strict notion of equality
-function Base.isless(x::JVec, y::JVec)
-   if x[1] < y[1]
-      return true
-   elseif x[1] == y[1]
-      if x[2] < y[2]
-         return true
-      elseif x[2] == y[2]
-         if x[3] < y[3]
-            return true
-         end
-      end
-   end
-   return false
-end
-
 import Base.==
-==(at1::Atoms{T,TI}, at2::Atoms{T,TI}) where T where TI =
-   isapprox(at1, at2, tol = 0.0) && (at1.data == at2.data)
+==(at1::Atoms{T}, at2::Atoms{T}) where T = (
+   isapprox(at1, at2, tol = 0.0)  &&
+          (at1.data == at2.data)  &&
+          (at1.calc == at2.calc)  &&
+          (at1.cons == at2.cons) )
 
 import Base.isapprox
-function isapprox(at1::Atoms{T,TI}, at2::Atoms{T,TI}; tol = sqrt(eps(T))) where T where TI
+function isapprox(at1::Atoms{T}, at2::Atoms{T}; tol = sqrt(eps(T))) where {T}
    if length(at1) != length(at2)
       return false
    end
@@ -228,33 +202,19 @@ function isapprox(at1::Atoms{T,TI}, at2::Atoms{T,TI}; tol = sqrt(eps(T))) where 
    p1 = sortperm(X1)
    p2 = sortperm(X2)
    return (maxdist(at1.X[p1], at2.X[p2]) <= tol) &&
-          (maxdist(at1.P[p1], at2.P[p2]) <= tol) # &&
+          (maxdist(at1.P[p1], at2.P[p2]) <= tol)  &&
           (norm(at1.M[p1] - at2.M[p2], Inf) <= tol) &&
           (at1.Z[p1] == at2.Z[p2]) &&
           (norm(at1.cell - at2.cell, Inf) <= tol) &&
-          (at1.pbc == at2.pbc) &&
-          (at1.calc == at2.calc) &&
-          (at1.cons == at2.cons)
+          (at1.pbc == at2.pbc)
 end
 
 # --------------- some aliases for easier / direct access --------------
 #                 and some access not covered above
 
-# access positions by direct indexing
-Base.getindex(at::Atoms, i::Integer) = at.X[i]
-function Base.setindex!(at::Atoms{T}, x::JVec, i::Integer) where T <: AbstractFloat
-   at.X[i] = JVec{T}(x)
-   return at.X[i]
-end
 
-"""
-`cell_vecs(at::Atoms)` : return the three cell vectors
-"""
-cell_vecs(at::Atoms) = at.cell[1,:], at.cell[2,:], at.cell[3,:]
-
-
-function neighbourlist(at::Atoms{T}, cutoff::T; recompute=false, kwargs...) where T <: AbstractFloat
-   # TODO: re-design this from scratch . . .
+function neighbourlist(at::Atoms, cutoff::AbstractFloat; recompute=false, kwargs...)
+   # todo -> re-design this from scratch . . .
    PairList(positions(at), cutoff, cell(at), pbc(at); kwargs...)
    # if !has_data(at, (:nlist, cutoff)) || recompute
    #    set_transient!(at, (:nlist, cutoff),
@@ -265,27 +225,6 @@ function neighbourlist(at::Atoms{T}, cutoff::T; recompute=false, kwargs...) wher
 end
 
 neighbourlist(at::Atoms) = neighbourlist(at, cutoff(at))
-
-"""
-`static_neighbourlist(at::Atoms, cutoff)`
-
-This function first checks whether a static neighbourlist already exists
-with cutoff `cutoff` and if it does then it returns the existing list.
-If it does not, then it computes a new neighbour list with the current
-configuration, stores it for later use and returns it.
-"""
-function static_neighbourlist(at::Atoms{T}, cutoff::T) where T
-   if !has_data(at, (:snlist, cutoff))
-      set_data!( at, (:snlist, cutoff),
-            PairList(positions(at), cutoff, cell(at), pbc(at))
-         )
-   end
-   return get_data(at, (:snlist, cutoff))
-end
-
-static_neighbourlist(at::Atoms) = static_neighbourlist(at, cutoff(at))
-
-
 
 
 # --------------- data Dict handling ------------------
@@ -348,12 +287,10 @@ end
 
 
 
-# ------------------------ workaround for JLD bugs  ----------------------
+# ------------------------ FIO  ----------------------
 
 
 
-# for the time being we won't store calculators, constraints and data
-# TODO: this should be implemented asap
 Dict(at::Atoms) =
    Dict( "__id__" => "JuLIP_Atoms",
          "X"      => at.X,

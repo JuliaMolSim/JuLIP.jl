@@ -2,11 +2,11 @@
 
 using JuLIP
 using Test
-using LinearAlgebra: I 
+using LinearAlgebra: I
 
 h3("check that `bulk` evaluates ok...")
 at = bulk(:Si)
-println(@test typeof(at) == Atoms{Float64, Int64})
+println(@test typeof(at) == Atoms{Float64})
 
 h3("... and that we can repeat it.")
 println(@test length(at * (1,2,3)) == 6 * length(at))
@@ -60,23 +60,26 @@ println(@test chemical_symbols(bulk(:W)) == [:W])
 
 
 
-# println("test set_positions!")
-# Y = copy(X)
-# Y[3] = JVec(rand(3))
-# @test Y != positions(at)
-# set_positions!(at, Y)
-# @test Y == positions(at)
-#
-# println("test set_momenta!")
-# Nat = length(at)
-# Ifree = rand(collect(1:Nat), Nat * 4 ÷ 5) |> unique |> sort # prepare for test below
-# Iclamp = setdiff(1:Nat, Ifree)
-# P = rand(size(Y |> mat)); P[:, Iclamp] = 0.0; P = vecs(P)
-# set_momenta!(at, P)
-# @test P == momenta(at)
-#
-#
-# println("test set_dofs!, etc")
+h3("test set_positions!")
+Y = copy(X)
+Y[3] = JVec(rand(3))
+println(@test Y != positions(at))
+set_positions!(at, Y)
+println(@test Y == positions(at))
+
+h3("test set_momenta!")
+Nat = length(at)
+Ifree = rand(collect(1:Nat), Nat * 4 ÷ 5) |> unique |> sort # prepare for test below
+Iclamp = setdiff(1:Nat, Ifree)
+P = rand(size(Y |> mat)...)
+P[:, Iclamp] .= 0.0
+P = vecs(P)
+set_momenta!(at, P)
+@test P == momenta(at)
+
+
+# TODO: REVIVE THIS WHEN WE REVISE THE CONSTRAINT CODE!
+# h3("test set_dofs!, etc")
 # # this is making an assumptions on the ordering of dofs; since a new
 # # implementation of the DOF manager could change this, this test needs to be
 # # re-implemented if that happens.
@@ -87,7 +90,6 @@ println(@test chemical_symbols(bulk(:W)) == [:W])
 # q = rand(length(q))
 # set_position_dofs!(at, q)
 # @test q == position_dofs(at)
-# p = momentum_dofs(at)
 # p = rand(length(p))
 # set_momentum_dofs!(at, p)
 # @test p == momentum_dofs(at)

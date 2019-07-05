@@ -3,8 +3,8 @@
 
 module JuLIP
 
-using Reexport, NeighbourLists, StaticArrays, Parameters
-
+using Reexport
+@reexport using NeighbourLists
 
 # quickly switch between Matrices and Vectors of SVectors, etc
 include("arrayconversions.jl")
@@ -19,16 +19,17 @@ include("abstractions.jl")
 include("chemistry.jl")
 @reexport using JuLIP.Chemistry
 
-# # the main atoms type
-# include("atoms.jl")
-#
-#
-# # how to build some simple domains
-# include("build.jl")
-# @reexport using JuLIP.Build
-#
-# # a few auxiliary routines
-# include("utils.jl")
+# the main atoms type
+include("atoms.jl")
+
+# how to build some simple domains
+include("build.jl")
+@reexport using JuLIP.Build
+
+# a few auxiliary routines
+include("utils.jl")
+@reexport using JuLIP.Utils
+
 #
 # # interatomic potentials prototypes and some example implementations
 # include("Potentials.jl")

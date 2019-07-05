@@ -10,7 +10,7 @@ Look at `?` for
 module Testing
 
 using JuLIP: AbstractCalculator, AbstractAtoms, energy, gradient, forces,
-         constraint, calculator, set_positions!, dofs, NullConstraint,
+         constraint, calculator, set_positions!, dofs,
          mat, vecs, positions, rattle!, set_dofs!, set_constraint!, set_calculator!
 # using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, grad, @D
 # using JuLIP.Constraints: FixedCell

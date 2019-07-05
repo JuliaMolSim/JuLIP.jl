@@ -1,9 +1,16 @@
 
+module Utils
+
 import JuLIP.Chemistry: rnn
 
+using JuLIP: AbstractAtoms, JVec, constraint, positions, set_positions!,
+             chemical_symbols, cell, pbc, mat 
+
+using LinearAlgebra: norm
+
 export rattle!, r_sum, r_dot,
-      swapxy!, swapxz!, swapyz!,
-      dist, displacement, rmin
+       swapxy!, swapxz!, swapyz!,
+       dist, displacement, rmin, wrap_pbc!
 
 
 ############################################################
@@ -12,6 +19,7 @@ export rattle!, r_sum, r_dot,
 ###   Robust Summation and Dot Products
 ############################################################
 
+# SWITCH TO KAHAN?
 "Robust summation."
 r_sum(a) = sum(a)
 
@@ -34,18 +42,16 @@ randomly perturbs the atom positions
 * `rnn` : nearest-neighbour distance
 * `respect_constraint`: set false to also perturb the constrained atom positions
 """
-function rattle!(at::AbstractAtoms, r::Float64; rnn = 1.0, respect_constraint = true)
-   # if there is no constraint, then revert to respect_constraint = false
-   if isa(constraint(at), NullConstraint)
-      respect_constraint = false
-   end
+function rattle!(at::AbstractAtoms, r::AbstractFloat;
+                 rnn = 1.0,
+                 respect_constraint = (constraint(at) != nothing))
    if respect_constraint
       x = dofs(at)
       x += r * rnn * 2.0/sqrt(3) * (rand(Float64, length(x)) .- 0.5)
       set_dofs!(at, x)
    else
       X = positions(at) |> mat
-      X += r * rnn * 2.0/sqrt(3) * (rand(Float64, size(X)) .- 0.5)
+      X .+= r * rnn * 2.0/sqrt(3) * (rand(Float64, size(X)) .- 0.5)
       set_positions!(at, X)
    end
    return at
@@ -62,7 +68,7 @@ function julipwarn(s)
          return false
       end
    end
-   warn(s)
+   @warn(s)
 end
 
 
@@ -109,9 +115,9 @@ This implementation accounts for periodic boundary conditions (in those
 coordinate directions where they are set to `true`)
 """
 function dist(at::AbstractAtoms,
-              X1::AbstractVector{JVec{T}}, X2::AbstractVector{JVec{T}},
-              p = Inf) where T
-   @assert length(X1) == length(X2)
+              X1::AbstractVector{<:JVec}, X2::AbstractVector{<:JVec},
+              p = Inf)
+   @assert length(X1) == length(X2) == length(at)
    F = cell(at)'
    Finv = inv(F)
    bcrem = [ p ? 1.0 : Inf for p in pbc(at) ]
@@ -130,7 +136,7 @@ end
 function _project_pbc_(F, Finv, bcrem, x)
    λ = Finv * x     # convex coordinates
    # convex coords projected to the unit
-   λp = JVecF(rem(λ[1], bcrem[1]), rem(λ[2], bcrem[2]), rem(λ[3], bcrem[3]))
+   λp = JVec(rem(λ[1], bcrem[1]), rem(λ[2], bcrem[2]), rem(λ[3], bcrem[3]))
    return F * λp     # convert back to real coordinates
 end
 
@@ -155,11 +161,10 @@ end
 
 
 function displacement(at::AbstractAtoms,
-                      X1::AbstractVector{JVec{T}},
-                      X2::AbstractVector{JVec{T}}
-                ) where T
-   @assert length(X1) == length(X2)
-   F = defm(at)
+                      X1::AbstractVector{<:JVec},
+                      X2::AbstractVector{<:JVec})
+   @assert length(X1) == length(X2) == length(at)
+   F = cell(at)'
    Finv = inv(F)
    p = pbc(at)
    U = [ _project_pbc_min_(F, Finv, p, x2-x1)
@@ -167,7 +172,7 @@ function displacement(at::AbstractAtoms,
    return U
 end
 
-project_min(at, u) = _project_pbc_min_(defm(at), inv(defm(at)), pbc(at), u)
+project_min(at, u) = _project_pbc_min_(cell(at)', inv(cell(at)'), pbc(at), u)
 
 function rnn(at::AbstractAtoms)
    syms = unique(chemical_symbols(at))
@@ -176,7 +181,7 @@ end
 
 function wrap_pbc!(at)
    X = positions(at)
-   F = defm(at)
+   F = cell(at)'
    X = [_project_pbc_min_(F, inv(F), pbc(at), x) for x in X]
    set_positions!(at, X)
 end
@@ -190,4 +195,6 @@ function rmin(at::AbstractAtoms)
       r = min(r, norm(X[n]-X[m]))
    end
    return r
+end
+
 end
