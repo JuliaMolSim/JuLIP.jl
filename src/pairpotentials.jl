@@ -1,7 +1,7 @@
 # included from Potentials.jl
 # part of the module JuLIP.Potentials
 
-using JuLIP: zerovecs, JVecsF, JVecF, JMatF, neighbourlist
+using JuLIP: JVecF, JMatF, neighbourlist
 using LinearAlgebra: I
 using JuLIP.Chemistry: atomic_number
 
@@ -49,7 +49,7 @@ end
 
 
 # function forces(V::PairPotential, at::AbstractAtoms)
-#    dE = zerovecs(length(at))
+#    dE = zderos(JVecF, length(at))
 #    for (i,j,r,R) in pairs(at, cutoff(V))
 #       dE[i] += @GRAD V(r, R)
 #    end
@@ -58,7 +58,7 @@ end
 
 function forces(V::PairPotential, at::AbstractAtoms)
    nlist = neighbourlist(at, cutoff(V))::PairList
-   dE = zerovecs(length(at))
+   dE = zeros(JVecF, length(at))   # TODO: JVec{T} ???
    @simd for n = 1:npairs(nlist)
       @inbounds dE[nlist.i[n]] += grad(V, nlist.r[n], nlist.R[n])
    end

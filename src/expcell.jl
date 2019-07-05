@@ -24,7 +24,7 @@ _expm(A::StaticArrays.SMatrix{N,N,T}) where {N,T} =
 
 mutable struct ExpVariableCell <: AbstractConstraint
    ifree::Vector{Int}
-   X0::JVecsF
+   X0::Vector{JVecF}
    F0::JMatF
    pressure::Float64
    fixvolume::Bool

@@ -20,7 +20,7 @@ TODO: write documentation
 module Potentials
 
 using JuLIP: AbstractAtoms, AbstractNeighbourList, AbstractCalculator,
-      JVec, JVecs, mat, vec, JMat, JVecF, SVec, vecs, SMat,
+      JVec, mat, vec, JMat, JVecF, SVec, vecs, SMat,
       positions, set_positions!
 using StaticArrays: @SMatrix
 
@@ -81,7 +81,7 @@ evaluate(V::SitePotential, R::AbstractVector{JVecF}) = evaluate(V, norm.(R), R)
 evaluate_d(V::SitePotential, R::AbstractVector{JVecF}) = evaluate_d(V, norm.(R), R)
 
 function forces(V::SitePotential, at::AbstractAtoms)
-   frc = zerovecs(length(at))
+   frc = zeros(JVecF, length(at))  # JVec{T} ??
    for (i, j, r, R) in sites(at, cutoff(V))
       dV = @D V(r, R)
       for a = 1:length(j)

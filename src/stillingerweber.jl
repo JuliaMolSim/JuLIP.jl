@@ -174,7 +174,7 @@ end
 #    nlist = neighbourlist(at, cutoff(calc))
 #
 #    # pair potential contribution to forces
-#    dE = zerovecs(length(at))
+#    dE = zeros(JVecF, length(at))
 #    for n = 1:length(nlist)
 #       dE[nlist.i[n]] += 2 * grad(calc.V2, nlist.r[n], nlist.R[n])
 #    end

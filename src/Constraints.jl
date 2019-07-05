@@ -7,7 +7,7 @@ TODO: write documentation
 module Constraints
 
 using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
-             mat, vecs, JVecs, JVecsF, JMatF, JMat,
+             mat, vecs, JMatF, JMat, JVecF, JVec, 
              set_positions!, set_cell!, virial, defm, set_defm!,
              forces, momenta, set_momenta!,
              constraint, rnn, AbstractCalculator, calculator
@@ -212,7 +212,7 @@ end
 # """
 mutable struct VariableCell <: AbstractConstraint
    ifree::Vector{Int}
-   X0::JVecsF
+   X0::Vector{JVecF}
    F0::JMatF
    pressure::Float64
    fixvolume::Bool
