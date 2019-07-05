@@ -9,16 +9,13 @@ import JuLIP
 using ..Chemistry
 using JuLIP: JVec, JMat, JVecF, JMatF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
-      chemical_symbols, set_cell!, set_pbc!, update_data!,
-      set_defm!, defm
+      chemical_symbols, set_cell!, set_pbc!, update_data!
 
 using LinearAlgebra: I, Diagonal, isdiag, norm
 
 import Base: union
 
 export repeat, bulk, cluster, autocell!, append
-
-
 
 
 
@@ -66,7 +63,7 @@ end
 _convert_pbc(pbc::NTuple{3, Bool}) = pbc
 _convert_pbc(pbc::Bool) = (pbc, pbc, pbc)
 
-function bulk(sym::Symbol; cubic = false, pbc = (true,true,true))
+function bulk(sym::Symbol; T=Float64, cubic = false, pbc = (true,true,true))
    symm = symmetry(sym)
    if symm in _simple_structures
       X, C = _simple_bulk(sym, cubic)
@@ -76,8 +73,12 @@ function bulk(sym::Symbol; cubic = false, pbc = (true,true,true))
    m = atomic_mass(sym)
    z = atomic_number(sym)
    nat = length(X)
-   return Atoms( X, fill(zero(JVecF), nat), fill(m, nat), fill(z, nat), C,
-                 _convert_pbc(pbc) )
+   return Atoms( convert(Vector{JVec{T}}, X),
+                 fill(zero(JVec{T}), nat),
+                 fill(T(m), nat),
+                 fill(UInt16(z), nat),
+                 convert(JMat{T}, C),
+                 _convert_pbc(pbc)  )
 end
 
 
@@ -122,7 +123,8 @@ the use of an orthorhombic unit cell (for now).
  * lift the restriction of single species
  * allow other shapes
 """
-function cluster(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothing) where T
+function cluster(atu::Atoms{T}, R::Real;
+                 dims = [1,2,3], shape = :ball, x0=nothing) where {T}
    sym = chemical_symbols(atu)[1]
    # check that the cell is orthorombic
    if !isdiag(cell(atu))
@@ -235,8 +237,8 @@ end
 """
 simple way to construct an atoms object from just positions
 """
-Atoms(s::Symbol, X::Vector{JVecF}) =
-      Atoms( X, fill(zero(JVecF), length(X)), fill(atomic_mass(s), length(X)),
+Atoms(s::Symbol, X::Vector{JVec{T}}) where {T} =
+      Atoms{T}( X, fill(zero(JVec{T}), length(X)), fill(T(atomic_mass(s)), length(X)),
              fill(atomic_number(s), length(X)), _autocell(X),
              (false, false, false) )
 

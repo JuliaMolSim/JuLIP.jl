@@ -2,7 +2,6 @@
 using JuLIP, Test, Printf
 using JuLIP.Testing
 
-include("aux.jl")
 verbose=true
 
 # ## check whether on CI
@@ -10,19 +9,19 @@ verbose=true
 # notCI = !isCI
 # eam_W4 = nothing
 
-# ## check whether ASE is available
-# global hasase = true
-# try
-#    import ASE
-# catch
-#    global hasase = false
-# end
+## check whether ASE is available
+global hasase = true
+try
+   import ASE
+catch
+   global hasase = false
+end
 
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
    ("test_atoms.jl", "Atoms"),
-   # ("test_build.jl", "Build"),
-   # ("test_fio.jl", "File IO"),
+   ("test_build.jl", "Build"),
+   ("test_fio.jl", "File IO"),
    # ("testanalyticpotential.jl", "Analytic Potential"),
    # ("testpotentials.jl", "Potentials"),
    # ("test_ad.jl", "AD Potentials"),
