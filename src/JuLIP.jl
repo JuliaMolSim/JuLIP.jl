@@ -15,64 +15,49 @@ include("abstractions.jl")
 include("chemistry.jl")
 @reexport using JuLIP.Chemistry
 
-# the main atoms type
-include("atoms.jl")
-
-# File IO
-include("FIO.jl")
-@reexport using JuLIP.FIO
-
-# how to build some simple domains
-include("build.jl")
-@reexport using JuLIP.Build
-
-# a few auxiliary routines
-include("utils.jl")
-
-# interatomic potentials prototypes and some example implementations
-include("Potentials.jl")
-@reexport using JuLIP.Potentials
-
-# submodule JuLIP.Constraints
-include("Constraints.jl")
-@reexport using JuLIP.Constraints
-
-# basic preconditioning capabilities
-include("preconditioners.jl")
-@reexport using JuLIP.Preconditioners
-
-# some solvers
-include("Solve.jl")
-@reexport using JuLIP.Solve
-
-# experimental features
-include("Experimental.jl")
-@reexport using JuLIP.Experimental
-
-# codes to facilitate testing
-include("Testing.jl")
-
-
-# the following are some sub-modules that are primarily used
-# to create further abstractions to be shared across several
-# modules in the JuLIP-verse.
-include("mlips.jl")
-include("nbody.jl")
-
-
-
-# # only try to import Visualise, it is not needed for the rest to work.
-# try
-#    # some visualisation options
-#    if isdefined(Main, :JULIPVISUALISE)
-#       if Main.JULIPVISUALISE == true
-#          include("Visualise.jl")
-#       end
-#    end
-# catch
-#    JuLIP.julipwarn("""JuLIP.Visualise did not import correctly, probably because
-#                `imolecule` is not correctly installed.""")
-# end
+# # the main atoms type
+# include("atoms.jl")
+#
+# # File IO
+# include("FIO.jl")
+# @reexport using JuLIP.FIO
+#
+# # how to build some simple domains
+# include("build.jl")
+# @reexport using JuLIP.Build
+#
+# # a few auxiliary routines
+# include("utils.jl")
+#
+# # interatomic potentials prototypes and some example implementations
+# include("Potentials.jl")
+# @reexport using JuLIP.Potentials
+#
+# # submodule JuLIP.Constraints
+# include("Constraints.jl")
+# @reexport using JuLIP.Constraints
+#
+# # basic preconditioning capabilities
+# include("preconditioners.jl")
+# @reexport using JuLIP.Preconditioners
+#
+# # some solvers
+# include("Solve.jl")
+# @reexport using JuLIP.Solve
+#
+# # experimental features
+# include("Experimental.jl")
+# @reexport using JuLIP.Experimental
+#
+# # codes to facilitate testing
+# include("Testing.jl")
+#
+#
+# # the following are some sub-modules that are primarily used
+# # to create further abstractions to be shared across several
+# # modules in the JuLIP-verse.
+# include("mlips.jl")
+# include("nbody.jl")
 
 
 end # module
