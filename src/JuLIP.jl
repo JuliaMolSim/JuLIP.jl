@@ -30,14 +30,15 @@ include("build.jl")
 include("utils.jl")
 @reexport using JuLIP.Utils
 
-#
+# submodule JuLIP.Constraints
+include("Constraints.jl")
+@reexport using JuLIP.Constraints
+
+
 # # interatomic potentials prototypes and some example implementations
 # include("Potentials.jl")
 # @reexport using JuLIP.Potentials
 #
-# # submodule JuLIP.Constraints
-# include("Constraints.jl")
-# @reexport using JuLIP.Constraints
 #
 # # basic preconditioning capabilities
 # include("preconditioners.jl")

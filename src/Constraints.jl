@@ -1,3 +1,5 @@
+# TODO: switch all cell(at)' to cell(at) and store cells
+
 
 """
 `module Constraints`
@@ -6,43 +8,94 @@ TODO: write documentation
 """
 module Constraints
 
-using JuLIP: Dofs, AbstractConstraint, AbstractAtoms,
-             mat, vecs, JMatF, JMat, JVecF, JVec,
-             set_positions!, set_cell!, virial, defm, set_defm!,
+using JuLIP: Dofs, AbstractConstraint, AbstractAtoms, AbstractCalculator,
+             mat, vecs, JMat, JVec,
+             set_positions!, set_cell!, virial, cell,
              forces, momenta, set_momenta!,
-             constraint, rnn, AbstractCalculator, calculator
-
-# temporary hack - we may need to rethink this
-using JuLIP.Potentials: hessian_pos
+             constraint, rnn, calculator, hessian_pos
 
 import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient,
-              energy, momentum_dofs, set_momentum_dofs!, dofs, project!,
+              energy, momentum_dofs, set_momentum_dofs!, dofs,
               set_dofs!, positions, gradient, energy, hessian
 
 
-export FixedCell, VariableCell, ExpVariableCell, FixedCell2D, atomdofs
+export FixedCell, VariableCell, InPlaneFixedCell, AntiPlaneFixedCell, atomdofs
 
 using SparseArrays: SparseMatrixCSC, nnz, sparse, findnz
 
 using LinearAlgebra: rmul!, det
 
 
-function zeros_free(n::Integer, x::Vector{T}, free::Vector{Int}) where T
-   z = zeros(T, n)
+function zeros_free(n::Integer, x::AbstractVector, free)
+   z = zeros(eltype(x), n)
    z[free] = x
    return z
 end
 
-function insert_free!(p::AbstractArray{T}, x::AbstractVector{T},
-                      free::AbstractVector{Int}) where T
+function insert_free!(p::AbstractArray, x::AbstractVector, free)
    p[free] = x
    return p
 end
 
 # a helper function to get a valid positions array from a dof-vector
-positions(at::AbstractAtoms, ifree::AbstractVector{TI}, dofs::Dofs) where {TI<:Integer} =
-      insert_free!(positions(at) |> mat, dofs, ifree) |> vecs
+positions(at::AbstractAtoms,
+          ifree::AbstractVector{<:Integer},
+          dofs::Dofs) =
+   insert_free!(positions(at) |> mat, dofs, ifree) |> vecs
 
+"""
+`_pos_to_dof` : a helper function that will convert a positions-based
+block-hessian into a classical dof-based hessian with the standard JuLIP
+ordering of dofs.
+"""
+function _pos_to_dof(Hpos::SparseMatrixCSC, at::AbstractAtoms)
+   I, J, Z = Int[], Int[], Float64[]
+   for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
+   Nat = length(at)
+   @assert Nat == size(Hpos, 2)
+   # TODO: this findnz creates an extra copy of all data, which we should avoid
+   for (iat, jat, zat) in zip(findnz(Hpos)...)
+      for a = 1:3, b = 1:3
+         push!(I, 3 * (iat-1) + a)
+         push!(J, 3 * (jat-1) + b)
+         push!(Z, zat[a,b])
+      end
+   end
+   return sparse(I, J, Z, 3*Nat, 3*Nat)
+end
+
+"""
+`analyze_mask` : helper function to generate list of dof indices from
+lists of atom indices indicating free and clamped atoms
+"""
+function analyze_mask(at, free, clamp, mask)
+   if length(findall((free != nothing, clamp != nothing, mask != nothing))) > 1
+      error("FixedCell: only one of `free`, `clamp`, `mask` may be provided")
+   elseif all( (free == nothing, clamp == nothing, mask == nothing) )
+      # in this case (default) all atoms are free
+      return collect(1:3*length(at))
+   end
+   # determine free dof indices
+   Nat = length(at)
+   if clamp != nothing
+      # revert to setting free
+      free = setdiff(1:Nat, clamp)
+   end
+   if free != nothing
+      # revert to setting mask
+      mask = fill(false, 3, Nat)
+      if !isempty(free)
+         mask[:, free] .= true
+      end
+   end
+   return findall(mask[:])
+end
+
+# TODO: this is a temporary hack, and I think we need to
+#       figure out how to do this for more general constraints
+#       maybe not too terrible
+#       but why is there a !???
+# project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 # ========================================================================
 #          FIXED CELL IMPLEMENTATION
@@ -62,32 +115,8 @@ Set at most one of the kwargs:
 * `clamp` : list of clamped atom indices (not dof indices)
 * `mask` : 3 x N Bool array to specify individual coordinates to be clamped
 """
-mutable struct FixedCell <: AbstractConstraint
+struct FixedCell <: AbstractConstraint
    ifree::Vector{Int}
-end
-
-function analyze_mask(at, free, clamp, mask)
-   if length(findall((free != nothing, clamp != nothing, mask != nothing))) > 1
-      error("FixedCell: only one of `free`, `clamp`, `mask` may be provided")
-   elseif all( (free == nothing, clamp == nothing, mask == nothing) )
-      # in this case (default) all atoms are free
-      return collect(1:3*length(at))
-   end
-   # determine free dof indices
-   Nat = length(at)
-   if clamp != nothing
-      # revert to setting free
-      free = setdiff(1:Nat, clamp)
-   end
-   if free != nothing
-      # revert to setting mask
-      mask = Matrix{Bool}(undef, 3, Nat)
-      fill!(mask, false)
-      if !isempty(free)
-         mask[:, free] = true
-      end
-   end
-   return findall(mask[:])
 end
 
 FixedCell(at::AbstractAtoms; clamp = nothing, free=nothing, mask=nothing) =
@@ -103,47 +132,20 @@ momentum_dofs(at::AbstractAtoms, cons::FixedCell) = mat(momenta(at))[cons.ifree]
 set_momentum_dofs!(at::AbstractAtoms, cons::FixedCell, p::Dofs) =
       set_momenta!(at, zeros_free(3 * length(at), p, cons.ifree) |> vecs)
 
-
 project!(at::AbstractAtoms, cons::FixedCell) = at
 
-# TODO: this is a temporary hack, and I think we need to
-#       figure out how to do this for more general constraints
-#       maybe not too terrible
-#       but why is there a !???
-project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
+gradient(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
+      rmul!(mat(forces(at))[cons.ifree], -1.0)
 
-gradient(at::AbstractAtoms, cons::FixedCell) =
-               rmul!(mat(forces(at))[cons.ifree], -1.0)
+energy(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
+      energy(at)
 
-energy(at::AbstractAtoms, cons::FixedCell) = energy(at)
+hessian(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
+      _pos_to_dof(hessian_pos(calculator(at), at), at)[cons.Ifree, cons.Ifree]
 
-# >>> TODO: move to abstractions.jl ??
-hessian(at::AbstractAtoms, cons::FixedCell) =
-      project!(cons, _pos_to_alldof(hessian_pos(calculator(at), at), at))
-
-function _pos_to_alldof(Hpos::SparseMatrixCSC, at::AbstractAtoms)
-   I, J, Z = Int[], Int[], Float64[]
-   for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
-   Nat = length(at)
-   @assert Nat == size(Hpos, 2)
-   # TODO: this findnz creates an extra copy of all data, which we should avoid
-   for (iat, jat, zat) in zip(findnz(Hpos)...)
-      for a = 1:3, b = 1:3
-         push!(I, 3 * (iat-1) + a)
-         push!(J, 3 * (jat-1) + b)
-         push!(Z, zat[a,b])
-      end
-   end
-   return sparse(I, J, Z, 3*Nat, 3*Nat)
-end
-
-
-# ===================
-#   In-Plane Motion
-# ===================
-
-
-FixedCell2D(at::AbstractAtoms; kwargs...) = InPlaneFixedCell(at; kwargs...)
+# ===========================
+#   2D FixedCell Constraints
+# ===========================
 
 """
 preliminary implementation of a Constraint, restricting a
@@ -159,13 +161,9 @@ function InPlaneFixedCell(at::AbstractAtoms; clamp = Int[], free = nothing)
    return FixedCell(at, mask = mask)
 end
 
-# =====================
-#   Anti-Plane Motion
-# =====================
-
 """
 preliminary implementation of a Constraint, restricting a
-simulation to 2D in-plane motion
+simulation to 2D out-of-plane motion
 """
 function AntiPlaneFixedCell(at::AbstractAtoms; free = Int[])
    mask = fill(false, (3, length(at)))
@@ -180,43 +178,46 @@ end
 #          VARIABLE CELL IMPLEMENTATION
 # ========================================================================
 
-# """
-# `VariableCell`: both atom positions and cell shape are free;
-#
-# **WARNING:** before manipulating the dof-vectors returned by a `VariableCell`
-# constraint, read *meaning of dofs* instructions at bottom of help text!
-#
-# Constructor:
-# ```julia
-# VariableCell(at::AbstractAtoms; free=..., clamp=..., mask=..., fixvolume=false)
-# ```
-# Set at most one of the kwargs:
-# * no kwarg: all atoms are free
-# * `free` : list of free atom indices (not dof indices)
-# * `clamp` : list of clamped atom indices (not dof indices)
-# * `mask` : 3 x N Bool array to specify individual coordinates to be clamped
-#
-# ### Meaning of dofs
-#
-# On call to the constructor, `VariableCell` stored positions and deformation
-# `X0, F0`, dofs are understood *relative* to this "initial configuration".
-#
-# `dofs(at, cons::VariableCell)` returns a vector that represents a pair
-# `(Y, F1)` of a displacement and a deformation matrix. These are to be understood
-# *relative* to the reference `X0, F0` stored in `cons` as follows:
-# * `F = F1`   (the cell is then `F'`)
-# * `X = [F1 * (F0 \ y)  for y in Y)]`
-#
-# One aspect of this definition is that clamped atom positions still change via
-# `F`.
-# """
-mutable struct VariableCell <: AbstractConstraint
+
+"""
+`VariableCell`: both atom positions and cell shape are free;
+
+**WARNING:** (1) before manipulating the dof-vectors returned by a `VariableCell`
+constraint, read *meaning of dofs* instructions at bottom of help text!
+
+(2) The `volume` field is a signed volume.
+
+Constructor:
+```julia
+VariableCell(at::AbstractAtoms; free=..., clamp=..., mask=..., fixvolume=false)
+```
+Set at most one of the kwargs:
+* no kwarg: all atoms are free
+* `free` : list of free atom indices (not dof indices)
+* `clamp` : list of clamped atom indices (not dof indices)
+* `mask` : 3 x N Bool array to specify individual coordinates to be clamped
+
+### Meaning of dofs
+
+On call to the constructor, `VariableCell` stored positions and deformation
+`X0, F0`, dofs are understood *relative* to this initial configuration.
+
+`dofs(at, cons::VariableCell)` returns a vector that represents a pair
+`(Y, F1)` of a displacement and a deformation matrix. These are to be understood
+*relative* to the reference `X0, F0` stored in `cons` as follows:
+* `F = F1`   (the cell is then `F'`)
+* `X = [F1 * (F0 \\ y)  for y in Y)]`
+
+One aspect of this definition is that clamped atom positions still change via
+`F`
+"""
+struct VariableCell{T} <: AbstractConstraint
    ifree::Vector{Int}
-   X0::Vector{JVecF}
-   F0::JMatF
-   pressure::Float64
+   X0::Vector{JVec{T}}
+   F0::JMat{T}
+   pressure::T
    fixvolume::Bool
-   volume::Float64    # this is meaningless if `fixvolume == false`
+   volume::T    # this is meaningless if `fixvolume == false`
 end
 
 
@@ -224,11 +225,11 @@ function VariableCell(at::AbstractAtoms;
                free=nothing, clamp=nothing, mask=nothing,
                pressure = 0.0, fixvolume=false)
    if pressure != 0.0 && fixvolume
-      warning("the pressure setting will be ignores when `fixvolume==true`")
+      @warn("the pressure parameter will be ignored when `fixvolume==true`")
    end
    return VariableCell( analyze_mask(at, free, clamp, mask),
-                        positions(at), defm(at),
-                        pressure, fixvolume, det(defm(at)) )
+                        positions(at), cell(at)',
+                        pressure, fixvolume, det(cell(at)) )
 end
 
 # reverse map:
@@ -237,7 +238,7 @@ end
 
 function position_dofs(at::AbstractAtoms, cons::VariableCell)
    X = positions(at)
-   F = defm(at)
+   F = cell(at)'
    A = cons.F0 * inv(F)
    U = [A * x for x in X]   # switch to broadcast!
    return [mat(U)[cons.ifree]; Matrix(F)[:]]
@@ -272,16 +273,6 @@ vol(at::AbstractAtoms) = det(defm(at))
 
 vol_d(at::AbstractAtoms) = vol(at) * inv(defm(at))'
 
-# function vol_dd(at::AbstractAtoms)
-#    hdetI = zeros(3,3,3,3)
-#    h = 0.1
-#    for i = 1:3, j = 1:3
-#       Ih = eye(3); Ih[i,j] += h
-#       hdetI[:,:,i,j] = (ddet(Ih) - ddetI) / h
-#    end
-#    round(Int, reshape(hdetI, 9, 9))
-# end
-
 function gradient(at::AbstractAtoms, cons::VariableCell)
    F = defm(at)
    A = F * inv(cons.F0)
@@ -298,11 +289,9 @@ energy(at::AbstractAtoms, cons::VariableCell) =
          energy(at) + cons.pressure * det(defm(at))
 
 # TODO: fix this once we implement the volume constraint ??????
+#       => or just disallow the volume constraint for now?
 project!(at::AbstractAtoms, cons::VariableCell) = at
 
-# TODO: fix the abstraction for projecting a preconditioner;
-#       this will actually need to do quite a bit more in the future
-# project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 # TODO: CONTINUE WITH EXPCELL IMPLEMENTATION
 # include("expcell.jl")
