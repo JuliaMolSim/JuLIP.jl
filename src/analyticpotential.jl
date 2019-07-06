@@ -1,12 +1,16 @@
 
 using MacroTools: @capture, prewalk
+
 using Calculus: differentiate
 
-export AnalyticFunction, @analytic
 using CommonSubexpressions
 
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper
+
+export AnalyticFunction, @analytic
+
+
 const ScalarFun{T} = FunctionWrapper{T, Tuple{T}}
 
 """

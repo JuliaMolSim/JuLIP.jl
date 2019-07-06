@@ -1,7 +1,7 @@
 # included from Potentials.jl
 # part of the module JuLIP.Potentials
 
-using JuLIP: JVecF, JMatF, neighbourlist
+using JuLIP: JVec, JMat, neighbourlist
 using LinearAlgebra: I
 using JuLIP.Chemistry: atomic_number
 

@@ -22,7 +22,7 @@ julip_tests = [
    ("test_atoms.jl", "Atoms"),
    ("test_build.jl", "Build"),
    ("test_fio.jl", "File IO"),
-   # ("testanalyticpotential.jl", "Analytic Potential"),
+   ("testanalyticpotential.jl", "Analytic Potential"),
    # ("testpotentials.jl", "Potentials"),
    # ("test_ad.jl", "AD Potentials"),
    # ("testvarcell.jl", "Variable Cell"),
