@@ -1,10 +1,10 @@
-export EAM
 
 using NeighbourLists
 using DelimitedFiles: readdlm
 using JuLIP: r_sum
-
 using LinearAlgebra: rmul!
+
+export EAM
 
 # =================== General Single-Species EAM Potential ====================
 # TODO: Alloy potential
@@ -47,7 +47,6 @@ end
 @pot EAM1
 
 
-
 EAM1(ϕ, ρ, F) = EAM1(ϕ, ρ, F, nothing)
 
 cutoff(V::EAM1) = max(cutoff(V.ϕ), cutoff(V.ρ))
@@ -55,31 +54,29 @@ cutoff(V::EAM1) = max(cutoff(V.ϕ), cutoff(V.ρ))
 # evaluate(V::EAM1, r, R) =
 #     length(r) == 0 ? V.F(0.0) :
 #            V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
-evaluate(V::TV, r, R) where TV <: EAM1 =
-    length(r) == 0 ? V.F(0.0) :
-           V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
+evaluate(V::EAM1, r::AbstractVector{T}, R) where {T} =
+    length(r) == 0 ? V.F(T(0.0)) :
+           V.F(sum(V.ρ, r)) + T(0.5) * sum(V.ϕ, r)
 
-# TODO: this creates a lot of unnecessary overhead; probaby better to
-#       define vectorised versions of pair potentials
-function evaluate_d(V::EAM1, r, R)
-   if length(r) == 0; return JVecF[]; end
-   ρ̄ = sum(V.ρ(s) for s in r)
+function evaluate_d(V::EAM1, r::AbstractVector{T}, R) where {T}
+   if length(r) == 0; return JVec{T}[]; end
+   ρ̄ = sum(V.ρ, r)
    dF = @D V.F(ρ̄)
    #         (0.5 * ϕ'          + F' *  ρ')           * ∇r     (where ∇r = R/r)
-   return [ ((0.5 * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S  for (s, S) in zip(r, R) ]
+   return [ ((T(0.5) * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S
+            for (s, S) in zip(r, R) ]
 end
 
 
-function evaluate_d!(out, V::EAM1, rs, Rs)
-   if length(rs) == 0; return out; end
-   ρ̄ = sum(V.ρ(s) for s in rs)
+function evaluate_d!(dEs::AbstractVector{JVec{T}}, V::EAM1, rs, Rs) where {T}
+   if length(rs) == 0; return dEs; end
+   ρ̄ = sum(V.ρ(s), rs)
    dF = @D V.F(ρ̄)
    for (i, (r, R)) in enumerate(zip(rs, Rs))
-      out[i] += ((0.5 * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
+      dEs[i] += ((T(0.5) * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
    end
-   return out
+   return dEs
 end
-
 
 # TODO: which of the two `evaluate_dd` and `hess` should we be using?
 #       probably these two should be equivalent
@@ -91,16 +88,14 @@ hess(V::EAM1, r, R) = _hess_(V, r, R, identity)
 precon(V::EAM1, r, R, stab=0.0) = _hess_(V, r, R, abs, stab)
 
 
-function _hess_(V::EAM1, r, R, fabs, stab=0.0)
+function _hess_(V::EAM1, r::AbstractVector{T}, R, fabs, stab=T(0)) where {T}
    # allocate storage
-   H = zeros(JMatF, length(r), length(r))
+   H = zeros(JMat{T}, length(r), length(r))
    # precompute some stuff
    ρ̄ = sum(V.ρ(s) for s in r)
    ∇ρ = [ grad(V.ρ, s, S) for (s, S) in zip(r, R) ]
    dF = @D V.F(ρ̄)
    ddF = @DD V.F(ρ̄)
-   # something to stabilize for the precon version
-   Id = one(JMatF)
    # assemble
    for i = 1:length(r)
       for j = 1:length(r)
@@ -113,8 +108,8 @@ function _hess_(V::EAM1, r, R, fabs, stab=0.0)
       ddρ = @DD V.ρ(r[i])
       a = fabs(0.5 * (ddϕ) + dF * ddρ)
       b = fabs((0.5 * (dϕ) + dF * (dρ)) / r[i])
-      H[i,i] += ( (1-stab) * ( a * S * S' + b * (Id - S * S') )
-                   + stab  * ( (a+b) * Id ) )
+      H[i,i] += ( (1-stab) * ( a * S * S' + b * (I - S * S') )
+                   + stab  * ( (a+b) * I ) )
    end
    return H
 end
@@ -153,8 +148,8 @@ end
 mutable struct FSEmbed end
 @pot FSEmbed
 evaluate(V::FSEmbed, ρ̄) = - sqrt(ρ̄)
-evaluate_d(V::FSEmbed, ρ̄) = - 0.5 / sqrt(ρ̄)
-evaluate_dd(V::FSEmbed, ρ̄) = 0.25 * ρ̄^(-3/2)
+evaluate_d(V::FSEmbed, ρ̄::T) where {T} = - T(0.5) / sqrt(ρ̄)
+evaluate_dd(V::FSEmbed, ρ̄::T) where {T} = T(0.25) * ρ̄^(T(-3/2))
 
 """
 `FinnisSinclair`: constructs an EAM potential with embedding function
@@ -248,7 +243,13 @@ import JuLIP: energy, forces
 # the function call overhead (maybe also allocations)
 # In fact, this optimised codes gives a factor 3 speed-up for energy and factor 7
 # for forces
-# TODO: need a proper julia spline library
+# TODO: - need a proper julia spline library
+#       - or switch to global polynomials + Morse coordinates
+#       - should do all this without allocations
+#       - think about moving all iterations into NeighbourLists?
+#         can also multi-thread them there? But this sounds already problematic
+#         because of the allocations of temporary arrays...; maybe this
+#         can be done in the Atoms object, e.g. as `(:temp, threadid()) => ...`
 
 function _rhobar(V::EAM1, nlist::PairList)
    ρ = V.ρ(nlist.r)
@@ -259,16 +260,16 @@ function _rhobar(V::EAM1, nlist::PairList)
    return ρ̄
 end
 
-function energy(V::EAM1{SplinePairPotential, SplinePairPotential, T},
-                        at::AbstractAtoms) where T
+function energy(V::EAM1{SplinePairPotential, SplinePairPotential},
+                at::AbstractAtoms{T})  where  {T}
    nlist = neighbourlist(at, cutoff(V))::PairList
    ρ̄ = _rhobar(V, nlist)
    ϕ = V.ϕ(nlist.r)
-   return sum( V.F(s) for s in ρ̄ ) + 0.5 * sum(ϕ)
+   return sum(V.F, ρ̄) + T(0.5) * sum(ϕ)
 end
 
-function forces(V::EAM1{SplinePairPotential, SplinePairPotential, T},
-                        at::AbstractAtoms) where T
+function forces(V::EAM1{SplinePairPotential, SplinePairPotential},
+                        at::AbstractAtoms{T}) where T
    nlist = neighbourlist(at, cutoff(V))::PairList
    ρ̄ = _rhobar(V, nlist)
    dF = [ @D V.F(t)  for t in ρ̄ ]
@@ -278,7 +279,7 @@ function forces(V::EAM1{SplinePairPotential, SplinePairPotential, T},
    # compute the forces
    dE = zeros(JVec{T}, length(at))
    for n = 1:npairs(nlist)
-      f = ((0.5 * dϕ[n] + dF[nlist.i[n]] * dρ[n])/nlist.r[n]) * nlist.R[n]
+      f = ((T(0.5) * dϕ[n] + dF[nlist.i[n]] * dρ[n])/nlist.r[n]) * nlist.R[n]
       dE[nlist.i[n]] += f
       dE[nlist.j[n]] -= f
    end

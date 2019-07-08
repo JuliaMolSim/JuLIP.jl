@@ -35,7 +35,7 @@ import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum,
               site_energy, site_energy_d, partial_energy, partial_energy_d
 
-export PairPotential, SitePotential
+export PairPotential, SitePotential, ZeroSitePotential
 
 # the following are prototypes for internal functions around which IPs are
 # defined
@@ -168,29 +168,26 @@ include("adsite.jl")
 
 include("stillingerweber.jl")
 # * type StillingerWeber
-#
-# include("splines.jl")
-# include("eam.jl")
-# # EAM, FinnisSinclair
-#
-# include("onebody.jl")
-#
-#
-# export ZeroSitePotential
-#
-# "a site potential that just returns zero"
-# mutable struct ZeroSitePotential <: SitePotential
-# end
-#
-# @pot ZeroSitePotential
-#
-#
-# evaluate(p::ZeroSitePotential, r, R) = 0.0
-# evaluate_d(p::ZeroSitePotential, r, R) = zero(r)   # TODO: is this a bug?
-# cutoff(::ZeroSitePotential) = 3.0
-#
-#
-#
+
+include("splines.jl")
+include("eam.jl")
+# EAM, FinnisSinclair
+
+include("onebody.jl")
+
+
+"a site potential that just returns zero"
+mutable struct ZeroSitePotential <: SitePotential
+end
+
+@pot ZeroSitePotential
+
+
+evaluate(p::ZeroSitePotential, r, R) = zero(eltype(r))
+evaluate_d(p::ZeroSitePotential, r, R) = zero(r)
+cutoff(::ZeroSitePotential) = Bool(0)
+
+
 # """
 # `fd_hessian(V, R, h) -> H`
 #
