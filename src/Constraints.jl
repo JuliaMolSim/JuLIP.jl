@@ -15,8 +15,8 @@ using JuLIP: Dofs, AbstractConstraint, AbstractAtoms, AbstractCalculator,
              constraint, rnn, calculator, hessian_pos
 
 import JuLIP: position_dofs, project!, set_position_dofs!, positions,
-              energy, momentum_dofs, set_momentum_dofs!, dofs,
-              set_dofs!, positions, gradient, energy, hessian
+              momentum_dofs, set_momentum_dofs!, dofs,
+              set_dofs!, positions, energy, gradient, hessian
 
 
 export FixedCell, VariableCell, InPlaneFixedCell, AntiPlaneFixedCell, atomdofs
@@ -151,7 +151,7 @@ gradient(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
       rmul!(mat(forces(at))[cons.ifree], -1.0)
 
 energy(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
-      energy(at)
+      energy(calc, at)
 
 hessian(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
       project(cons, _pos_to_dof(hessian_pos(calculator(at), at), at))
@@ -262,7 +262,6 @@ function position_dofs(at::AbstractAtoms, cons::VariableCell)
    return [mat(U)[cons.ifree]; Matrix(F)[:]]
 end
 
-
 posdofs(x) = x[1:end-9]
 celldofs(x) = x[end-8:end]
 
@@ -291,12 +290,15 @@ end
 """
 `sigvol` : signed volume
 """
-sigvol(at::AbstractAtoms) = det(cell(at))
+sigvol(C::AbstractMatrix) = det(C)
+sigvol(at::AbstractAtoms) = sigvol(cell(at))
 
 """
 `sigvol_d` : derivative of signed volume
 """
-sigvol_d(at::AbstractAtoms) = sigvol(at) * inv(cell(at))
+sigvol_d(C::AbstractMatrix) = sigvol(C) * inv(C)'
+sigvol_d(at::AbstractAtoms) = sigvol_d(cell(at))
+# sigvol_d(at::AbstractAtoms) = sigvol(at) * inv(cell(at))
 
 function gradient(calc::AbstractCalculator, at::AbstractAtoms, cons::VariableCell)
    F = cell(at)'
@@ -305,13 +307,14 @@ function gradient(calc::AbstractCalculator, at::AbstractAtoms, cons::VariableCel
    for n = 1:length(G)
       G[n] = - A' * G[n]
    end
-   S = - virial(at) * inv(F)'        # ∂E / ∂F
-   S += cons.pressure * sigvol_d(at)     # applied stress
+   S = - virial(at) * inv(F)'             # ∂E / ∂F
+   S += cons.pressure * sigvol_d(at)'     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
-energy(at::AbstractAtoms, cons::VariableCell) =
-         energy(at) + cons.pressure * sigvol(at)
+
+energy(calc::AbstractCalculator, at::AbstractAtoms, cons::VariableCell) =
+         energy(calc, at) + cons.pressure * sigvol(at)
 
 # TODO: fix this once we implement the volume constraint ??????
 #       => or just disallow the volume constraint for now?

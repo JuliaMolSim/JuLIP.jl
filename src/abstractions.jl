@@ -279,7 +279,7 @@ called in the following ways:
 * `energy(at, dofs)`
 """
 function energy end
-energy(at::AbstractAtoms) = energy(calculator(at), at)
+# energy(at::AbstractAtoms) = energy(calculator(at), at)
 potential_energy = energy
 
 # TODO : move the aliases for energy to here
@@ -409,6 +409,13 @@ project!(at::AbstractAtoms) = project!(at, constraint(at))
 
 
 # converting calculator functionality
+# The following lines define variants of the `energy` function, which
+# get around the issue that energy may or may not include an external
+# potential; the rule is as follows:
+#  - a new calculator must implement `energy(calc, at)`
+#  - a new constraint must implement `energy(calc, at, cons)`
+#    and at the end *must* use `energy(calc, at)` but may not call any
+#    other variants of `energy`.
 
 """
 * `energy(at, x::Dofs) -> Float64`
@@ -416,8 +423,20 @@ project!(at::AbstractAtoms) = project!(at, constraint(at))
 `potential_energy`; with potentially added cell terms, e.g., if there is
 applied stress or applied pressure.
 """
-energy(at::AbstractAtoms, x::Dofs) = energy(set_dofs!(at, x))
-energy(calc::AbstractCalculator, at::AbstractAtoms, x::Dofs) = energy(calc, set_dofs!(at, x))
+energy(at::AbstractAtoms, x::Dofs) =
+      energy(set_dofs!(at, x))
+
+energy(calc::AbstractCalculator, at::AbstractAtoms, x::Dofs) =
+      energy(calc, set_dofs!(at, x), constraint(at))
+
+energy(at::AbstractAtoms) =
+      energy(calculator(at), at, constraint(at))
+
+energy(at::AbstractAtoms, cons::Union{Nothing, AbstractConstraint}) =
+      energy(calculator(at), at, cons)
+
+energy(calc::AbstractCalculator, at::AbstractAtoms, ::Nothing) =
+      energy(calc, at)
 
 """
 * `gradient(calc, at, cons::AbstractConstraint, c::Dofs) -> Dofs`
