@@ -40,17 +40,32 @@ dmorseold_r = [ (@D morseold(r)) for r in rr ]
 println(@test norm(morse_r - morseold_r, Inf) < 1e-12)
 println(@test norm(dmorse_r - dmorseold_r, Inf) < 1e-12)
 
+function runn(f, x, N)
+   s = 0.0
+   for n = 1:N
+      x += 0.0001
+      s += f(x)
+   end
+   return s
+end
+
+function runn_d(f, x, N)
+   s = 0.0
+   for n = 1:N
+      x += 0.0001
+      s += @D f(x)
+   end
+   return s
+end
+
+
 h2("Performance tests: @analytic vs hand-coded")
 x = 1.0+rand()
 println("Evaluations of @analytic Potential")
-@btime evaluate($morse1, $x)
-@btime ($morse1($x))
+@btime runn($morse1, $x, 1_000)
 println("Evaluations hand-coded Potential")
-@btime evaluate($morseold, $x)
-@btime ($morseold($x))
+@btime runn($morseold, $x, 1_000)
 println("Grad of @analytic Potential")
-@btime evaluate_d($morse1, $x)
-@btime (@D $morse1($x))
+@btime runn_d($morse1, $x, 1_000)
 println("Grad of hand-coded Potential")
-@btime evaluate_d($morseold, $x)
-@btime (@D $morseold($x))
+@btime runn_d($morseold, $x, 1_000)

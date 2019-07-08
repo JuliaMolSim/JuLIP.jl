@@ -45,26 +45,35 @@ TODO
 * `constraint`, `set_constraint!`
 * `get_data`, `set_data!`
 """
-@with_kw mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
-   X::Vector{JVec{T}} = JVec{T}[]       # positions
-   P::Vector{JVec{T}} = JVec{T}[]       # momenta (or velocities?)
-   M::Vector{T} = T[]                   # masses
-   Z::Vector{Int16} = Int16[]                      # atomic numbers
-   cell::JMat{T} = zero(JMat{T})                   # cell
-   pbc::JVec{Bool} = JVec(false, false, false)     # boundary condition
-   calc::Union{Nothing, AbstractCalculator} = nothing
-   cons::Union{Nothing, AbstractConstraint} = nothing
-   data::Dict{Any,JData} = Dict{Any,JData}()
+mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
+   X::Vector{JVec{T}}              # positions
+   P::Vector{JVec{T}}              # momenta (or velocities?)
+   M::Vector{T}                    # masses
+   Z::Vector{Int16}                      # atomic numbers
+   cell::JMat{T}                   # cell
+   pbc::JVec{Bool}     # boundary condition
+   calc::Union{Nothing, AbstractCalculator}
+   cons::Union{Nothing, AbstractConstraint}
+   data::Dict{Any,JData}
 end
+
+Atoms(; kwargs...) = Atoms{Float64}(; kwargs...)
+Atoms{T}(; X = JVec{T}[],
+           P = JVec{T}[],
+           M = T[],
+           Z = Int16[],
+           cell = zero(JMat{T}),
+           pbc = JVec(false, false, false),
+           calc = nothing,
+           cons = nothing,
+           data =  Dict{Any, JData}()  ) where {T} =
+      Atoms(X, P, M, Z, cell, pbc, calc, cons, data)
 
 Base.eltype(::Atoms{T}) where {T} = T
 
-# default type is Float64
-Atoms(;kwargs...) = Atoms{Float64}(;kwargs...)
-
-_auto_pbc(pbc::Tuple{Bool, Bool, Bool}) = pbc
-_auto_pbc(pbc::Bool) = (pbc, pbc, pbc)
-_auto_pbc(pbc::AbstractVector) = tuple(pbc...)
+_auto_pbc(pbc::Tuple{Bool, Bool, Bool}) = JVec(pbc...)
+_auto_pbc(pbc::Bool) = JVec(pbc, pbc, pbc)
+_auto_pbc(pbc::AbstractVector) = JVec(pbc...)
 
 _auto_cell(cell) = cell
 _auto_cell(cell::AbstractMatrix) = JMat(cell)
@@ -85,11 +94,10 @@ _auto_X(X::AbstractVector{T}) where {T <: Real} = _auto_X(reshape(X, 3, :))
 _auto_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
                               [ JVecF(X[:,n]) for n = 1:size(X,2) ])
 
-_auto_M(M::AbstractVector) = Vector{Float64}(M)
+_auto_M(M::AbstractVector{T}) where {T <: AbstractFloat} = Vector{T}(M)
+_auto_M(M::AbstractVector{T}) where {T <: Real} = Vector{Float64}(M)
 
-_auto_Z(Z::AbstractVector) = _auto_Z([z for z in Z])
-_auto_Z(Z::Vector{TI}) where {TI <: Integer}  =
-            isconcretetype(TI) ? Z : Vector{Int}(Z)
+_auto_Z(Z::AbstractVector) = Vector{Int16}(Z)
 
 
 
@@ -169,11 +177,11 @@ function set_pbc!(at::Atoms, p::Union{AbstractVector, Tuple})
    end
    return at
 end
-function set_calculator!(at::Atoms, calc::AbstractCalculator)
+function set_calculator!(at::Atoms, calc::Union{AbstractCalculator, Nothing})
    at.calc = calc
    return at
 end
-function set_constraint!(at::Atoms, cons::AbstractConstraint)
+function set_constraint!(at::Atoms, cons::Union{AbstractConstraint, Nothing})
    at.cons = cons
    return at
 end
