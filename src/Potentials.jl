@@ -77,6 +77,18 @@ NeighbourLists.pairs(at::AbstractAtoms, rcut::AbstractFloat) =
       pairs(neighbourlist(at, rcut))
 
 
+"a site potential that just returns zero"
+mutable struct ZeroSitePotential <: SitePotential
+end
+
+@pot ZeroSitePotential
+
+
+evaluate(p::ZeroSitePotential, r, R) = zero(eltype(r))
+evaluate_d(p::ZeroSitePotential, r, R) = zero(r)
+cutoff(::ZeroSitePotential) = Bool(0)
+
+
 
 # Implementation of a generic site potential
 # ================================================
@@ -174,148 +186,12 @@ include("eam.jl")
 # EAM, FinnisSinclair
 
 include("onebody.jl")
+# code for 1-body functions ; TODO: move into `nbody`
+
+include("hessians.jl")
+# code for hessians of site potentials
 
 
-"a site potential that just returns zero"
-mutable struct ZeroSitePotential <: SitePotential
-end
-
-@pot ZeroSitePotential
-
-
-evaluate(p::ZeroSitePotential, r, R) = zero(eltype(r))
-evaluate_d(p::ZeroSitePotential, r, R) = zero(r)
-cutoff(::ZeroSitePotential) = Bool(0)
-
-
-# """
-# `fd_hessian(V, R, h) -> H`
-#
-# If `length(R) = N` and `length(R[i]) = d` then `H` is an N × N `Matrix{SMatrix}` with
-# each element a d × d static array.
-# """
-# function fd_hessian(V::SitePotential, R::Vector{SVec{D,T}}, h) where {D,T}
-#    d = length(R[1])
-#    N = length(R)
-#    H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
-#    return fd_hessian!(H, V, R, h)
-# end
-#
-# """
-# `fd_hessian!(H, V, R, h) -> H`
-#
-# Fill `H` with the hessian entries; cf `fd_hessian`.
-# """
-# function fd_hessian!(H, V::SitePotential, R::Vector{SVec{D,T}}, h) where {D,T}
-#    N = length(R)
-#    # convert R into a long vector and H into a big matrix (same part of memory!)
-#    Rvec = mat(R)[:]
-#    Hmat = zeros(N*D, N*D)   # reinterpret(T, H, (N*D, N*D))
-#    # now re-define ∇V as a function of a long vector (rather than a vector of SVecs)
-#    dV(r) = (evaluate_d(V, r |> vecs) |> mat)[:]
-#    # compute the hessian as a big matrix
-#    for i = 1:N*D
-#       Rvec[i] +=h
-#       dVp = dV(Rvec)
-#       Rvec[i] -= 2*h
-#       dVm = dV(Rvec)
-#       Hmat[:, i] = (dVp - dVm) / (2 * h)
-#       Rvec[i] += h
-#    end
-#    Hmat = 0.5 * (Hmat + Hmat')
-#    # convert to a block-matrix
-#    for i = 1:N, j = 1:N
-#       Ii = (i-1) * D + (1:D)
-#       Ij = (j-1) * D + (1:D)
-#       H[i, j] = SMat{D,D}(Hmat[Ii, Ij])
-#    end
-#    return H
-# end
-#
-# function fd_hessian(calc::AbstractCalculator, at::AbstractAtoms, h)
-#    d = 3
-#    N = length(at)
-#    H = zeros( typeof(@SMatrix zeros(d, d)), N, N )
-#    return fd_hessian!(H, calc, at, h)
-# end
-#
-#
-# """
-# `fd_hessian!{D,T}(H, calc, at, h) -> H`
-#
-# Fill `H` with the hessian entries; cf `fd_hessian`.
-# """
-# function fd_hessian!(H, calc::AbstractCalculator, at::AbstractAtoms, h)
-#    D = 3
-#    N = length(at)
-#    X = positions(at) |> mat
-#    x = X[:]
-#    # convert R into a long vector and H into a big matrix (same part of memory!)
-#    Hmat = zeros(N*D, N*D)
-#    # now re-define ∇V as a function of a long vector (rather than a vector of SVecs)
-#    dE(x_) = (site_energy_d(calc, set_positions!(at, reshape(x_, D, N)), 1) |> mat)[:]
-#    # compute the hessian as a big matrix
-#    for i = 1:N*D
-#       x[i] += h
-#       dEp = dE(x)
-#       x[i] -= 2*h
-#       dEm = dE(x)
-#       Hmat[:, i] = (dEp - dEm) / (2 * h)
-#       x[i] += h
-#    end
-#    Hmat = 0.5 * (Hmat + Hmat')
-#    # convert to a block-matrix
-#    for i = 1:N, j = 1:N
-#       Ii = (i-1) * D + (1:D)
-#       Ij = (j-1) * D + (1:D)
-#       H[i, j] = SMat{D,D}(Hmat[Ii, Ij])
-#    end
-#    return H
-# end
-#
-#
-# hessian_pos(V::SitePotential, at::AbstractAtoms) =
-#       _precon_or_hessian_pos(V, at, hess)
-#
-# # implementation of a generic assembly of a global block-hessian from
-# # local site-hessians
-# function _precon_or_hessian_pos(V::SitePotential, at::AbstractAtoms, hfun)
-#    nlist = neighbourlist(at, cutoff(V))
-#    I, J, Z = Int[], Int[], JMatF[]
-#    # a crude size hint
-#    for C in (I, J, Z); sizehint!(C, 24*npairs(nlist)); end
-#    for (i, neigs, r, R) in sites(nlist)
-#       nneigs = length(neigs)
-#       # [1] the "off-centre" component of the hessian:
-#       # h[a, b] = ∂_{Ra} ∂_{Rb} V     (this is a nneigs x nneigs block-matrix)
-#       h = hfun(V, r, R)
-#       for a = 1:nneigs, b = 1:nneigs
-#          push!(I, neigs[a])
-#          push!(J, neigs[b])
-#          push!(Z, h[a,b])
-#       end
-#
-#       # [2] the ∂_{Ri} ∂_{Ra} terms
-#       # hib = ∂_{Ri} ∂_{Rb} V = - ∑_a ∂_{Ra} ∂_{Rb} V
-#       # also at the same time we pre-compute the centre-centre term:
-#       #    hii = ∂_{Ri} ∂_{Ri} V = - ∑_a ∂_{Ri} ∂_{Ra} V
-#       hii = zero(JMatF)
-#       for b = 1:nneigs
-#          hib = -sum( h[a, b] for a = 1:nneigs )
-#          hii -= hib
-#          append!(I, (i,         neigs[b] ))
-#          append!(J, (neigs[b],  i        ))
-#          append!(Z, (hib,       hib'     ))
-#       end
-#
-#       # and finally add the  ∂_{Ri}^2 term, which is precomputed above
-#       push!(I, i)
-#       push!(J, i)
-#       push!(Z, hii)
-#    end
-#    return sparse(I, J, Z, length(at), length(at))
-# end
-#
 
 
 

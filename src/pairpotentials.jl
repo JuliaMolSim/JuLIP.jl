@@ -61,9 +61,9 @@ hessian_pos(V::PairPotential, at::AbstractAtoms) =
 
 # this assembles a hessian or preconditioner for a pair potential
 # as a block-matrix
-function _precon_or_hessian_pos(V::PairPotential, at::AbstractAtoms, hfun)
+function _precon_or_hessian_pos(V::PairPotential, at::AbstractAtoms{T}, hfun) where {T}
    nlist = neighbourlist(at, cutoff(V))
-   I, J, Z = Int[], Int[], JMatF[]
+   I, J, Z = Int[], Int[], JMat{T}[]
    for C in (I, J, Z); sizehint!(C, 2*npairs(nlist)); end
    for (i, j, r, R) in pairs(nlist)
       h = 0.5 * hfun(V, r, R)

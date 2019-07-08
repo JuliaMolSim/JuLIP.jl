@@ -39,23 +39,23 @@ include("Potentials.jl")
 @reexport using JuLIP.Potentials
 
 
-# # basic preconditioning capabilities
-# include("preconditioners.jl")
-# @reexport using JuLIP.Preconditioners
-#
-# # some solvers
-# include("Solve.jl")
-# @reexport using JuLIP.Solve
-#
-# # experimental features
-# include("Experimental.jl")
-# @reexport using JuLIP.Experimental
-#
-# # the following are some sub-modules that are primarily used
-# # to create further abstractions to be shared across several
-# # modules in the JuLIP-verse.
-# include("mlips.jl")
-# include("nbody.jl")
+# basic preconditioning capabilities
+include("preconditioners.jl")
+@reexport using JuLIP.Preconditioners
+
+# some solvers
+include("Solve.jl")
+@reexport using JuLIP.Solve
+
+# experimental features
+include("Experimental.jl")
+@reexport using JuLIP.Experimental
+
+# the following are some sub-modules that are primarily used
+# to create further abstractions to be shared across several
+# modules in the JuLIP-verse.
+include("mlips.jl")
+include("nbody.jl")
 
 
 # codes to facilitate testing

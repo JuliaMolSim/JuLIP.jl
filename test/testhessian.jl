@@ -1,7 +1,7 @@
 using Test, JuLIP, StaticArrays, Printf, LinearAlgebra
 using JuLIP.Potentials
 using JuLIP.Testing
-using JuLIP.Potentials: evaluate_d, evaluate_dd
+using JuLIP.Potentials: evaluate_d, evaluate_dd, hess
 
 h2("Testing pair potential hessian")
 

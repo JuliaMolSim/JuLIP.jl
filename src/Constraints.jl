@@ -14,7 +14,7 @@ using JuLIP: Dofs, AbstractConstraint, AbstractAtoms, AbstractCalculator,
              forces, momenta, set_momenta!,
              constraint, rnn, calculator, hessian_pos
 
-import JuLIP: position_dofs, project!, set_position_dofs!, positions, gradient,
+import JuLIP: position_dofs, project!, set_position_dofs!, positions,
               energy, momentum_dofs, set_momentum_dofs!, dofs,
               set_dofs!, positions, gradient, energy, hessian
 
@@ -141,7 +141,7 @@ energy(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
       energy(at)
 
 hessian(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
-      _pos_to_dof(hessian_pos(calculator(at), at), at)[cons.Ifree, cons.Ifree]
+      _pos_to_dof(hessian_pos(calculator(at), at), at)[cons.ifree, cons.ifree]
 
 # ===========================
 #   2D FixedCell Constraints
@@ -248,8 +248,9 @@ end
 posdofs(x) = x[1:end-9]
 celldofs(x) = x[end-8:end]
 
-function set_position_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
-   F = JMatF(celldofs(x))
+function set_position_dofs!(at::AbstractAtoms{T}, cons::VariableCell, x::Dofs
+                            ) where {T}
+   F = JMat{T}(celldofs(x))
    A = F * inv(cons.F0)
    Y = copy(cons.X0)
    mat(Y)[cons.ifree] = posdofs(x)
@@ -257,7 +258,7 @@ function set_position_dofs!(at::AbstractAtoms, cons::VariableCell, x::Dofs)
       Y[n] = A * Y[n]
    end
    set_positions!(at, Y)
-   set_defm!(at, F)
+   set_cell!(at, F')
    return at
 end
 
@@ -269,24 +270,30 @@ end
 # this is nice because there is no contribution from the stress to
 # the positions component of the gradient
 
-vol(at::AbstractAtoms) = det(defm(at))
+"""
+`sigvol` : signed volume
+"""
+sigvol(at::AbstractAtoms) = det(cell(at))
 
-vol_d(at::AbstractAtoms) = vol(at) * inv(defm(at))'
+"""
+`sigvol_d` : derivative of signed volume
+"""
+sigvol_d(at::AbstractAtoms) = sigvol(at) * inv(cell(at))
 
-function gradient(at::AbstractAtoms, cons::VariableCell)
-   F = defm(at)
+function gradient(calc::AbstractCalculator, at::AbstractAtoms, cons::VariableCell)
+   F = cell(at)'
    A = F * inv(cons.F0)
    G = forces(at)
    for n = 1:length(G)
       G[n] = - A' * G[n]
    end
    S = - virial(at) * inv(F)'        # ∂E / ∂F
-   S += cons.pressure * vol_d(at)     # applied stress
+   S += cons.pressure * sigvol_d(at)     # applied stress
    return [ mat(G)[cons.ifree]; Array(S)[:] ]
 end
 
 energy(at::AbstractAtoms, cons::VariableCell) =
-         energy(at) + cons.pressure * det(defm(at))
+         energy(at) + cons.pressure * sigvol(at)
 
 # TODO: fix this once we implement the volume constraint ??????
 #       => or just disallow the volume constraint for now?

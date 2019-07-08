@@ -5,13 +5,13 @@ modules that either define basis sets or regression methods
 """
 module MLIPs
 
-using JuLIP:      AbstractCalculator, AbstractAtoms
-using JuLIP.FIO:  decode_dict
+using JuLIP:       AbstractCalculator, AbstractAtoms
+using JuLIP.FIO:   decode_dict
 
 import JuLIP:      energy, forces, virial, site_energy, site_energy_d
 import Base:       Dict, convert, ==
 
-export IPSuperBasis, combine
+export IPSuperBasis, IPCollection, combine
 
 """
 `abstract type IPBasis` : A type derived from `IPBasis` defines
