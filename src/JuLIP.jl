@@ -21,6 +21,7 @@ include("chemistry.jl")
 
 # the main atoms type
 include("atoms.jl")
+include("dofmanagement.jl") 
 
 # how to build some simple domains
 include("build.jl")
