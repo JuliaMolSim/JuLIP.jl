@@ -89,17 +89,17 @@ sw = StillingerWeber()
 set_calculator!(at3, sw)
 push!(calculators, (sw, at3))
 
-# # EAM Potential
-# at9 = set_pbc!( bulk(:Fe, cubic = true), false ) * (2,1,1)
-# eam = eam_Fe
-# push!(calculators, (eam, at9))
-#
-# if eam_W4 != nothing
-#    # Another EAM Potential
-#    at10 = set_pbc!( bulk(:W, cubic = true), false ) * (2,1,2)
-#    eam4 = eam_W4
-#    push!(calculators, (eam4, at10))
-# end
+# EAM Potential
+at9 = set_pbc!( bulk(:Fe, cubic = true), false ) * (2,1,1)
+eam = eam_Fe
+push!(calculators, (eam, at9))
+
+if eam_W4 != nothing
+   # Another EAM Potential
+   at10 = set_pbc!( bulk(:W, cubic = true), false ) * (2,1,2)
+   eam4 = eam_W4
+   push!(calculators, (eam4, at10))
+end
 
 # ========== Run the finite-difference tests for all calculators ============
 
