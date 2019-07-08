@@ -76,10 +76,6 @@ abstract type AbstractCalculator end
 const Dofs{T} = Vector{T}
 
 
-# TODO: probably rename Preconditioner to AbstractPreconditioner and
-#       AMGPrecon to Preconditioner
-
-
 """
 `positions(at)` : Return copy of positions of all atoms as a `Vector{JVec}`
 """

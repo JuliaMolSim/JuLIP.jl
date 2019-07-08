@@ -6,14 +6,16 @@ using AlgebraicMultigrid
 using JuLIP: AbstractAtoms, Dofs, maxdist,
             constraint, cutoff, positions, forces, mat, vecs,
             set_positions!, chemical_symbols, rnn, JVec, JMat ,
-            AbstractCalculator, calculator
+            AbstractCalculator, calculator, cell
 
-using JuLIP.Potentials: @analytic, evaluate, evaluate_d, PairPotential, HS,
+using JuLIP.Potentials: @pot, @analytic, evaluate, evaluate_d, PairPotential, HS,
                         SitePotential, sites, C0Shift, _precon_or_hessian_pos
 
-using JuLIP.Constraints: project!, FixedCell, _pos_to_alldof
+using JuLIP.Constraints: project, FixedCell, _pos_to_dof
 
 using SparseArrays: SparseMatrixCSC
+
+using LinearAlgebra: cholesky, I, Symmetric, norm 
 
 import SuiteSparse
 
@@ -118,7 +120,7 @@ function force_update!(P::IPPrecon, at::AbstractAtoms)
    # construct the preconditioner matrix ...
    Pmat = precon_matrix(P.p, at, P.innerstab)
    Pmat = Pmat + P.stab * I
-   Pmat = project!(constraint(at), Pmat)
+   Pmat = project(constraint(at), Pmat)
    # and the AMG solver
    P.A = Pmat
    P.solver = update_solver!(P)
@@ -148,11 +150,11 @@ build the preconditioner matrix associated with the potential V
 """
 precon_matrix(V::AbstractCalculator, at::AbstractAtoms;
               preconmap = (V, r, R) -> precon(V, r, R)) =
-   _pos_to_alldof(_precon_or_hessian_pos(V, at, preconmap), at)
+   _pos_to_dof(_precon_or_hessian_pos(V, at, preconmap), at)
 
 precon_matrix(V::AbstractCalculator, at::AbstractAtoms, innerstab;
               preconmap = (V, r, R) -> precon(V, r, R, innerstab)) =
-   _pos_to_alldof(_precon_or_hessian_pos(V, at, preconmap), at)
+   _pos_to_dof(_precon_or_hessian_pos(V, at, preconmap), at)
 
 """
 A variant of the `Exp` preconditioner; see
@@ -179,8 +181,7 @@ end
 
 cutoff(P::Exp) = cutoff(P.Vexp)
 
-# innerstab is ignored here
-precon(P::Exp{T}, r::AbstractVector{T}, R, innerstab=T(0)) where {T} =
+precon(P::Exp{T}, r::T, R, innerstab=T(0)) where {T} =
       (P.energyscale * P.Vexp(r) + innerstab) * one(JMat{T})
 
 function Exp(at::AbstractAtoms{T};
@@ -188,8 +189,8 @@ function Exp(at::AbstractAtoms{T};
              kwargs...) where {T}
    e0 = energyscale == :auto ? T(1.0) : energyscale
    rcut = r0 * cutoff_mult
-   Vexp = let A=A, r0=r0, T=T
-      @analytic r -> exp( - A * (r/r0 - T(1.0)))
+   Vexp = let A=A, r0=r0
+      @analytic r -> exp( - A * (r/r0 - 1))
    end * C0Shift(rcut)
    P = IPPrecon(Exp(Vexp, e0), at; kwargs...)
    if energyscale == :auto

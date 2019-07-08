@@ -14,8 +14,8 @@ import LineSearches
 using Optim: OnceDifferentiable, optimize, ConjugateGradient, LBFGS
 using LineSearches: BackTracking
 
-using LinearAlgebra: I 
-using JuLIP: AbstractAtoms, Preconditioner, update!,
+using LinearAlgebra: I
+using JuLIP: AbstractAtoms, update!,
              dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
              Dofs, calculator, constraint, AbstractCalculator, r_sum
 
