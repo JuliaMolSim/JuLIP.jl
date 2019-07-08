@@ -37,6 +37,18 @@ import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
 
 export PairPotential, SitePotential
 
+# the following are prototypes for internal functions around which IPs are
+# defined
+
+function evaluate end
+function evaluate_d end
+function evaluate_dd end
+function grad end
+function hess end
+function precond end
+
+
+
 
 """
 `PairPotential`:abstractsupertype for pair potentials
@@ -112,7 +124,7 @@ function partial_energy(V::SitePotential, at::AbstractAtoms{T}, Idom) where {T}
 end
 
 function partial_energy_d(V::SitePotential, at::AbstractAtoms, Idom)
-   F = zeros(JVecF, length(at))
+   F = zeros(JVec{eltype(at)}, length(at))
    nlist = neighbourlist(at, cutoff(V))
    for i in Idom
       j, r, R = site(nlist, i)
@@ -130,32 +142,32 @@ partial_energy_d(V::PairPotential, at::AbstractAtoms, Idom) =
       partial_energy_d(PairSitePotential(V), at, Idom)
 
 site_energy(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
-      partial_energy(V, at, [i0])
+      partial_energy(V, at, (i0,))
 
 site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
-      partial_energy_d(V, at, [i0])
+      partial_energy_d(V, at, (i0,))
 
 
 include("analyticpotential.jl")
 # * AnalyticFunction
 # * WrappedPPotential
 
-# include("cutoffs.jl")
-# #   * SWCutoff
-# #   * ShiftCutoff
-# #   * SplineCutoff
-#
-# include("pairpotentials.jl")
-# # * PairCalculator
-# # * LennardJonesPotential
-# # * MorsePotential
-# # * SimpleExponential
-#
-# include("adsite.jl")
-# # * ADPotential : Site potential using ForwardDiff
-#
-# include("stillingerweber.jl")
-# # * type StillingerWeber
+include("cutoffs.jl")
+#   * SWCutoff
+#   * ShiftCutoff
+#   * SplineCutoff
+
+include("pairpotentials.jl")
+# * PairCalculator
+# * LennardJonesPotential
+# * MorsePotential
+# * SimpleExponential
+
+include("adsite.jl")
+# * ADPotential : Site potential using ForwardDiff
+
+include("stillingerweber.jl")
+# * type StillingerWeber
 #
 # include("splines.jl")
 # include("eam.jl")

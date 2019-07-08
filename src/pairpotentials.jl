@@ -4,102 +4,63 @@
 using JuLIP: JVec, JMat, neighbourlist
 using LinearAlgebra: I
 using JuLIP.Chemistry: atomic_number
-
 using NeighbourLists
 
 export ZeroPairPotential, PairSitePotential, ZBLPotential,
          LennardJones, lennardjones,
-         Morse, morse, grad, hess
+         Morse, morse
 
-function site_energies(pp::PairPotential, at::AbstractAtoms)
-   Es = zeros(length(at))
-   for (i,_2,r,_3) in pairs(at, cutoff(pp))
-      Es[i] += 0.5 * pp(r)
+function site_energies(V::PairPotential, at::AbstractAtoms{T}) where {T}
+   Es = zeros(T, length(at))
+   for (i,_2,r,_3) in pairs(at, cutoff(V))
+      Es[i] += 0.5 * V(r)
    end
    return Es
 end
 
-import Base.sum
-
-sum(V::PairPotential, r) = sum( V(s) for s in r )
-
-function sum(V::PairPotential, r::Vector{T}) where T <: Real
-   E = 0.0
-   @simd for n = 1:length(r)
-      @inbounds E += V(r[n])
-   end
-   return E
-end
-
 # a simplified way to calculate gradients of pair potentials
-@inline grad(V::PairPotential, r::Real, R::JVec) = (evaluate_d(V, r) / r) * R
-
-# function energy(V::PairPotential, at::AbstractAtoms)
-#    E = 0.0
-#    for (_₁, _₂, r, _₃) in pairs(at, cutoff(V))
-#       E += V(r)
-#    end
-#    return 0.5 * E
-# end
+@inline grad(V::PairPotential, r::Real, R::JVec) = ((@D V(r)) / r) * R
 
 function energy(V::PairPotential, at::AbstractAtoms)
    nlist = neighbourlist(at, cutoff(V))::PairList
    return 0.5 * sum(V, nlist.r)
 end
 
-
-# function forces(V::PairPotential, at::AbstractAtoms)
-#    dE = zderos(JVecF, length(at))
-#    for (i,j,r,R) in pairs(at, cutoff(V))
-#       dE[i] += @GRAD V(r, R)
-#    end
-#    return dE
-# end
-
-function forces(V::PairPotential, at::AbstractAtoms)
+function forces(V::PairPotential, at::AbstractAtoms{T}) where {T}
    nlist = neighbourlist(at, cutoff(V))::PairList
-   dE = zeros(JVecF, length(at))   # TODO: JVec{T} ???
+   dE = zeros(JVec{T}, length(at))
    @simd for n = 1:npairs(nlist)
       @inbounds dE[nlist.i[n]] += grad(V, nlist.r[n], nlist.R[n])
    end
    return dE
 end
 
-
 # TODO: rewrite using generator once bug is fixed (???or maybe decide not to bother???)
-function virial(pp::PairPotential, at::AbstractAtoms)
-   S = zero(JMatF)
-   for (_₁, _₂, r, R) in pairs(at, cutoff(pp))
-      S -= 0.5 * grad(pp, r, R) * R'  # (((@D pp(r)) / r) * R) * R'
-   end
-   return S
-end
-
+virial(V::PairPotential, at::AbstractAtoms) =
+   - 0.5 * sum(  grad(V, r, R) * R'
+                 for (_₁, _₂, r, R) in pairs(at, cutoff(V))   )
 
 function hess(V::PairPotential, r, R)
    R̂ = R/r
    P = R̂ * R̂'
    dV = (@D V(r))/r
-   return ((@DD V(r)) - dV) * P + dV * one(JMatF)
+   return ((@DD V(r)) - dV) * P + dV * I
 end
 
 # an FF preconditioner for pair potentials
-function precon(V::PairPotential, r, R, innerstab=0.1)
+function precon(V::PairPotential, r::T, R, innerstab=T(0.1)) where {T}
    dV = @D V(r)
    hV = @DD V(r)
-   # Id = eye(JMatF)
    S = R/r
    return (1-innerstab) * (abs(hV) * S * S' + abs(dV / r) * (I - S * S')) +
-             innerstab  * (abs(hV) + abs(dV / r)) * one(JMatF)
+             innerstab  * (abs(hV) + abs(dV / r)) * I
 end
-
 
 hessian_pos(V::PairPotential, at::AbstractAtoms) =
       _precon_or_hessian_pos(V, at, hess)
 
-#
-# this assembles a hessian or preconditioner as a block-matrix
-#
+# this assembles a hessian or preconditioner for a pair potential
+# as a block-matrix
 function _precon_or_hessian_pos(V::PairPotential, at::AbstractAtoms, hfun)
    nlist = neighbourlist(at, cutoff(V))
    I, J, Z = Int[], Int[], JMatF[]
@@ -173,7 +134,9 @@ end
 """
 `Morse(A, e0, r0)` or `Morse(;A=4.0, e0=1.0, r0=1.0)`: constructs a
 `PairPotential` for
+```
    e0 ( exp( -2 A (r/r0 - 1) ) - 2 exp( - A (r/r0 - 1) ) )
+```
 """
 Morse(A, e0, r0) = @analytic(
    r -> e0 * ( exp(-(2.0*A) * (r/r0 - 1.0)) - 2.0 * exp(-A * (r/r0 - 1.0)) ) )
@@ -197,10 +160,10 @@ struct ZeroPairPotential <: PairPotential end
 
 @pot ZeroPairPotential
 
-evaluate(p::ZeroPairPotential, r::Float64) = 0.0
-evaluate_d(p::ZeroPairPotential, r::Float64) = 0.0
-evaluate_dd(p::ZeroPairPotential, r::Float64) = 0.0
-cutoff(p::ZeroPairPotential) = 0.0
+evaluate(p::ZeroPairPotential, r::T) where {T} = T(0.0)
+evaluate_d(p::ZeroPairPotential, r::T) where {T} = T(0.0)
+evaluate_dd(p::ZeroPairPotential, r::T) where {T} = T(0.0)
+cutoff(p::ZeroPairPotential) = Bool(0) # the weakest number type
 
 
 # ========================================================
@@ -216,26 +179,16 @@ end
 
 cutoff(psp::PairSitePotential) = cutoff(psp.pp)
 
-# TODO: get rid of this!
-function _sumpair_(pp, r)
-   # cant use a generator here since type is not inferred!
-   # Watch out for a bugfix
-   s = 0.0
-   for t in r
-      s += pp(t)
-   end
-   return s
-end
-
 # special implementation of site energy and forces for a plain pair potential
-evaluate(psp::PairSitePotential, r, R) = 0.5 * _sumpair_(psp.pp, r)
+evaluate(psp::PairSitePotential, r, R) = 0.5 * sum(psp.pp, r)
 
 evaluate_d(psp::PairSitePotential, r, R) =
             [ 0.5 * grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
 
-
-
-struct MultiPairPotential{TV <: PairPotential}
+"""
+prototype of a multi-species pair potential
+"""
+struct MultiPairPotential{TV}
    V::Matrix{TV}
    Z2V::Dict{Int, Int}
 end

@@ -102,11 +102,12 @@ end
 
 
 
-# # ==================================
-# #   Basic Potential Arithmetic
-# #
-# # TODO: can we get rid of SumPot and ProdPot altogether???
+# ==================================
+#   Basic Potential Arithmetic
 #
+# TODO: can we get rid of SumPot and ProdPot altogether???
+#       at the moment the ProdPot is needed for cutoffs
+
 # "sum of two pair potentials"
 # mutable struct SumPot{P1, P2} <: PairPotential
 #    p1::P1
@@ -125,31 +126,27 @@ end
 #    print(io, " + ")
 #    print(io, p.p2)
 # end
-#
-# "product of two pair potentials"
-# mutable struct ProdPot{P1, P2} <: PairPotential
-#    p1::P1
-#    p2::P2
-# end
-#
-# @pot ProdPot
-# import Base.*
-# *(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
-# @inline evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
-# evaluate_d(p::ProdPot, r) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
-# evaluate_dd(p::ProdPot, r) = (p.p1(r) * (@DD p.p2(r)) +
-#               2 * (@D p.p1(r)) * (@D p.p2(r)) + (@DD p.p1(r)) * p.p2(r))
-# cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
-# function Base.show(io::Base.IO, p::ProdPot)
-#    print(io, p.p1)
-#    print(io, " * ")
-#    print(io, p.p2)
-# end
-#
-# # expand usage of prodpot to be useful for TightBinding.jl
-# # TODO: make sure this is consistent and expand this to other things!
-# #       basically, we want to allow that
-# #       a pair potential can depend on direction as well!
-# #       in this case, @D is already the gradient and @GRAD remaind undefined?
-# evaluate(p::ProdPot{P1,P2}, r, R) where {P1,P2} = p.p1(r, R) * p.p2(r, R)
-# evaluate_d(p::ProdPot, r, R) = p.p1(r,R) * (@D p.p2(r,R)) + (@D p.p1(r,R)) * p.p2(r,R)
+
+"product of two pair potentials"
+mutable struct ProdPot{P1, P2} <: PairPotential
+   p1::P1
+   p2::P2
+end
+
+@pot ProdPot
+
+import Base.*
+*(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
+@inline evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
+evaluate_d(p::ProdPot, r) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
+evaluate_dd(p::ProdPot, r) = (p.p1(r) * (@DD p.p2(r)) +
+              2 * (@D p.p1(r)) * (@D p.p2(r)) + (@DD p.p1(r)) * p.p2(r))
+cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
+
+# expand usage of prodpot to be useful for TightBinding.jl
+# TODO: make sure this is consistent and expand this to other things!
+#       basically, we want to allow that
+#       a pair potential can depend on direction as well!
+#       in this case, @D is already the gradient and @GRAD remains undefined?
+evaluate(p::ProdPot, r, R) = p.p1(r, R) * p.p2(r, R)
+evaluate_d(p::ProdPot, r, R) = p.p1(r,R) * (@D p.p2(r,R)) + (@D p.p1(r,R)) * p.p2(r,R)

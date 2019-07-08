@@ -17,7 +17,9 @@ export positions, get_positions, set_positions!,
        neighbourlist, cutoff,
        apply_defm!,
        energy, potential_energy, forces, gradient, hessian,
-       site_energies, site_energy, partial_energy,
+       site_energies,
+       site_energy, partial_energy,
+       site_energy_d, partial_energy_d,
        stress, virial, site_virials,
        position_dofs, set_position_dofs!,
        momentum_dofs, set_momentum_dofs!,
@@ -34,6 +36,8 @@ export positions, get_positions, set_positions!,
 # todo: prototype and document these here
 function chemical_symbols end
 function atomic_numbers end
+function site_energy_d end
+function partial_energy_d end
 
 
 # -----
