@@ -95,7 +95,7 @@ _auto_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
                               [ JVecF(X[:,n]) for n = 1:size(X,2) ])
 
 _auto_M(M::AbstractVector{T}) where {T <: AbstractFloat} = Vector{T}(M)
-_auto_M(M::AbstractVector{T}) where {T <: Real} = Vector{Float64}(M)
+_auto_M(M::AbstractVector) = Vector{Float64}(M)
 
 _auto_Z(Z::AbstractVector) = Vector{Int16}(Z)
 
