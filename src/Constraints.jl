@@ -48,8 +48,8 @@ positions(at::AbstractAtoms,
 block-hessian into a classical dof-based hessian with the standard JuLIP
 ordering of dofs.
 """
-function _pos_to_dof(Hpos::SparseMatrixCSC, at::AbstractAtoms)
-   I, J, Z = Int[], Int[], Float64[]
+function _pos_to_dof(Hpos::SparseMatrixCSC, at::AbstractAtoms{T}) where {T}
+   I, J, Z = Int[], Int[], T[]
    for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
    Nat = length(at)
    @assert Nat == size(Hpos, 2)
@@ -63,6 +63,24 @@ function _pos_to_dof(Hpos::SparseMatrixCSC, at::AbstractAtoms)
    end
    return sparse(I, J, Z, 3*Nat, 3*Nat)
 end
+
+# TODO: looks like 1-1 copy; remove it?
+# function _pos_to_alldof(Hpos::SparseMatrixCSC, at::AbstractAtoms{T}) where {T}
+#    I, J, Z = Int[], Int[], T[]
+#    for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
+#    Nat = length(at)
+#    @assert Nat == size(Hpos, 2)
+#    # TODO: this findnz creates an extra copy of all data, which we should avoid
+#    for (iat, jat, zat) in zip(findnz(Hpos)...)
+#       for a = 1:3, b = 1:3
+#          push!(I, 3 * (iat-1) + a)
+#          push!(J, 3 * (jat-1) + b)
+#          push!(Z, zat[a,b])
+#       end
+#    end
+#    return sparse(I, J, Z, 3*Nat, 3*Nat)
+# end
+
 
 """
 `analyze_mask` : helper function to generate list of dof indices from
@@ -91,11 +109,6 @@ function analyze_mask(at, free, clamp, mask)
    return findall(mask[:])
 end
 
-# TODO: this is a temporary hack, and I think we need to
-#       figure out how to do this for more general constraints
-#       maybe not too terrible
-#       but why is there a !???
-# project!(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 # ========================================================================
 #          FIXED CELL IMPLEMENTATION
@@ -141,7 +154,12 @@ energy(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
       energy(at)
 
 hessian(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
-      _pos_to_dof(hessian_pos(calculator(at), at), at)[cons.ifree, cons.ifree]
+      project(cons, _pos_to_dof(hessian_pos(calculator(at), at), at))
+
+# TODO: this is a temporary hack, and I think we need to
+#       figure out how to do this for more general constraints
+#       maybe not too terrible
+project(cons::FixedCell, A::SparseMatrixCSC) = A[cons.ifree, cons.ifree]
 
 # ===========================
 #   2D FixedCell Constraints

@@ -28,7 +28,6 @@ set_constraint!(at, FixedCell(at))
 minimise!(at, precond = :exp, method = :lbfgs,
           robust_energy_difference = true, verbose=2)
 
-
 h2("Variable Cell Test")
 calc = lennardjones(r0=rnn(:Al))
 at = set_pbc!(bulk(:Al, cubic=true), true)
