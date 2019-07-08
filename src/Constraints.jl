@@ -26,88 +26,9 @@ using SparseArrays: SparseMatrixCSC, nnz, sparse, findnz
 using LinearAlgebra: rmul!, det
 
 
-function zeros_free(n::Integer, x::AbstractVector, free)
-   z = zeros(eltype(x), n)
-   z[free] = x
-   return z
-end
-
-function insert_free!(p::AbstractArray, x::AbstractVector, free)
-   p[free] = x
-   return p
-end
-
-# a helper function to get a valid positions array from a dof-vector
-positions(at::AbstractAtoms,
-          ifree::AbstractVector{<:Integer},
-          dofs::Dofs) =
-   insert_free!(positions(at) |> mat, dofs, ifree) |> vecs
-
-"""
-`_pos_to_dof` : a helper function that will convert a positions-based
-block-hessian into a classical dof-based hessian with the standard JuLIP
-ordering of dofs.
-"""
-function _pos_to_dof(Hpos::SparseMatrixCSC, at::AbstractAtoms{T}) where {T}
-   I, J, Z = Int[], Int[], T[]
-   for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
-   Nat = length(at)
-   @assert Nat == size(Hpos, 2)
-   # TODO: this findnz creates an extra copy of all data, which we should avoid
-   for (iat, jat, zat) in zip(findnz(Hpos)...)
-      for a = 1:3, b = 1:3
-         push!(I, 3 * (iat-1) + a)
-         push!(J, 3 * (jat-1) + b)
-         push!(Z, zat[a,b])
-      end
-   end
-   return sparse(I, J, Z, 3*Nat, 3*Nat)
-end
-
-# TODO: looks like 1-1 copy; remove it?
-# function _pos_to_alldof(Hpos::SparseMatrixCSC, at::AbstractAtoms{T}) where {T}
-#    I, J, Z = Int[], Int[], T[]
-#    for C in (I, J, Z); sizehint!(C, 9 * nnz(Hpos)); end
-#    Nat = length(at)
-#    @assert Nat == size(Hpos, 2)
-#    # TODO: this findnz creates an extra copy of all data, which we should avoid
-#    for (iat, jat, zat) in zip(findnz(Hpos)...)
-#       for a = 1:3, b = 1:3
-#          push!(I, 3 * (iat-1) + a)
-#          push!(J, 3 * (jat-1) + b)
-#          push!(Z, zat[a,b])
-#       end
-#    end
-#    return sparse(I, J, Z, 3*Nat, 3*Nat)
-# end
 
 
-"""
-`analyze_mask` : helper function to generate list of dof indices from
-lists of atom indices indicating free and clamped atoms
-"""
-function analyze_mask(at, free, clamp, mask)
-   if length(findall((free != nothing, clamp != nothing, mask != nothing))) > 1
-      error("FixedCell: only one of `free`, `clamp`, `mask` may be provided")
-   elseif all( (free == nothing, clamp == nothing, mask == nothing) )
-      # in this case (default) all atoms are free
-      return collect(1:3*length(at))
-   end
-   # determine free dof indices
-   Nat = length(at)
-   if clamp != nothing
-      # revert to setting free
-      free = setdiff(1:Nat, clamp)
-   end
-   if free != nothing
-      # revert to setting mask
-      mask = fill(false, 3, Nat)
-      if !isempty(free)
-         mask[:, free] .= true
-      end
-   end
-   return findall(mask[:])
-end
+
 
 
 # ========================================================================

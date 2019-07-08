@@ -52,7 +52,7 @@ mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
    cell::JMat{T}                   # cell
    pbc::JVec{Bool}     # boundary condition
    calc::Union{Nothing, AbstractCalculator}
-   cons::Union{Nothing, AbstractConstraint}
+   dofmgr::DofManager
    data::Dict{Any,JData}
 end
 
