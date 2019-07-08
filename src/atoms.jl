@@ -1,5 +1,4 @@
 
-using Parameters
 import Base.Dict
 
 export Atoms
@@ -10,9 +9,9 @@ export Atoms
 some data which needs to be updated if the configuration (positions only!) has
 changed too much.
 """
-mutable struct JData
-   max_change::Float64     # how much X may change before recomputing
-   accum_change::Float64   # how much has it changed already
+mutable struct JData{T}
+   max_change::T     # how much X may change before recomputing
+   accum_change::T   # how much has it changed already
    data::Any
 end
 
@@ -66,7 +65,7 @@ Atoms{T}(; X = JVec{T}[],
            pbc = JVec(false, false, false),
            calc = nothing,
            cons = nothing,
-           data =  Dict{Any, JData}()  ) where {T} =
+           data =  Dict{Any, JData{T}}()  ) where {T} =
       Atoms(X, P, M, Z, cell, pbc, calc, cons, data)
 
 Base.eltype(::Atoms{T}) where {T} = T
