@@ -129,7 +129,7 @@ function partial_energy(V::SitePotential, at::AbstractAtoms{T}, Idom) where {T}
    E = zero(T)
    nlist = neighbourlist(at, cutoff(V))
    for i in Idom
-      j, r, R = site(nlist, i)
+      j, r, R = neigs(nlist, i)
       E += V(r, R)
    end
    return E
@@ -139,7 +139,7 @@ function partial_energy_d(V::SitePotential, at::AbstractAtoms, Idom)
    F = zeros(JVec{eltype(at)}, length(at))
    nlist = neighbourlist(at, cutoff(V))
    for i in Idom
-      j, r, R = site(nlist, i)
+      j, r, R = neigs(nlist, i)
       dV = @D V(R)
       F[j] += dV
       F[i] -= sum(dV)

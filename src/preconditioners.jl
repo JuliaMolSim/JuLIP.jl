@@ -15,7 +15,7 @@ using JuLIP.Constraints: project, FixedCell, _pos_to_dof
 
 using SparseArrays: SparseMatrixCSC
 
-using LinearAlgebra: cholesky, I, Symmetric, norm 
+using LinearAlgebra: cholesky, I, Symmetric, norm
 
 import SuiteSparse
 
@@ -233,9 +233,15 @@ end
 
 
 """
-`FF`: defines a preconditioner based on a force-field;
+`FF`: defines a preconditioner based on a force-field; implementation
+is close to the paper where this idea is described:
 
-TODO: thorough documentation and reference once the paper is finished
+   Preconditioners for the geometry optimisation and saddle point search of
+   molecular systems; Letif Mones, Christoph Ortner & Gábor Csányi;
+   Scientific Reports 8, Article number: 13991 (2018)
+
+Each potential has to define a `precon` method from which the preconditioner
+is build.
 """
 FF(at::AbstractAtoms, V::AbstractCalculator; kwargs...) =
       IPPrecon(V, at; kwargs...)
