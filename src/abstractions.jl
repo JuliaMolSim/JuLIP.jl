@@ -146,9 +146,10 @@ volume(at) = abs(det(cell(at)))
 to the configuration, modifying `at` inplace and returning it. This
 modifies both the cell and the positions.
 """
-function apply_defm!(at::AbstractAtoms, F::AbstractMatrix, t::AbstractVector)
+function apply_defm!(at::AbstractAtoms{T}, F::AbstractMatrix,
+                     t::AbstractVector = zero(JVec{T})) where {T}
    @assert size(F) == (3,3)
-   @assert length(T) == 3
+   @assert length(t) == 3
    C = cell(at)
    X = positions(at)
    Cnew = C * F'
@@ -156,8 +157,8 @@ function apply_defm!(at::AbstractAtoms, F::AbstractMatrix, t::AbstractVector)
       # TODO: project back into the cell?
       X[n] = F * X[n] + t
    end
+   set_cell!(at, Cnew)
    set_positions!(at, X)
-   set_cell!(at, C)
    return at
 end
 
@@ -326,7 +327,7 @@ hessian_pos(at::AbstractAtoms) = hessian_pos(calculator(at), at)
 returns virial, (- ∂E / ∂F) where `F = cell(a)'`
 """
 function virial end
-virial(a::AbstractAtoms) = virial(calculator(a), a)
+virial(at::AbstractAtoms) = virial(calculator(at), at)
 
 """
 * `stress(c::AbstractCalculator, a::AbstractAtoms) -> JMatF`
@@ -336,7 +337,7 @@ stress = - virial / volume; this function should *not* be overloaded;
 instead overload virial
 """
 stress(calc::AbstractCalculator, at::AbstractAtoms) =
-      - virial(calc, at) / volume(a)
+      - virial(calc, at) / volume(at)
 
 stress(at::AbstractAtoms) = stress(calculator(at), at)
 

@@ -1,29 +1,26 @@
 
 module Preconditioners
 
-using JuLIP: AbstractAtoms, Preconditioner, Dofs, maxdist,
-            constraint, cutoff, positions, defm, JVecF, forces, mat, vecs,
-            set_positions!, julipwarn, chemical_symbols, rnn, JVec, JMat ,
+using AlgebraicMultigrid
+
+using JuLIP: AbstractAtoms, Dofs, maxdist,
+            constraint, cutoff, positions, forces, mat, vecs,
+            set_positions!, chemical_symbols, rnn, JVec, JMat ,
             AbstractCalculator, calculator
 
 using JuLIP.Potentials: @analytic, evaluate, evaluate_d, PairPotential, HS,
-         SitePotential, sites, C0Shift, _precon_or_hessian_pos
+                        SitePotential, sites, C0Shift, _precon_or_hessian_pos
 
 using JuLIP.Constraints: project!, FixedCell, _pos_to_alldof
 
-using AlgebraicMultigrid
-
 using SparseArrays: SparseMatrixCSC
+
 import SuiteSparse
 
-import JuLIP: update!
-import JuLIP.Potentials: precon, cutoff
-
-import Base: *, \, size
-
-using LinearAlgebra
-
-import LinearAlgebra: ldiv!, mul!, dot
+import JuLIP:             update!
+import JuLIP.Potentials:  precon, cutoff
+import Base:              *, \, size
+import LinearAlgebra:     ldiv!, mul!, dot
 
 export Exp, FF
 
@@ -55,7 +52,7 @@ preconditioner is updated
 * `stab`: stabilisation constant {0.01}, add `stab * I` to `P`
 * `solve`: which solver to used, `:amg` or `:chol`, default is `:amg`
 """
-mutable struct IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer} <: Preconditioner
+mutable struct IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer}
    p::TV
    solver::TS
    A::SparseMatrixCSC{T, TI}
@@ -183,15 +180,16 @@ end
 cutoff(P::Exp) = cutoff(P.Vexp)
 
 # innerstab is ignored here
-precon(P::Exp{T}, r, R, innerstab=0.0) where {T} = (P.energyscale * P.Vexp(r)) * one(JMat{T})
+precon(P::Exp{T}, r::AbstractVector{T}, R, innerstab=T(0)) where {T} =
+      (P.energyscale * P.Vexp(r) + innerstab) * one(JMat{T})
 
-function Exp(at::AbstractAtoms;
-             A=3.0, r0=rnn(at), cutoff_mult=2.2, energyscale = 1.0,
-             kwargs...)
-   e0 = energyscale == :auto ? 1.0 : energyscale
+function Exp(at::AbstractAtoms{T};
+             A=T(3.0), r0=rnn(at), cutoff_mult=T(2.2), energyscale = T(1.0),
+             kwargs...) where {T}
+   e0 = energyscale == :auto ? T(1.0) : energyscale
    rcut = r0 * cutoff_mult
-   Vexp = let A=A, r0=r0
-      @analytic r -> exp( - A * (r/r0 - 1.0))
+   Vexp = let A=A, r0=r0, T=T
+      @analytic r -> exp( - A * (r/r0 - T(1.0)))
    end * C0Shift(rcut)
    P = IPPrecon(Exp(Vexp, e0), at; kwargs...)
    if energyscale == :auto
@@ -202,14 +200,14 @@ function Exp(at::AbstractAtoms;
 end
 
 # want μ * <P v, v> ~ <∇E(x+hv) - ∇E(x), v> / h
-function estimate_energyscale(at, P)
+function estimate_energyscale(at::AbstractAtoms{T}, P) where {T}
    # get the P-matrix at current configuration
    A = precon_matrix(P.p, at)
    # determine direction in which the cell is maximal
-   F = Matrix(defm(at))
+   F = Matrix(cell(at)')
    X0 = positions(at)
    _, i = maximum( (norm(F[:, j]), j) for j = 1:3 ) # hack to make findmax work again
-   Fi = JVecF(F[:, i])
+   Fi = JVec{T}(F[:, i])
    # an associated perturbation
    V = [sin(2*pi * dot(Fi, x)/dot(Fi,Fi)) * Fi for x in X0]
    # compute gradient at current positions
@@ -230,8 +228,6 @@ function estimate_energyscale(at, P)
    end
    return μ
 end
-
-
 
 
 

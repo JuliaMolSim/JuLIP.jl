@@ -126,7 +126,6 @@ rattle!(at, 0.01)
 println(@test abs( energy(sw, at) - sum(site_energies(sw, at)) ) < 1e-10)
 
 println("fd test for site_energy")
-# finite-difference test
 set_constraint!(at, FixedCell(at))
 f(x) = JuLIP.Potentials.site_energy(sw, set_dofs!(at, x), 1)
 df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1) |> mat)[:]

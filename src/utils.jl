@@ -4,7 +4,7 @@ module Utils
 import JuLIP.Chemistry: rnn
 
 using JuLIP: AbstractAtoms, JVec, constraint, positions, set_positions!,
-             chemical_symbols, cell, pbc, mat 
+             chemical_symbols, cell, pbc, mat, dofs, set_dofs!
 
 using LinearAlgebra: norm
 
@@ -55,20 +55,6 @@ function rattle!(at::AbstractAtoms, r::AbstractFloat;
       set_positions!(at, X)
    end
    return at
-end
-
-
-"""
-use this instead of `warn`, then warnings can be turned off by setting
-`Main.JULIPWARN=false`
-"""
-function julipwarn(s)
-   if isdefined(Main, :JULIPWARN)
-      if Main.JULIPWARN == false
-         return false
-      end
-   end
-   @warn(s)
 end
 
 
