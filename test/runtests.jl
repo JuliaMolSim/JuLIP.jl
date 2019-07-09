@@ -29,9 +29,9 @@ julip_tests = [
    ("testanalyticpotential.jl", "Analytic Potential"),
    ("testpotentials.jl", "Potentials"),
    ("test_ad.jl", "AD Potentials"),
-   ("testvarcell.jl", "Variable Cell"),
-   ("testhessian.jl", "Hessian"),
-   ("testsolve.jl", "Solve"),
+   # ("testvarcell.jl", "Variable Cell"),
+   # ("testhessian.jl", "Hessian"),
+   # ("testsolve.jl", "Solve"),
 ]
 
 # remove testsolve if on Travis

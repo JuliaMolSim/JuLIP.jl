@@ -16,6 +16,23 @@ mutable struct JData{T}
 end
 
 
+struct LinearConstraint{T}
+   C::Matrix{T}
+   b::Vector{T}
+   desc::String   # description of the constraint
+end
+
+mutable struct DofManager{T}
+   variablecell::Bool
+   xfree::Vector{Int}
+   lincons::Vector{LinearConstraint{T}}
+   # ----
+   X0::Vector{JVec{T}}
+   F0::JMat{T}
+end
+
+
+
 """
 `Atoms{T <: AbstractFloat} <: AbstractAtoms`
 
@@ -41,7 +58,6 @@ TODO
 * `cell`, `set_cell!`
 * `pbc`, `set_pbc!`
 * `calculator`, `set_calculator!`
-* `constraint`, `set_constraint!`
 * `get_data`, `set_data!`
 """
 mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
@@ -57,6 +73,7 @@ mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
 end
 
 Atoms(; kwargs...) = Atoms{Float64}(; kwargs...)
+
 Atoms{T}(; X = JVec{T}[],
            P = JVec{T}[],
            M = T[],
@@ -64,9 +81,11 @@ Atoms{T}(; X = JVec{T}[],
            cell = zero(JMat{T}),
            pbc = JVec(false, false, false),
            calc = nothing,
-           cons = nothing,
            data =  Dict{Any, JData{T}}()  ) where {T} =
-      Atoms(X, P, M, Z, cell, pbc, calc, cons, data)
+      Atoms(X, P, M, Z, cell, pbc, calc, DofManager(length(X), T), data)
+
+Atoms(X::AbstractVector{JVec{T}}, P, M, Z, cell, pbc, calc, data) where {T} =
+      Atoms(X, P, M, Z, cell, pbc, calc, DofManager(length(X), T), data)
 
 Base.eltype(::Atoms{T}) where {T} = T
 
@@ -102,7 +121,6 @@ _auto_Z(Z::AbstractVector) = Vector{Int16}(Z)
 
 Atoms(X, P, M, Z, cell, pbc;
       calc = nothing,
-      cons = nothing,
       data = Dict{Any,JData}()) =
    Atoms(_auto_X(X),
          _auto_X(P),
@@ -111,7 +129,6 @@ Atoms(X, P, M, Z, cell, pbc;
          _auto_cell(cell),
          _auto_pbc(pbc),
          calc,
-         cons,
          data)
 
 Atoms(Z::Vector{TI}, X::Vector{JVec{T}}; kwargs...) where {TI, T} =
@@ -138,7 +155,6 @@ atomic_numbers(at::Atoms) = copy(at.Z)
 cell(at::Atoms) = at.cell
 pbc(at::Atoms) = at.pbc
 calculator(at::Atoms) = at.calc
-constraint(at::Atoms) = at.cons
 
 chemical_symbols(at::Atoms) = Chemistry.chemical_symbol.(at.Z)
 
@@ -180,10 +196,6 @@ function set_calculator!(at::Atoms, calc::Union{AbstractCalculator, Nothing})
    at.calc = calc
    return at
 end
-function set_constraint!(at::Atoms, cons::Union{AbstractConstraint, Nothing})
-   at.cons = cons
-   return at
-end
 
 # --------------- equality tests -------------------
 
@@ -192,7 +204,7 @@ import Base.==
    isapprox(at1, at2, tol = 0.0)  &&
           (at1.data == at2.data)  &&
           (at1.calc == at2.calc)  &&
-          (at1.cons == at2.cons) )
+          (at1.dofmgr == at2.dofmgr) )
 
 import Base.isapprox
 function isapprox(at1::Atoms{T}, at2::Atoms{T}; tol = sqrt(eps(T))) where {T}
@@ -307,7 +319,6 @@ Dict(at::Atoms) =
          "cell"   => at.cell,
          "pbc"    => at.pbc,
          "calc"   => nothing,
-         "cons"   => nothing,
          "data"   => nothing )
 
 Atoms(D::Dict) = Atoms(D["X"], D["P"], D["M"], D["Z"], D["cell"], D["pbc"])

@@ -82,7 +82,7 @@ h3("test set_dofs!, etc")
 # this is making an assumptions on the ordering of dofs; since a new
 # implementation of the DOF manager could change this, this test needs to be
 # re-implemented if that happens.
-set_constraint!(at, FixedCell(at, free = Ifree))
+set_free!(at, Ifree)
 println(@test dofs(at) == position_dofs(at) == mat(Y)[:, Ifree][:])
 println(@test momentum_dofs(at) == mat(P)[:, Ifree][:])
 q = position_dofs(at)

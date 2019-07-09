@@ -11,10 +11,9 @@ at = bulk(:Al, cubic=true) * 10
 X0 = positions(at) |> mat
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
-set_constraint!(at, FixedCell(at))
 x = dofs(at)
 println(@test (energy(at) == energy(at, x) == energy(calc, at)
-                          == energy(calc, at, x) == energy(at, constraint(at)) )
+                          == energy(calc, at, x) )
                )
 minimise!(at, precond=:id, verbose=2)
 X1 = positions(at) |> mat
@@ -30,7 +29,6 @@ h2("same test but large and with Exp preconditioner")
 at = bulk(:Al, cubic=true) * (20,20,2)
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
-set_constraint!(at, FixedCell(at))
 minimise!(at, precond = :exp, method = :lbfgs,
           robust_energy_difference = true, verbose=2)
 
@@ -38,10 +36,10 @@ h2("Variable Cell Test")
 calc = lennardjones(r0=rnn(:Al))
 at = set_pbc!(bulk(:Al, cubic=true), true)
 set_calculator!(at, calc)
-set_constraint!(at, VariableCell(at))
+variablecell!(at)
 x = dofs(at)
 println(@test (energy(at) == energy(at, x) == energy(calc, at)
-                          == energy(calc, at, x) == energy(at, constraint(at)) )
+                          == energy(calc, at, x) )
                )
 minimise!(at, verbose = 2)
 
@@ -50,7 +48,6 @@ at = bulk(:Si, cubic=true) * (10,10,2)
 at = set_pbc!(at, true)
 at = rattle!(at, 0.02)
 set_calculator!(at, StillingerWeber())
-set_constraint!(at, FixedCell(at))
 P = FF(at, StillingerWeber())
 minimise!(at, precond = P, method = :lbfgs,
           robust_energy_difference = true, verbose=2)
@@ -64,14 +61,12 @@ X0 = positions(at)
 ##
 set_positions!(at, X0)
 set_calculator!(at, eam_W)
-set_constraint!(at, FixedCell(at))
 P = FF(at, eam_W)
 minimise!(at, precond = P, method = :lbfgs, robust_energy_difference = true, verbose=2)
 
 ## steepest descent
 set_positions!(at, X0)
 set_calculator!(at, eam_W)
-set_constraint!(at, FixedCell(at))
 P = FF(at, eam_W)
 minimise!(at, precond = P, method = :sd, robust_energy_difference = true, verbose=2)
 
@@ -80,7 +75,6 @@ minimise!(at, precond = P, method = :sd, robust_energy_difference = true, verbos
 h2("Optimise again with some different stabilisation options")
 set_positions!(at, X0)
 set_calculator!(at, eam_W)
-set_constraint!(at, FixedCell(at))
 P = FF(at, eam_W, stab=0.1, innerstab=0.2)
 minimise!(at, precond = P, method = :lbfgs, robust_energy_difference = true, verbose=2)
 
@@ -95,7 +89,7 @@ h2("Test optimisation with VariableCell")
 at = bulk(:Al) * 2   # cubic=true,
 apply_defm!(at, I + 0.02 * rand(3,3))
 set_calculator!(at, calc)
-set_constraint!(at, VariableCell(at))
+variablecell!(at)
 println(@test JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1))
 
 h2("For the initial state, stress/virial is far from 0:")
@@ -110,14 +104,17 @@ println(@test fdtest(c -> JuLIP.Constraints.sigvol(reshape(c, (3,3))),
                      c -> JuLIP.Constraints.sigvol_d(reshape(c, (3,3)))[:],
                      rand(3,3)))
 
-h2("And now with pressure . . .")
-set_constraint!(at, VariableCell(at, pressure=10.0123))
-JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.02)
-at = bulk(:Al) * 2
-set_calculator!(at, calc)
-set_constraint!(at, VariableCell(at, pressure=0.01))
-JuLIP.Solve.minimise!(at, verbose = 2)
-@show norm(virial(at), Inf)
-@show norm(JuLIP.gradient(at), Inf)
-println(@test norm(JuLIP.gradient(at), Inf) < 1e-4)
-@info "note it is correct that virial is O(1) since we applied pressure"
+
+
+# TODO: revive this after introducing external potentials 
+# h2("And now with pressure . . .")
+# set_constraint!(at, VariableCell(at, pressure=10.0123))
+# JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.02)
+# at = bulk(:Al) * 2
+# set_calculator!(at, calc)
+# set_constraint!(at, VariableCell(at, pressure=0.01))
+# JuLIP.Solve.minimise!(at, verbose = 2)
+# @show norm(virial(at), Inf)
+# @show norm(JuLIP.gradient(at), Inf)
+# println(@test norm(JuLIP.gradient(at), Inf) < 1e-4)
+# @info "note it is correct that virial is O(1) since we applied pressure"
