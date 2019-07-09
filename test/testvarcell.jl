@@ -18,12 +18,12 @@ println(@test maxnorm(forces(at)) < 1e-12)
 rattle!(at, 0.1)
 
 # set the constraint >>> this means the deformed cell defines F0 and X0
-set_constraint!(at, VariableCell(at))
+variablecell!(at)
 
 h3("check that energy, forces, virial, stress, dofs, gradient evaluate ... ")
 energy(at)
 forces(at)
-JuLIP.gradient(at)
+gradient(at)
 virial(at)
 println(@test stress(at) == - virial(at) / volume(at))
 
@@ -44,5 +44,5 @@ si = bulk(:Si, cubic=true) * 2
 rattle!(si, 0.1)
 apply_defm!(at, I + 0.01*rand(JMatF))
 sw = StillingerWeber()
-set_constraint!(si, VariableCell(si))
+variablecell!(si)
 println(@test JuLIP.Testing.fdtest(calc, si, verbose=true, rattle=0.1))
