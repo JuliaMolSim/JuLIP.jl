@@ -16,16 +16,11 @@ using LineSearches: BackTracking
 
 using LinearAlgebra: I
 using JuLIP: AbstractAtoms, update!,
-             dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
-             Dofs, calculator, constraint, AbstractCalculator, r_sum
+             dofs, energy, gradient, set_dofs!, site_energies,
+             Dofs, calculator, AbstractCalculator, r_sum, fixedcell
 
 using JuLIP.Potentials: SitePotential
 using JuLIP.Preconditioners: Exp
-using JuLIP.Constraints: FixedCell
-
-
-# TODO: move to Optim 0.11, and exploit the new alphaguess functionality of
-#       Linesearches. This gives awful error messages.
 
 
 
@@ -92,7 +87,7 @@ function minimise!(at::AbstractAtoms;
    # create a preconditioner
    if isa(precond, Symbol)
       if precond == :auto
-         if isa(constraint(at), FixedCell)
+         if fixedcell(at)
             precond = :exp
          else
             precond = :id

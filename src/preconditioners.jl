@@ -4,14 +4,13 @@ module Preconditioners
 using AlgebraicMultigrid
 
 using JuLIP: AbstractAtoms, Dofs, maxdist,
-            constraint, cutoff, positions, forces, mat, vecs,
+            cutoff, positions, forces, mat, vecs,
             set_positions!, chemical_symbols, rnn, JVec, JMat ,
-            AbstractCalculator, calculator, cell
+            AbstractCalculator, calculator, cell,
+            fixedcell, projectxfree, _pos_to_dof
 
 using JuLIP.Potentials: @pot, @analytic, evaluate, evaluate_d, PairPotential, HS,
                         SitePotential, sites, C0Shift, _precon_or_hessian_pos
-
-using JuLIP.Constraints: project, FixedCell, _pos_to_dof
 
 using SparseArrays: SparseMatrixCSC
 
@@ -73,7 +72,7 @@ function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
          updatedist=0.2 * rnn(at), tol=1e-7, updatefreq=10, stab=0.01,
          solver = :chol, innerstab=0.0)
    # make sure we don't use this in a context it is not intended for!
-   @assert isa(constraint(at), FixedCell)
+   @assert fixedcell(at)
    A = AlgebraicMultigrid.poisson(12)
    if solver == :amg
       solver = ruge_stuben(A)
@@ -120,7 +119,7 @@ function force_update!(P::IPPrecon, at::AbstractAtoms)
    # construct the preconditioner matrix ...
    Pmat = precon_matrix(P.p, at, P.innerstab)
    Pmat = Pmat + P.stab * I
-   Pmat = project(constraint(at), Pmat)
+   Pmat = projectxfree(at, Pmat)
    # and the AMG solver
    P.A = Pmat
    P.solver = update_solver!(P)

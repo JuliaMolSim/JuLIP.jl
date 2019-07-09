@@ -1,37 +1,12 @@
 
 
-using JuLIP: Dofs, AbstractConstraint, AbstractAtoms, AbstractCalculator,
-             mat, vecs, JMat, JVec,
-             set_positions!, set_cell!, virial, cell,
-             forces, momenta, set_momenta!,
-             constraint, rnn, calculator, hessian_pos
-
-import JuLIP: position_dofs, project!, set_position_dofs!, positions,
-              momentum_dofs, set_momentum_dofs!, dofs,
-              set_dofs!, positions, energy, gradient, hessian
-
-
-export FixedCell, VariableCell, InPlaneFixedCell, AntiPlaneFixedCell, atomdofs
+export atomdofs, variablecell, fixedcell, dofmgr_resetref!, variablecell!,
+       fixedcell!, set_clamp!, set_free!, set_mask!, reset_clamp!
 
 using SparseArrays: SparseMatrixCSC, nnz, sparse, findnz
 
 using LinearAlgebra: rmul!, det
 
-
-struct LinearConstraint{T}
-   C::Matrix{T}
-   b::Vector{T}
-   desc::String   # description of the constraint
-end
-
-mutable struct DofManager{T}
-   variablecell::Bool
-   xfree::Vector{Int}
-   lincons::Vector{LinearConstraint{T}}
-   # ----
-   X0::Vector{JVec{T}}
-   F0::JMat{T}
-end
 
 
 # ========================================================================
@@ -78,6 +53,12 @@ function _pos_to_dof(Hpos::SparseMatrixCSC, at::AbstractAtoms{T}) where {T}
    return sparse(I, J, Z, 3*Nat, 3*Nat)
 end
 
+# TODO: this is a temporary hack, and I think we need to
+#       figure out how to do this for more general constraints
+#       maybe not too terrible
+projectxfree(at::Atoms, A::SparseMatrixCSC) =
+      A[at.dofmgr.xfree, at.dofmgr.xfree]
+
 """
 `analyze_mask` : helper function to generate list of dof indices from
 lists of atom indices indicating free and clamped atoms
@@ -104,6 +85,12 @@ function analyze_mask(at, free, clamp, mask)
    end
    return findall(mask[:])
 end
+
+analyze_mask(at, free::Colon, clamp::Nothing, mask::Nothing) =
+      collect(1:3*length(at))
+
+analyze_mask(at, free::Nothing, clamp::Colon, mask::Nothing) =
+      Int[]
 
 
 # ========================================================================
@@ -144,27 +131,179 @@ One aspect of this definition is that clamped atom positions still change via
 """
 
 
-DofManager(at::AbstractAtoms{T}) where {T} =
-      DofManager( false,                    # variablecell
-                  collect(1:length(at)),    # xfree
-                  LinearConstraint{T}[],    # lincons
-                  JVec{T}[],                # X0
-                  zero(JMat{T}) )           # F0
+DofManager(at::AbstractAtoms) = DofManager(length(at), eltype(at))
 
+DofManager(Nat::Integer, T = Float64) =
+      DofManager( false,                      # variablecell
+                  collect(1:3*Nat),    # xfree
+                  LinearConstraint{T}[],      # lincons
+                  JVec{T}[],                  # X0
+                  zero(JMat{T}) )             # F0
 
-set_clamped!(at::Atoms, Iclamp::AbstractVector{<: Integer}) =
-   set_mask!(
+import Base.==
+==(d1::DofManager, d2::DofManager) =
+      (d1.variablecell == d2.variablecell) && (d1.xfree == d2.xfree)
+      # TODO: potential need to add equality about the constraints?
+      #       is xfree even relevant for equality?
 
-set_free!(at::Atoms, Ifree::AbstractVector{<: Integer})
+variablecell(at::Atoms) = at.dofmgr.variablecell
+fixedcell(at::Atoms) = !variablecell(at::Atoms)
 
-set_mask!(at::Atoms, mask::AbstractVector{<: Integer})
-
-               free=nothing, clamp=nothing, mask=nothing,
-               pressure = 0.0, fixvolume=false)
-   if pressure != 0.0 && fixvolume
-      @warn("the pressure parameter will be ignored when `fixvolume==true`")
-   end
-   return VariableCell( analyze_mask(at, free, clamp, mask),
-                        positions(at), cell(at)',
-                        pressure, fixvolume, det(cell(at)) )
+function dofmgr_resetref!(at)
+   at.dofmgr.X0 = copy(positions(at))
+   at.dofmgr.F0 = cell(at)'
+   return at
 end
+
+
+# convenience function to return DoFs associated with a particular atom
+atomdofs(at::Atoms, i::Integer) =
+      findall(in(3*i-2:3*i), at.dofmgr.xfree)
+
+
+"""
+`variablecell!(at)` : make the cell-shape variable
+"""
+variablecell!(at) = set_variablecell!(at, true)
+
+"""
+`fixedcell!(at)` : freeze the cell shape
+"""
+fixedcell!(at) = set_variablecell!(at, false)
+
+"""
+`set_variablecell!` : specify whether cell shape is variable or fixed
+"""
+function set_variablecell!(at::AbstractAtoms, tf::Bool)
+   at.dofmgr.variablecell = tf
+   if tf
+      dofmgr_resetref!(at)
+   end
+   return at
+end
+
+
+set_clamp!(at::Atoms, Iclamp::AbstractVector{<: Integer}) =
+      set_clamp!(at; clamp = Iclamp)
+
+set_free!(at::Atoms, Ifree::AbstractVector{<: Integer}) =
+      set_clamp!(at; free = Ifree)
+
+set_mask!(at::Atoms, mask) =
+      set_clamp!(at; mask=mask)
+
+reset_clamp!(at) = set_clamp!(at; free = :)
+
+function set_clamp!(at::Atoms; free=nothing, clamp=nothing, mask=nothing)
+   at.dofmgr.xfree = analyze_mask(at, free, clamp, mask)
+   return at
+end
+
+
+# reverse map:
+#   F -> F
+#   X[n] = F * F^{-1} X0[n]
+
+function position_dofs(at::Atoms)
+   if fixedcell(at)
+      return mat(at.X)[at.dofmgr.xfree]
+   end
+   # variable cell case:
+   X = positions(at)
+   F = cell(at)'
+   A = at.dofmgr.F0 * inv(F)
+   U = [A * x for x in X]   # switch to broadcast!
+   return [mat(U)[at.dofmgr.xfree]; Matrix(F)[:]]
+end
+
+posdofs(x) = x[1:end-9]
+
+celldofs(x) = x[end-8:end]
+
+function set_position_dofs!(at::AbstractAtoms{T}, x::Dofs) where {T}
+   if fixedcell(at)
+      return set_positions!(at, positions(at, at.dofmgr.xfree, x))
+   end
+   # variable cell case:
+   F = JMat{T}(celldofs(x))
+   A = F * inv(at.dofmgr.F0)
+   Y = copy(at.dofmgr.X0)
+   mat(Y)[at.dofmgr.xfree] = posdofs(x)
+   for n = 1:length(Y)
+      Y[n] = A * Y[n]
+   end
+   set_positions!(at, Y)
+   set_cell!(at, F')
+   return at
+end
+
+function momentum_dofs(at::AbstractAtoms)
+   if fixedcell(at)
+      return mat(momenta(at))[at.dofmgr.xfree]
+   end
+   @error("`momentum_dofs` is not yet implmement for variable cells")
+   return nothing
+end
+
+function set_momentum_dofs!(at::AbstractAtoms, p::Dofs)
+   if fixedcell(at)
+      return set_momenta!(at, zeros_free(3 * length(at), p, at.dofmgr.xfree) |> vecs)
+   end
+   @error("`set_momentum_dofs!` is not yet implmement for variable cells")
+   return nothing
+end
+
+
+# for a variation x^t_i = (F+tU) F_0^{-1} (u_i + t v_i)
+#       ~ U F^{-1} F F0^{-1} u_i + F F0^{-1} v_i
+# we get
+#      dE/dt |_{t=0} = U : (S F^{-T}) - < (F * inv(F0))' * frc, v>
+#
+# this is nice because there is no contribution from the stress to
+# the positions component of the gradient
+
+"""
+`sigvol` : signed volume
+"""
+sigvol(C::AbstractMatrix) = det(C)
+sigvol(at::AbstractAtoms) = sigvol(cell(at))
+
+"""
+`sigvol_d` : derivative of signed volume
+"""
+sigvol_d(C::AbstractMatrix) = sigvol(C) * inv(C)'
+sigvol_d(at::AbstractAtoms) = sigvol_d(cell(at))
+
+function gradient(calc::AbstractCalculator, at::Atoms)
+   if fixedcell(at)
+      return rmul!(mat(forces(at))[at.dofmgr.xfree], -1.0)
+   end
+   F = cell(at)'
+   A = F * inv(at.dofmgr.F0)
+   G = forces(at)
+   for n = 1:length(G)
+      G[n] = - A' * G[n]
+   end
+   S = - virial(at) * inv(F)'                  # ∂E / ∂F
+   # S += at.dofmgr.pressure * sigvol_d(at)'     # applied stress  TODO: revive this!
+   return [ mat(G)[at.dofmgr.xfree]; Array(S)[:] ]
+end
+
+function hessian(calc::AbstractCalculator, at::AbstractAtoms)
+   if fixedcell(at)
+      H =  _pos_to_dof(hessian_pos(calculator(at), at), at)
+      return projectxfree(at, H)
+   end
+   @error("`hessian` is not yet implmement for variable cells")
+   return nothing
+end
+
+
+# TODO:
+#   - in-plane, anti-plane
+#   - pressure
+#   - fixvolume
+#   - once we add an external potential we need to think about terminology
+#     should energy -> potential_energy?; total_energy a new one?
+#     total_energy(calc::AbstractCalculator, at::AbstractAtoms, cons::VariableCell) =
+#              energy(calc, at) + cons.pressure * sigvol(at)

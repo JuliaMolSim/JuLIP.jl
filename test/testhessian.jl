@@ -44,7 +44,6 @@ end
 h3("full finite-difference test for pairpot `hessian`")
 at = at * 2
 set_pbc!(at, false)
-set_constraint!(at, FixedCell(at))
 set_calculator!(at, pp)
 println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
 
@@ -53,7 +52,6 @@ h2("Testing EAM hessian")
 # setup a geometry
 at = bulk(:Fe, cubic=true) * 2
 set_pbc!(at, false)
-set_constraint!(at, FixedCell(at))
 dir = joinpath(dirname(@__FILE__), "..", "data") * "/"
 eam = eam_Fe
 set_calculator!(at, eam)
@@ -110,7 +108,6 @@ h2("Testing Stillinger-Weber hessian")
 at = bulk(:Si, cubic=true) * 2
 rattle!(at, 0.02)
 set_pbc!(at, false)
-set_constraint!(at, FixedCell(at))
 sw = StillingerWeber()
 set_calculator!(at, sw)
 

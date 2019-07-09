@@ -13,7 +13,6 @@ export positions, get_positions, set_positions!,
        pbc, get_pbc, set_pbc!,
        set_data!, get_data, has_data,
        set_calculator!, calculator, get_calculator,
-       set_constraint!, constraint, get_constraint,
        neighbourlist, cutoff,
        apply_defm!,
        energy, potential_energy, forces, gradient, hessian,
@@ -211,12 +210,6 @@ function calculator end
 "`set_calculator!(at, calc) -> at` : attach a calculator"
 function set_calculator! end
 
-"`constraint(at)` : return attached constraint"
-function constraint end
-
-"`set_constraint!(at, cons) -> at` : attach a constraint"
-function set_constraint! end
-
 
 """
 `neighbourlist(at, rcut)`
@@ -344,20 +337,18 @@ stress(at::AbstractAtoms) = stress(calculator(at), at)
 
 
 """
-`position_dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
 `position_dofs(at::AbstractAtoms) -> Dofs`
-`dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
+`dofs(at::AbstractAtoms) -> Dofs`
 
 Take an atoms object `at` and return a Dof-vector that fully describes the
-state given the constraint `cons`
+state given the potential constraints placed on it.
 """
 function position_dofs end
-position_dofs(at::AbstractAtoms) = position_dofs(at, constraint(at))
 
 """
 `dofs` is an alias for `position_dofs`
 """
-dofs(args...) = position_dofs(args...)
+dofs = position_dofs
 
 """
 * `set_position_dofs!(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) -> at`
@@ -368,24 +359,20 @@ dofs(args...) = position_dofs(args...)
 change configuration stored in `at` according to `cons` and `x`.
 """
 function set_position_dofs! end
-set_position_dofs!(at::AbstractAtoms, x::Dofs) =
-      set_position_dofs!(at, constraint(at), x)
 
 """
 `set_dofs!` is an alias for `set_position_dofs!`
 """
-set_dofs!(args...) = set_position_dofs!(args...)
+set_dofs! = set_position_dofs!
 
 
 """
-`momentum_dofs(at::AbstractAtoms, cons::AbstractConstraint) -> Dofs`
 `momentum_dofs(at::AbstractAtoms) -> Dofs`
 
 Take an atoms object `at` and return a Dof-vector that fully describes the
-momenta (given the constraint `cons`)
+momenta (given any constraints placed on `at`)
 """
 function momentum_dofs end
-momentum_dofs(at::AbstractAtoms) = momentum_dofs(at, constraint(at))
 
 """
 * `set_momentum_dofs!(at::AbstractAtoms, cons::AbstractConstraint, p::Dofs) -> at`
@@ -394,18 +381,13 @@ momentum_dofs(at::AbstractAtoms) = momentum_dofs(at, constraint(at))
 change configuration stored in `at` according to `cons` and `p`.
 """
 function set_momentum_dofs! end
-set_momentum_dofs!(at::AbstractAtoms, q::Dofs) =
-      set_momentum_dofs!(at, constraint(at), q)
 
 """
-* `project!(at::AbstractAtoms, cons::AbstractConstraint) -> at`
 * `project!(at::AbstractAtoms) -> at`
 
 project the `at` onto the constraint manifold.
 """
 function project! end
-
-project!(at::AbstractAtoms) = project!(at, constraint(at))
 
 
 # converting calculator functionality
@@ -425,18 +407,10 @@ applied stress or applied pressure.
 """
 energy(at::AbstractAtoms, x::Dofs) =
       energy(set_dofs!(at, x))
-
 energy(calc::AbstractCalculator, at::AbstractAtoms, x::Dofs) =
-      energy(calc, set_dofs!(at, x), constraint(at))
-
+      energy(calc, set_dofs!(at, x))
 energy(at::AbstractAtoms) =
-      energy(calculator(at), at, constraint(at))
-
-energy(at::AbstractAtoms, cons::Union{Nothing, AbstractConstraint}) =
-      energy(calculator(at), at, cons)
-
-energy(calc::AbstractCalculator, at::AbstractAtoms, ::Nothing) =
-      energy(calc, at)
+      energy(calculator(at), at)
 
 """
 * `gradient(calc, at, cons::AbstractConstraint, c::Dofs) -> Dofs`
@@ -451,16 +425,10 @@ overloaded by an `AbstractConstraints` object.
 function gradient end
 gradient(at::AbstractAtoms, x::Dofs) =
       gradient(set_dofs!(at, x))
-gradient(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) =
-      gradient(set_dofs!(at, cons, x), cons)
 gradient(calc::AbstractCalculator, at::AbstractAtoms, x::Dofs) =
       gradient(calc, set_dofs!(at, x))
 gradient(at::AbstractAtoms) =
-      gradient(calculator(at), at, constraint(at))
-gradient(calc::AbstractCalculator, at::AbstractAtoms) =
-      gradient(calc, at, constraint(at))
-gradient(at::AbstractAtoms, cons::AbstractConstraint) =
-      gradient(calculator(at), at, cons)
+      gradient(calculator(at), at)
 
 
 """
@@ -472,16 +440,10 @@ overload `hessian(calc, at, cons)`
 function hessian end
 hessian(at::AbstractAtoms, x::Dofs) =
       hessian(set_dofs!(at, x))
-hessian(at::AbstractAtoms, cons::AbstractConstraint, x::Dofs) =
-      hessian(set_dofs!(at, cons, x), cons)
 hessian(calc::AbstractCalculator, at::AbstractAtoms, x::Dofs) =
       hessian(calc, set_dofs!(at, x))
 hessian(at::AbstractAtoms) =
-      hessian(calculator(at), at, constraint(at))
-hessian(calc::AbstractCalculator, at::AbstractAtoms) =
-      hessian(calc, at, constraint(at))
-hessian(at::AbstractAtoms, cons::AbstractConstraint) =
-      hessian(calculator(at), at, cons)
+      hessian(calculator(at), at)
 
 
 #######################################################################
@@ -516,7 +478,6 @@ construct a preconditioner suitable for this atoms object
 default is `I`
 """
 preconditioner(at::AbstractAtoms) =
-            preconditioner(at, calculator(at), constraint(at))
+            preconditioner(at, calculator(at))   # should be preconditioner(calc,  at) ???
 
-preconditioner(at::AbstractAtoms, calc::AbstractCalculator,
-               con::AbstractConstraint) = I
+preconditioner(at::AbstractAtoms, calc::AbstractCalculator) = I
