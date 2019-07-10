@@ -236,3 +236,33 @@ Dict(V::ZBLPotential) = Dict("__id__" => "JuLIP_ZBLPotential",
                              "Z2" => Z.Z2)
 ZBLPotential(D::Dict) = ZBLPotential(D["Z1"], D["Z2"])
 Base.convert(::Val{:JuLIP_ZBLPotential}, D::Dict) = ZBLPotential(D)
+
+
+
+
+
+# ====================================================================
+#   A product of two pair potentials: primarily used for cutoff mechanisms
+
+"product of two pair potentials"
+mutable struct ProdPot{P1, P2} <: PairPotential
+   p1::P1
+   p2::P2
+end
+
+@pot ProdPot
+
+import Base.*
+*(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
+@inline evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
+evaluate_d(p::ProdPot, r) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
+evaluate_dd(p::ProdPot, r) = (p.p1(r) * (@DD p.p2(r)) +
+              2 * (@D p.p1(r)) * (@D p.p2(r)) + (@DD p.p1(r)) * p.p2(r))
+cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
+
+# expand usage of prodpot to be useful for TightBinding.jl
+#       basically, we want to allow that
+#       a pair potential can depend on direction as well!
+#       in this case, @D is already the gradient and @GRAD remains undefined
+evaluate(p::ProdPot, r, R) = p.p1(r, R) * p.p2(r, R)
+evaluate_d(p::ProdPot, r, R) = p.p1(r,R) * (@D p.p2(r,R)) + (@D p.p1(r,R)) * p.p2(r,R)

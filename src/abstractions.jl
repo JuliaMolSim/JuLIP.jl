@@ -478,3 +478,40 @@ preconditioner(at::AbstractAtoms) =
             preconditioner(at, calculator(at))   # should be preconditioner(calc,  at) ???
 
 preconditioner(at::AbstractAtoms, calc::AbstractCalculator) = I
+
+
+
+#######################################################################
+## Experimental Prototypes for in-place versions
+#######################################################################
+
+"""
+`alloc_temp(args...)` : allocate temporary arrays for the evaluation of
+some calculator or potential; see developer docs for more information
+"""
+alloc_temp(args...) = nothing
+
+"""
+`alloc_temp_d(args...)` : allocate temporary arrays for the evaluation of
+some calculator or potential; see developer docs for more information
+"""
+alloc_temp_d(args...) = nothing
+
+"""
+`energy!`: non-allocating version of `energy`
+"""
+energy!(calc::AbstractCalculator, at::AbstractAtoms, temp::Nothing) =
+      energy(calc, at)
+
+"""
+`energy!`: non-allocating version of `forces`
+"""
+forces!(F::AbstractVector{JVec{T}}, calc::AbstractCalculator,
+        at::AbstractAtoms{T}, temp::Nothing) where {T} =
+      copy!(F, forces(calc, at))
+
+"""
+`energy!`: non-allocating version of `virial`
+"""
+virial!(calc::AbstractCalculator, at::AbstractAtoms, temp::Nothing) =
+      virial(calc, at)

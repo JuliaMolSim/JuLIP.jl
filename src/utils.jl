@@ -4,7 +4,8 @@ module Utils
 import JuLIP.Chemistry: rnn
 
 using JuLIP: AbstractAtoms, JVec, positions, set_positions!,
-             chemical_symbols, cell, pbc, mat, dofs, set_dofs!
+             chemical_symbols, cell, pbc, mat, dofs, set_dofs!,
+             fixedcell, variablecell
 
 using LinearAlgebra: norm
 

@@ -9,6 +9,7 @@ Look at `?` for
 """
 module Testing
 
+using Test
 using JuLIP: AbstractCalculator, AbstractAtoms, energy, gradient, forces,
          calculator, set_positions!, dofs,
          mat, vecs, positions, rattle!, set_dofs!, set_calculator!
@@ -16,7 +17,7 @@ using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, grad, @D
 using Printf
 using LinearAlgebra: norm
 
-export fdtest, fdtest_hessian, h0, h1, h2, h3
+export fdtest, fdtest_hessian, h0, h1, h2, h3, print_tf
 
 """
 first-order finite-difference test for scalar F
@@ -177,6 +178,10 @@ function h2(str)
 end
 
 h3(str) = (printstyled(str, bold=true, color=:magenta); println())
+
+
+print_tf(::Test.Pass) = printstyled("+", bold=true, color=:green)
+print_tf(::Test.Fail) = printstyled("-", bold=true, color=:red)
 
 
 end
