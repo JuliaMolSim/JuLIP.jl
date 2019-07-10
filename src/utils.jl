@@ -23,11 +23,9 @@ export rattle!, r_sum, r_dot,
 "Robust summation."
 r_sum(a) = sum(a)
 
-
-## NOTE: if I see this correctly, then r_dot allocates a temporary
-##       vector, which is likely quite a performance overhead.
-##       probably, we want to re-implement this.
-## TODO: new version without the intermediate allocation
+# NOTE: if I see this correctly, then r_dot allocates a temporary
+#       vector, which is likely quite a performance overhead.
+#       probably, we want to re-implement this.
 "Robust inner product. Defined as `r_dot(a, b) = r_sum(a .* b)`"
 r_dot(a, b) = r_sum(a[:] .* b[:])
 
@@ -53,7 +51,9 @@ function rattle!(at::AbstractAtoms, r::AbstractFloat; rnn = 1.0)
    X = positions(at) |> mat
    X .+= r * rnn * 2.0/sqrt(3) * (rand(Float64, size(X)) .- 0.5)
    set_positions!(at, X)
-   # end
+   if variablecell(at)
+      apply_defm!(at, I + (r/rnn) * (rand(JMatF) .- 0.5))
+   end
    return at
 end
 

@@ -62,7 +62,7 @@ end
 
 using JuLIP, MultiLJ, StaticArrays
 
-# parameters from PHYSICAL REVIEW B, VOLUME 64, 184201
+# parameters from PHYS REV B, VOLUME 64, 184201
 #                 Crystals of binary Lennard-Jones solids
 #                 T F Middleton, J Hernandez-Rojas, P N Mortenson, D J Wales
 

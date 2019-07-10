@@ -40,12 +40,6 @@ vecs(V::AbstractVector{T}) where {T} = reinterpret(JVec{T}, V)
 vecs(M::ReshapedArray{T,2,ReinterpretArray{T,1,JVec{T},Array{JVec{T},1}},Tuple{}}
     ) where {T} = M.parent.parent
 
-# TODO : delete
-# `vecs(V::Array{T,N})` : If `V` has dimensions 3 x n2 x ... x nN then
-# it gets converted to an n2 x ... x nN array with JVec{T} entries.
-# vecs(V::AbstractArray{T,N}) where {T,N} =
-#       reshape( reinterpret(JVec{T}, vec(V)), tuple(size(V)[2:end]...) )
-
 
 """
 `mat(X)`: convert (as reference) a vector of

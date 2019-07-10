@@ -68,7 +68,6 @@ abstract type SitePotential <: AbstractCalculator end
 
 include("potentials_base.jl")
 # * @pot, @D, @DD, @GRAD and related things
-# TODO: move this to a separate package???
 
 NeighbourLists.sites(at::AbstractAtoms, rcut::AbstractFloat) =
       sites(neighbourlist(at, rcut))

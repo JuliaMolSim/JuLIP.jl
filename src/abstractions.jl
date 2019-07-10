@@ -272,10 +272,7 @@ called in the following ways:
 * `energy(at, dofs)`
 """
 function energy end
-# energy(at::AbstractAtoms) = energy(calculator(at), at)
 potential_energy = energy
-
-# TODO : move the aliases for energy to here
 
 """
 `site_energy(calc, at, n)` : return site energy at atom idx `n`

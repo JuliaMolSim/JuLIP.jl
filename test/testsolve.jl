@@ -1,7 +1,7 @@
 
 using JuLIP
 using JuLIP.Testing
-using JuLIP.Constraints: sigvol_d
+using JuLIP: sigvol_d
 using Test
 using LinearAlgebra
 
@@ -100,13 +100,13 @@ println("After optimisation, stress/virial should be 0:")
 @test norm(virial(at), Inf) < 1e-4
 
 h2("Check sigvol derivative")
-println(@test fdtest(c -> JuLIP.Constraints.sigvol(reshape(c, (3,3))),
-                     c -> JuLIP.Constraints.sigvol_d(reshape(c, (3,3)))[:],
+println(@test fdtest(c -> JuLIP.sigvol(reshape(c, (3,3))),
+                     c -> JuLIP.sigvol_d(reshape(c, (3,3)))[:],
                      rand(3,3)))
 
 
 
-# TODO: revive this after introducing external potentials 
+# TODO: revive this after introducing external potentials
 # h2("And now with pressure . . .")
 # set_constraint!(at, VariableCell(at, pressure=10.0123))
 # JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.02)

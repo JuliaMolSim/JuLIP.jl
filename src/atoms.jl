@@ -54,7 +54,6 @@ TODO
 * `momenta`, `set_momenta!`
 * `masses`, `set_masses!`
 * `numbers`, `set_numbers!`
-* TODO: `chemical_symbols`, `set_chemical_symbols!`
 * `cell`, `set_cell!`
 * `pbc`, `set_pbc!`
 * `calculator`, `set_calculator!`
