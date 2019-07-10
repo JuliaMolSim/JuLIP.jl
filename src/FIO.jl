@@ -12,7 +12,7 @@ module FIO
 
 using JSON
 
-export load_dict, save_dict, decode_dict
+export load_dict, save_dict, decode_dict, save_json, load_json
 
 #######################################################################
 #                     Conversions to and from Dict
