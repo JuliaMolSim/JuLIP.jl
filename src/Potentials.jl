@@ -47,7 +47,13 @@ function grad end
 function hess end
 function precond end
 
+#   Experimental Prototypes for non-allocating maps
 
+evaluate!(       tmp::Nothing,  V, args...) = evaluate(V, args...)
+evaluate_d!(dEs, tmpd::Nothing, V, args...) = copyto!(dEs, evaluate_d(V, args...))
+
+include("potentials_base.jl")
+# * @pot, @D, @DD, @GRAD and related things
 
 
 """
@@ -66,9 +72,6 @@ abstract type PairPotential <: AbstractCalculator end
 abstract type SitePotential <: AbstractCalculator end
 
 
-include("potentials_base.jl")
-# * @pot, @D, @DD, @GRAD and related things
-
 NeighbourLists.sites(at::AbstractAtoms, rcut::AbstractFloat) =
       sites(neighbourlist(at, rcut))
 
@@ -82,11 +85,14 @@ end
 
 @pot ZeroSitePotential
 
-
 evaluate(p::ZeroSitePotential, r, R) = zero(eltype(r))
 evaluate_d(p::ZeroSitePotential, r, R) = zero(r)
 cutoff(::ZeroSitePotential) = Bool(0)
 
+evaluate!(tmp::Nothing, p::ZeroSitePotential, r::AbstractVector{T}, args...
+      ) where T = zero(T)
+evaluate_d!(dEs::AbstractVector{JVec{T}}, tmp::Nothing, r, args...
+      ) where T = fill!(dEs, zero(JVec{T}))
 
 
 # Implementation of a generic site potential
