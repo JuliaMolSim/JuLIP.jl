@@ -104,28 +104,6 @@ end
 
 # ==================================
 #   Basic Potential Arithmetic
-#
-# TODO: can we get rid of SumPot and ProdPot altogether???
-#       at the moment the ProdPot is needed for cutoffs
-
-# "sum of two pair potentials"
-# mutable struct SumPot{P1, P2} <: PairPotential
-#    p1::P1
-#    p2::P2
-# end
-#
-# @pot SumPot
-#
-# import Base.+
-# +(p1::PairPotential, p2::PairPotential) = SumPot(p1, p2)
-# evaluate(p::SumPot, r) = p.p1(r) + p.p2(r)
-# evaluate_d(p::SumPot, r) = (@D p.p1(r)) + (@D p.p2(r))
-# cutoff(p::SumPot) = max(cutoff(p.p1), cutoff(p.p2))
-# function Base.show(io::Base.IO, p::SumPot)
-#    print(io, p.p1)
-#    print(io, " + ")
-#    print(io, p.p2)
-# end
 
 "product of two pair potentials"
 mutable struct ProdPot{P1, P2} <: PairPotential
@@ -144,9 +122,8 @@ evaluate_dd(p::ProdPot, r) = (p.p1(r) * (@DD p.p2(r)) +
 cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
 
 # expand usage of prodpot to be useful for TightBinding.jl
-# TODO: make sure this is consistent and expand this to other things!
 #       basically, we want to allow that
 #       a pair potential can depend on direction as well!
-#       in this case, @D is already the gradient and @GRAD remains undefined?
+#       in this case, @D is already the gradient and @GRAD remains undefined
 evaluate(p::ProdPot, r, R) = p.p1(r, R) * p.p2(r, R)
 evaluate_d(p::ProdPot, r, R) = p.p1(r,R) * (@D p.p2(r,R)) + (@D p.p1(r,R)) * p.p2(r,R)

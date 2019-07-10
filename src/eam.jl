@@ -7,7 +7,6 @@ using LinearAlgebra: rmul!
 export EAM
 
 # =================== General Single-Species EAM Potential ====================
-# TODO: Alloy potential
 
 """
 `struct EAM1`

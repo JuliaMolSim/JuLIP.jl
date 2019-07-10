@@ -2,8 +2,6 @@
 # implementation of Spline-based pair potentials
 # and other functionality
 #
-# TODO: explore allowing arbitrary order of splines?
-#
 
 import Dierckx
 using Dierckx: Spline1D

@@ -119,7 +119,7 @@ the use of an orthorhombic unit cell (for now).
    remaining dimension(s) the b.c. will be periodic.
 * `shape` : shape of the cluster, at the moment only `:ball` is allowed
 
-## TODO
+## todo
  * lift the restriction of single species
  * allow other shapes
 """
