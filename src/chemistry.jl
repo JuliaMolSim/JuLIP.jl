@@ -18,9 +18,9 @@ const _masses = [Float64(m) for m in data["masses"]]
 const _refstates = Dict{String, Any}[ d == nothing ? Dict{String, Any}() : d
                                       for d in data["refstates"]]
 
-const _numbers = Dict{Symbol, Int}()
+const _numbers = Dict{Symbol, Int16}()
 for (n, sym) in enumerate(_symbols)
-   _numbers[sym] = n - 1
+   _numbers[sym] = Int16(n - 1)
 end
 
 atomic_number(sym::Symbol) = _numbers[sym]

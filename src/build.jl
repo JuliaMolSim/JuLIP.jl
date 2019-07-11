@@ -14,8 +14,85 @@ using JuLIP: JVec, JMat, JVecF, JMatF, mat,
 using LinearAlgebra: I, Diagonal, isdiag, norm
 
 import Base: union
+import JuLIP: Atoms
 
 export repeat, bulk, cluster, autocell!, append
+
+
+
+
+_auto_pbc(pbc::Tuple{Bool, Bool, Bool}) = JVec(pbc...)
+_auto_pbc(pbc::Bool) = JVec(pbc, pbc, pbc)
+_auto_pbc(pbc::AbstractVector) = JVec(pbc...)
+
+_auto_cell(cell) = cell
+_auto_cell(cell::AbstractMatrix) = JMat(cell)
+_auto_cell(C::AbstractVector{T}) where {T <: Real} = (
+   length(C) == 3 ? JMatF(C[1], 0.0, 0.0, 0.0, C[2], 0.0, 0.0, 0.0, C[3]) :
+                    JMatF(C...) )  # (case 2 requires that length(C) == 0
+_auto_cell(C::AbstractVector{T}) where {T <: AbstractVector} = JMatF([ C[1] C[2] C[3] ])
+_auto_cell(C::AbstractVector) = _auto_cell([ c for c in C ])
+
+"""
+`autocell!(at::Atoms) -> Atoms`
+
+generates cell vectors that contain all atom positions + a small buffer,
+sets the cell of `at` accordingly (in-place) and returns the same atoms objet
+with the new cell.
+"""
+autocell!(at::Atoms) = set_cell!(at, _autocell(positions(at)))
+
+function _autocell(X::Vector{JVec{T}}) where T
+   ext = extrema(mat(X), dims = (2,))
+   C = Diagonal([ e[2] - e[1] + 1.0  for e in ext ][:])
+   return JMat{T}(C)
+end
+
+# if we have no clue about X just return it and see what happens
+_auto_X(X) = X
+# if the elements of X weren't inferred, try to infer before reading
+# TODO: this might lead to a stack overflow!!
+_auto_X(X::AbstractVector) = _auto_X( [x for x in X] )
+# the cases where we know what to do ...
+_auto_X(X::AbstractVector{T}) where {T <: AbstractVector} = [ JVecF(x) for x in X ]
+_auto_X(X::AbstractVector{T}) where {T <: Real} = _auto_X(reshape(X, 3, :))
+_auto_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
+                              [ JVecF(X[:,n]) for n = 1:size(X,2) ])
+
+_auto_M(M::AbstractVector{T}) where {T <: AbstractFloat} = Vector{T}(M)
+_auto_M(M::AbstractVector) = Vector{Float64}(M)
+
+_auto_Z(Z::AbstractVector) = Vector{Int16}(Z)
+
+
+Atoms(; kwargs...) = Atoms{Float64}(; kwargs...)
+
+Atoms{T}(; X = JVec{T}[],
+           P = JVec{T}[],
+           M = T[],
+           Z = Int16[],
+           cell = zero(JMat{T}),
+           pbc = JVec(false, false, false),
+           calc = nothing ) where {T} =
+      Atoms(X, P, M, Z, cell, pbc, calc)
+
+Atoms(X, P, M, Z, cell, pbc, calc=nothing) =
+      Atoms(_auto_X(X), _auto_X(P), _auto_M(M), _auto_Z(Z),
+            _auto_cell(cell), _auto_pbc(pbc), calc)
+
+Atoms(Z::Vector{Int16}, X::Vector{JVec{T}}; kwargs...) where {T} =
+  Atoms{T}(; Z=Z, X=X, kwargs...)
+
+
+"""
+simple way to construct an atoms object from just positions
+"""
+Atoms(s::Symbol, X::Vector{JVec{T}}; kwargs...) where {T} =
+      Atoms{T}(; X=X, Z=fill(atomic_number(s), length(X)), cell=_autocell(X),
+                 pbc = (false, false, false), kwargs... )
+
+Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
+
 
 
 
@@ -140,7 +217,7 @@ function cluster(atu::Atoms{T}, R::Real;
    Fu = cell(atu)'
    L = [ j ∈ dims ? 2 * (ceil(Int, R/Fu[j,j])+3) : 1    for j = 1:3]
    # multiply
-   at = Atoms(atu) * L
+   at = atu * L
    # find point closest to centre
    x̄ = sum( x[dims] for x in at.X ) / length(at.X)
    i0 = findmin( [norm(x[dims] - x̄) for x in at.X] )[2]
@@ -233,32 +310,6 @@ function Base.deleteat!(at::Atoms, n)
    return at
 end
 
-
-"""
-simple way to construct an atoms object from just positions
-"""
-Atoms(s::Symbol, X::Vector{JVec{T}}) where {T} =
-      Atoms{T}( X, fill(zero(JVec{T}), length(X)), fill(T(atomic_mass(s)), length(X)),
-             fill(atomic_number(s), length(X)), _autocell(X),
-             (false, false, false) )
-
-Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
-
-
-function _autocell(X::Vector{JVec{T}}) where T
-   ext = extrema(mat(X), dims = (2,))
-   C = Diagonal([ e[2] - e[1] + 1.0  for e in ext ][:])
-   return JMat{T}(C)
-end
-
-"""
-`autocell!(at::Atoms) -> Atoms`
-
-generates cell vectors that contain all atom positions + a small buffer,
-sets the cell of `at` accordingly (in-place) and returns the same atoms objet
-with the new cell.
-"""
-autocell!(at::Atoms) = set_cell!(at, _autocell(positions(at)))
 
 
 union(at1::Atoms, at2::Atoms) =

@@ -63,75 +63,22 @@ mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
    X::Vector{JVec{T}}              # positions
    P::Vector{JVec{T}}              # momenta (or velocities?)
    M::Vector{T}                    # masses
-   Z::Vector{Int16}                      # atomic numbers
+   Z::Vector{Int16}                # atomic numbers
    cell::JMat{T}                   # cell
-   pbc::JVec{Bool}     # boundary condition
+   pbc::JVec{Bool}                 # boundary condition
    calc::Union{Nothing, AbstractCalculator}
    dofmgr::DofManager
-   data::Dict{Any,JData}
+   data::Dict{Any,JData{T}}
 end
 
-Atoms(; kwargs...) = Atoms{Float64}(; kwargs...)
+Atoms(X::Vector{JVec{T}}, P::Vector{JVec{T}}, M::Vector{T},
+      Z::Vector{Int16}, cell::JMat{T}, pbc::JVec{Bool},
+      calc::Union{Nothing, AbstractCalculator} = nothing) where {T} =
+   Atoms(X, P, M, Z, cell, pbc, calc,
+         DofManager(length(X), T), Dict{Any,JData{T}}())
 
-Atoms{T}(; X = JVec{T}[],
-           P = JVec{T}[],
-           M = T[],
-           Z = Int16[],
-           cell = zero(JMat{T}),
-           pbc = JVec(false, false, false),
-           calc = nothing,
-           data =  Dict{Any, JData{T}}()  ) where {T} =
-      Atoms(X, P, M, Z, cell, pbc, calc, DofManager(length(X), T), data)
-
-Atoms(X::AbstractVector{JVec{T}}, P, M, Z, cell, pbc, calc, data) where {T} =
-      Atoms(X, P, M, Z, cell, pbc, calc, DofManager(length(X), T), data)
 
 Base.eltype(::Atoms{T}) where {T} = T
-
-_auto_pbc(pbc::Tuple{Bool, Bool, Bool}) = JVec(pbc...)
-_auto_pbc(pbc::Bool) = JVec(pbc, pbc, pbc)
-_auto_pbc(pbc::AbstractVector) = JVec(pbc...)
-
-_auto_cell(cell) = cell
-_auto_cell(cell::AbstractMatrix) = JMat(cell)
-_auto_cell(C::AbstractVector{T}) where {T <: Real} = (
-   length(C) == 3 ? JMatF(C[1], 0.0, 0.0, 0.0, C[2], 0.0, 0.0, 0.0, C[3]) :
-                    JMatF(C...) )  # (case 2 requires that length(C) == 0
-_auto_cell(C::AbstractVector{T}) where {T <: AbstractVector} = JMatF([ C[1] C[2] C[3] ])
-_auto_cell(C::AbstractVector) = _auto_cell([ c for c in C ])
-
-# if we have no clue about X just return it and see what happens
-_auto_X(X) = X
-# if the elements of X weren't inferred, try to infer before reading
-# TODO: this might lead to a stack overflow!!
-_auto_X(X::AbstractVector) = _auto_X( [x for x in X] )
-# the cases where we know what to do ...
-_auto_X(X::AbstractVector{T}) where {T <: AbstractVector} = [ JVecF(x) for x in X ]
-_auto_X(X::AbstractVector{T}) where {T <: Real} = _auto_X(reshape(X, 3, :))
-_auto_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
-                              [ JVecF(X[:,n]) for n = 1:size(X,2) ])
-
-_auto_M(M::AbstractVector{T}) where {T <: AbstractFloat} = Vector{T}(M)
-_auto_M(M::AbstractVector) = Vector{Float64}(M)
-
-_auto_Z(Z::AbstractVector) = Vector{Int16}(Z)
-
-
-
-Atoms(X, P, M, Z, cell, pbc;
-      calc = nothing,
-      data = Dict{Any,JData}()) =
-   Atoms(_auto_X(X),
-         _auto_X(P),
-         _auto_M(M),
-         _auto_Z(Z),
-         _auto_cell(cell),
-         _auto_pbc(pbc),
-         calc,
-         data)
-
-Atoms(Z::Vector{TI}, X::Vector{JVec{T}}; kwargs...) where {TI, T} =
-  Atoms{T}(;Z=Z, X=X, P = zeros(eltype(X), length(X)), M = zeros(length(X)), kwargs...)
 
 # derived properties
 length(at::Atoms) = length(at.X)
