@@ -23,13 +23,13 @@ end
 
 evaluate(V::OneBody) = V.E0
 
-site_energies(V::OneBody, at::Atoms) = fill(V(), length(at))
+site_energies(V::OneBody, at::AbstractAtoms) = fill(V(), length(at))
 
-energy(V::OneBody, at::Atoms) = length(at) * V()
-forces(V::OneBody, at::Atoms{T}) where {T} = zeros(JVec{T}, length(at))
-virial(V::OneBody, at::Atoms{T}) where {T} = zero(JMat{T})
-site_energy(V::OneBody, at::Atoms, i0::Integer) = V()
-site_energy_d(V::OneBody, at::Atoms{T}, i0::Integer) where {T} =
+energy(V::OneBody, at::AbstractAtoms) = length(at) * V()
+forces(V::OneBody, at::AbstractAtoms{T}) where {T} = zeros(JVec{T}, length(at))
+virial(V::OneBody, at::AbstractAtoms{T}) where {T} = zero(JMat{T})
+site_energy(V::OneBody, at::AbstractAtoms, i0::Integer) = V()
+site_energy_d(V::OneBody, at::AbstractAtoms{T}, i0::Integer) where {T} =
       zeros(JVec{T}, length(at))
 
 Dict(V::OneBody) = Dict("__id__" => "OneBody", "E0" => V.E0)
@@ -58,7 +58,7 @@ end
 
 evaluate(V::MOneBody,sp) = V.E0[sp]
 
-function site_energies(V::MOneBody{T}, at::Atoms) where {T}
+function site_energies(V::MOneBody{T}, at::AbstractAtoms) where {T}
    E = zeros(T, length(at))
    for i in 1:length(at)
       E[i] = V(chemical_symbols(at)[i])
@@ -66,11 +66,11 @@ function site_energies(V::MOneBody{T}, at::Atoms) where {T}
    return E
 end
 
-energy(V::MOneBody, at::Atoms) = sum(site_energies(V,at))
+energy(V::MOneBody, at::AbstractAtoms) = sum(site_energies(V,at))
 
-forces(V::MOneBody, at::Atoms{T}) where {T} = zeros(JVec{T}, length(at))
+forces(V::MOneBody, at::AbstractAtoms{T}) where {T} = zeros(JVec{T}, length(at))
 
-virial(V::MOneBody, at::Atoms{T}) where {T} = zero(JMat{T})
+virial(V::MOneBody, at::AbstractAtoms{T}) where {T} = zero(JMat{T})
 
 Dict(V::MOneBody) = Dict("__id__" => "MOneBody", "E0" => V.E0)
 

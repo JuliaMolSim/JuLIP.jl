@@ -50,28 +50,16 @@ EAM1(ϕ, ρ, F) = EAM1(ϕ, ρ, F, nothing)
 
 cutoff(V::EAM1) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
-# evaluate(V::EAM1, r, R) =
-#     length(r) == 0 ? V.F(0.0) :
-#            V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
-evaluate(V::EAM1, r::AbstractVector{T}, R) where {T} =
-    length(r) == 0 ? V.F(T(0.0)) :
-           V.F(sum(V.ρ, r)) + T(0.5) * sum(V.ϕ, r)
+evaluate!(tmp, V::EAM1, R::AbstractVector{JVec{T}}) where {T} =
+    length(R) == 0 ? V.F(T(0.0)) :
+           V.F(sum(V.ρ ∘ norm, R)) + T(0.5) * sum(V.ϕ ∘ norm, R)
 
-function evaluate_d(V::EAM1, r::AbstractVector{T}, R) where {T}
-   if length(r) == 0; return JVec{T}[]; end
-   ρ̄ = sum(V.ρ, r)
+function evaluate_d!(dEs::AbstractVector{JVec{T}}, tmp, V::EAM1, Rs) where {T}
+   if length(Rs) == 0; return dEs; end
+   ρ̄ = sum(V.ρ ∘ norm, Rs)
    dF = @D V.F(ρ̄)
-   #         (0.5 * ϕ'          + F' *  ρ')           * ∇r     (where ∇r = R/r)
-   return [ ((T(0.5) * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S
-            for (s, S) in zip(r, R) ]
-end
-
-
-function evaluate_d!(dEs::AbstractVector{JVec{T}}, V::EAM1, rs, Rs) where {T}
-   if length(rs) == 0; return dEs; end
-   ρ̄ = sum(V.ρ(s), rs)
-   dF = @D V.F(ρ̄)
-   for (i, (r, R)) in enumerate(zip(rs, Rs))
+   for (i, R) in enumerate(Rs)
+      r = norm(R)
       dEs[i] += ((T(0.5) * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
    end
    return dEs
@@ -229,72 +217,3 @@ function read_fs(fname)
 
    return F, ρfun, ϕfun, ρ, r, info
 end
-
-
-
-
-# ================= Efficient implementation of EAM forces =======================
-
-import JuLIP: energy, forces
-
-# the main justification for these codes is that vectorised evaluation of the
-# splines gives a factor 2 speed-up, probably this is primarily due to
-# the function call overhead (maybe also allocations)
-# In fact, this optimised codes gives a factor 3 speed-up for energy and factor 7
-# for forces
-# TODO: - need a proper julia spline library
-#       - or switch to global polynomials + Morse coordinates
-#       - should do all this without allocations
-#       - think about moving all iterations into NeighbourLists?
-#         can also multi-thread them there? But this sounds already problematic
-#         because of the allocations of temporary arrays...; maybe this
-#         can be done in the Atoms object, e.g. as `(:temp, threadid()) => ...`
-
-function _rhobar(V::EAM1, nlist::PairList)
-   ρ = V.ρ(nlist.r)
-   ρ̄ = zeros(nsites(nlist))
-   for n = 1:npairs(nlist)
-      ρ̄[nlist.i[n]] += ρ[n]
-   end
-   return ρ̄
-end
-
-function energy(V::EAM1{SplinePairPotential, SplinePairPotential},
-                at::AbstractAtoms{T})  where  {T}
-   nlist = neighbourlist(at, cutoff(V))::PairList
-   ρ̄ = _rhobar(V, nlist)
-   ϕ = V.ϕ(nlist.r)
-   return sum(V.F, ρ̄) + T(0.5) * sum(ϕ)
-end
-
-function forces(V::EAM1{SplinePairPotential, SplinePairPotential},
-                        at::AbstractAtoms{T}) where T
-   nlist = neighbourlist(at, cutoff(V))::PairList
-   ρ̄ = _rhobar(V, nlist)
-   dF = [ @D V.F(t)  for t in ρ̄ ]
-   dρ = @D V.ρ(nlist.r)
-   dϕ = @D V.ϕ(nlist.r)
-
-   # compute the forces
-   dE = zeros(JVec{T}, length(at))
-   for n = 1:npairs(nlist)
-      f = ((T(0.5) * dϕ[n] + dF[nlist.i[n]] * dρ[n])/nlist.r[n]) * nlist.R[n]
-      dE[nlist.i[n]] += f
-      dE[nlist.j[n]] -= f
-   end
-   return dE
-end
-
-
-export energy_map, forces_map
-using JuLIP:Atoms
-
-energy_map(V::EAM1, at::Atoms) =
-   r_sum( maptosites!( (r,R) -> V(r,R),
-                         zeros(length(at)),
-                         sites(at, cutoff(V)) ) )
-
-forces_map(V::EAM1, at::Atoms) =
-   rmul!( maptosites_d!( ((r, R) -> @D V(r, R)),
-                          zeros(JVecF, length(at)),
-                          sites(at, cutoff(V)) ), -1 )
