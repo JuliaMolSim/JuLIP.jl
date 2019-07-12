@@ -50,9 +50,13 @@ EAM1(ϕ, ρ, F) = EAM1(ϕ, ρ, F, nothing)
 
 cutoff(V::EAM1) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
-evaluate!(tmp, V::EAM1, R::AbstractVector{JVec{T}}) where {T} =
-    length(R) == 0 ? V.F(T(0.0)) :
-           V.F(sum(V.ρ ∘ norm, R)) + T(0.5) * sum(V.ϕ ∘ norm, R)
+function evaluate!(tmp, V::EAM1, R::AbstractVector{JVec{T}}) where {T}
+   if  length(R) == 0
+      return V.F(T(0.0))
+   else
+      return V.F(sum(V.ρ ∘ norm, R)) + T(0.5) * sum(V.ϕ ∘ norm, R)
+   end
+end
 
 function evaluate_d!(dEs::AbstractVector{JVec{T}}, tmp, V::EAM1, Rs) where {T}
    if length(Rs) == 0; return dEs; end
@@ -60,7 +64,7 @@ function evaluate_d!(dEs::AbstractVector{JVec{T}}, tmp, V::EAM1, Rs) where {T}
    dF = @D V.F(ρ̄)
    for (i, R) in enumerate(Rs)
       r = norm(R)
-      dEs[i] += ((T(0.5) * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
+      dEs[i] = ((T(0.5) * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
    end
    return dEs
 end
