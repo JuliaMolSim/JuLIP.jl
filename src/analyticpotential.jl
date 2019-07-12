@@ -111,9 +111,3 @@ macro analytic(args...)
       )
    end
 end
-
-
-# TODO: this is a hack to make tight-binding work; but it should be reconsidered
-# right now I am thinking it is actually ok as is!
-evaluate(p::AnalyticFunction, r, R) = evaluate(p, r)
-evaluate_d(p::AnalyticFunction, r, R) = evaluate_d(p, r)

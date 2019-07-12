@@ -23,6 +23,7 @@
 
 using ForwardDiff
 using LinearAlgebra: dot
+using JuLIP: JVecF
 
 export StillingerWeber
 
@@ -110,36 +111,46 @@ function StillingerWeber(; brittle = false,
    return StillingerWeber(V2, V3)
 end
 
-function evaluate(calc::StillingerWeber, r, R)
-   # two-body contributions
-   if length(r) == 0
-      return 0.0
-   end
-   Es = 0.5 * sum(calc.V2, r)
+alloc_temp(V::StillingerWeber, N::Integer) =
+      (  S = zeros(JVecF, N),
+         V3 = zeros(Float64, N)  )
+
+function evaluate!(tmp, calc::StillingerWeber, R)
+   Es = 0.0
    # three-body contributions
-   S = [ R1/r1 for (R1,r1) in zip(R, r) ]    # make a temporary array!
-   V3 = [ calc.V3(r1) for r1 in r ]
-   for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
-      Es += V3[i1] * V3[i2] * bondangle(S[i1], S[i2])
+   for i = 1:length(R)
+      r = norm(R[i])
+      tmp.S[i] = R[i] / r
+      tmp.V3[i] = calc.V3(r)
+      Es += 0.5 * calc.V2(r)
+   end
+   for i1 = 1:(length(R)-1), i2 = (i1+1):length(R)
+      Es += tmp.V3[i1] * tmp.V3[i2] * bondangle(tmp.S[i1], tmp.S[i2])
    end
    return Es
 end
 
 
-function evaluate_d(calc::StillingerWeber, r::AbstractVector{T}, R) where {T}
-   # two-body terms
-   if length(r) == 0
-      return JVec{T}[]
+alloc_temp_d(V::StillingerWeber, N::Integer) =
+      (  dV = zeros(JVecF, N),
+         r = zeros(Float64, N),
+         S = zeros(JVecF, N),
+         V3 = zeros(Float64, N),
+         gV3 = zeros(JVecF, N)  )
+
+
+function evaluate_d!(dEs, tmp, calc::StillingerWeber, R::AbstractVector{JVecF})
+   for i = 1:length(R)
+      tmp.r[i] = r = norm(R[i])
+      tmp.S[i] = R[i] / r
+      tmp.V3[i] = calc.V3(r)
+      tmp.gV3[i] = grad(calc.V3, r, R[i])
+      dEs[i] = 0.5 * grad(calc.V2, r, R[i])
    end
-   dEs = [ 0.5 * grad(calc.V2, ri, Ri) for (ri, Ri) in zip(r, R) ]
-   # three-body terms
-   S = [ R1/r1 for (R1,r1) in zip(R, r) ]
-   V3 = [calc.V3(s) for s in r]
-   gV3 = [ grad(calc.V3, r1, R1) for (r1, R1) in zip(r, R) ]
-   for i1 = 1:(length(r)-1), i2 = (i1+1):length(r)
-      a, b1, b2 = bondangle_d(S[i1], S[i2], r[i1], r[i2])
-      dEs[i1] += (V3[i1] * V3[i2]) * b1 + (V3[i2] * a) * gV3[i1]
-      dEs[i2] += (V3[i1] * V3[i2]) * b2 + (V3[i1] * a) * gV3[i2]
+   for i1 = 1:(length(R)-1), i2 = (i1+1):length(R)
+      a, b1, b2 = bondangle_d(tmp.S[i1], tmp.S[i2], tmp.r[i1], tmp.r[i2])
+      dEs[i1] += (tmp.V3[i1] * tmp.V3[i2]) * b1 + (tmp.V3[i2] * a) * tmp.gV3[i1]
+      dEs[i2] += (tmp.V3[i1] * tmp.V3[i2]) * b2 + (tmp.V3[i1] * a) * tmp.gV3[i2]
    end
    return dEs
 end

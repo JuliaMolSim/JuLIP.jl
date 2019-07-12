@@ -33,7 +33,9 @@ using SparseArrays: sparse
 
 import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum,
-              site_energy, site_energy_d, partial_energy, partial_energy_d
+              site_energy, site_energy_d, partial_energy, partial_energy_d,
+              energy!, forces!, virial!,
+              alloc_temp, alloc_temp_d
 
 export PairPotential, SitePotential, ZeroSitePotential
 
@@ -49,12 +51,18 @@ function precond end
 
 #   Experimental Prototypes for non-allocating maps
 
-evaluate!(       tmp::Nothing,  V, args...) = evaluate(V, args...)
-evaluate_d!(dEs, tmpd::Nothing, V, args...) = copyto!(dEs, evaluate_d(V, args...))
+evaluate!(       tmp,  V, args...) = evaluate(V, args...)
+evaluate_d!(dEs, tmpd, V, args...) = copyto!(dEs, evaluate_d(V, args...))
 
 include("potentials_base.jl")
 # * @pot, @D, @DD, @GRAD and related things
 
+# TODO: introduce type parameter into SitePotential{T}
+
+"""
+`SitePotential`:abstractsupertype for generic site potentials
+"""
+abstract type SitePotential <: AbstractCalculator end
 
 """
 `PairPotential`:abstractsupertype for pair potentials
@@ -66,17 +74,13 @@ lj = @analytic r -> r^(-12) - 2 * r^(-6)
 """
 abstract type PairPotential <: AbstractCalculator end
 
-"""
-`SitePotential`:abstractsupertype for generic site potentials
-"""
-abstract type SitePotential <: AbstractCalculator end
 
 
 NeighbourLists.sites(at::AbstractAtoms, rcut::AbstractFloat) =
       sites(neighbourlist(at, rcut))
 
-NeighbourLists.pairs(at::AbstractAtoms, rcut::AbstractFloat) =
-      pairs(neighbourlist(at, rcut))
+# NeighbourLists.pairs(at::AbstractAtoms, rcut::AbstractFloat) =
+#       pairs(neighbourlist(at, rcut))
 
 
 "a site potential that just returns zero"
@@ -85,38 +89,58 @@ end
 
 @pot ZeroSitePotential
 
-evaluate(p::ZeroSitePotential, r, R) = zero(eltype(r))
-evaluate_d(p::ZeroSitePotential, r, R) = zero(r)
+evaluate(p::ZeroSitePotential, R::AbstractVector{JVec{T}}
+      ) where {T} = zero(T)
+evaluate_d(p::ZeroSitePotential, R::AbstractVector{JVec{T}}
+      ) where {T} = zeros(T, length(R))
 cutoff(::ZeroSitePotential) = Bool(0)
 
-evaluate!(tmp::Nothing, p::ZeroSitePotential, r::AbstractVector{T}, args...
-      ) where T = zero(T)
-evaluate_d!(dEs::AbstractVector{JVec{T}}, tmp::Nothing, r, args...
-      ) where T = fill!(dEs, zero(JVec{T}))
+evaluate!(tmp, p::ZeroSitePotential, args...) = Bool(0)
+evaluate_d!(dEs, tmp, V::ZeroSitePotential, args...) = fill!(dEs, zero(eltype(dEs)))
 
 
 # Implementation of a generic site potential
 # ================================================
 
-site_energies(V::SitePotential, at::AbstractAtoms{T}) where {T} =
-      T[ V(r, R) for (_₁, _₂, r, R) in sites(at, cutoff(V)) ]
+alloc_temp(V::SitePotential, at::AbstractAtoms) =
+      alloc_temp(V, max_neigs(neighbourlist(at, cutoff(V))))
 
-energy(V::SitePotential, at::AbstractAtoms) =
-      r_sum(site_energies(V, at))
+alloc_temp(V::SitePotential, N::Integer) = nothing
 
-evaluate(V::SitePotential, R::AbstractVector{<:JVec}) =
-      evaluate(V, norm.(R), R)
+alloc_temp_d(V::SitePotential, at::AbstractAtoms) =
+      alloc_temp_d(V, max_neigs(neighbourlist(at, cutoff(V))))
 
-evaluate_d(V::SitePotential, R::AbstractVector{<:JVec}) =
-      evaluate_d(V, norm.(R), R)
+alloc_temp_d(V::SitePotential, N::Integer) = (dV = zeros(JVecF, N), )
 
-function forces(V::SitePotential, at::AbstractAtoms{T}) where {T}
-   frc = zeros(JVec{T}, length(at))
-   for (i, j, r, R) in sites(at, cutoff(V))
-      dV = @D V(r, R)
+energy(V::SitePotential, at::AbstractAtoms; kwargs...) =
+      energy!(alloc_temp(V, at), V, at; kwargs...)
+
+virial(V::SitePotential, at::AbstractAtoms; kwargs...) =
+      virial!(alloc_temp_d(V, at), V, at; kwargs...)
+
+forces(V::SitePotential, at::AbstractAtoms{T}; kwargs...) where {T} =
+      forces!(zeros(JVec{T}, length(at)), alloc_temp_d(V, at), V, at; kwargs...)
+
+function energy!(tmp, V::SitePotential, at::AbstractAtoms{T};
+                 domain=1:length(at)) where {T}
+   E = zero(T)
+   nlist = neighbourlist(at, cutoff(V))
+   for i in domain
+      _j, _r, R = neigs(nlist, i)
+      E += evaluate!(tmp, V, R)
+   end
+   return E
+end
+
+function forces!(frc, tmp, V::SitePotential, at::AbstractAtoms;
+                 domain=1:length(at)) where {T}
+   nlist = neighbourlist(at, cutoff(V))
+   for i in domain
+      j, _r, R = neigs(nlist, i)
+      evaluate_d!(tmp.dV, tmp, V, R)
       for a = 1:length(j)
-         frc[j[a]] -= dV[a]
-         frc[i]    += dV[a]
+         frc[j[a]] -= tmp.dV[a]
+         frc[i]    += tmp.dV[a]
       end
    end
    return frc
@@ -126,43 +150,42 @@ site_virial(dV, R::AbstractVector{JVec{T}}) where {T} =  (
       length(R) > 0 ? (- sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) ))
                     : zero(JMat{T}) )
 
-virial(V::SitePotential, at::AbstractAtoms) =
-      sum(  site_virial((@D V(r, R)), R)
-            for (_₁, _₂, r, R) in sites(at, cutoff(V))  )
-
-function partial_energy(V::SitePotential, at::AbstractAtoms{T}, Idom) where {T}
-   E = zero(T)
+function virial!(tmp, V::SitePotential, at::AbstractAtoms{T};
+                 domain=1:length(at)) where {T}
+   vir = zero(JMat{T})
    nlist = neighbourlist(at, cutoff(V))
-   for i in Idom
-      j, r, R = neigs(nlist, i)
-      E += V(r, R)
+   for i in domain
+      _j, _r, R = neigs(nlist, i)
+      evaluate_d!(tmp.dV, tmp, V, R)
+      vir += site_virial(tmp.dV, T)
    end
-   return E
+   return vir
 end
 
-function partial_energy_d(V::SitePotential, at::AbstractAtoms, Idom)
-   F = zeros(JVec{eltype(at)}, length(at))
+
+site_energies(V::SitePotential, at::AbstractAtoms{T}; kwargs...) where {T} =
+      site_energies!(zeros(T, length(at)), alloc_temp(V, at), V, at)
+
+function site_energies!(Es, tmp, V::SitePotential, at::AbstractAtoms{T};
+         domain = 1:length(at)) where {T}
    nlist = neighbourlist(at, cutoff(V))
-   for i in Idom
-      j, r, R = neigs(nlist, i)
-      dV = @D V(R)
-      F[j] += dV
-      F[i] -= sum(dV)
+   for i in domain
+      _j, _r, R = neigs(nlist, i)
+      Es[i] = evaluate!(tmp, V, R)
    end
-   return F
+   return Es
 end
-
-partial_energy(V::PairPotential, at::AbstractAtoms, Idom) =
-      partial_energy(PairSitePotential(V), at, Idom)
-
-partial_energy_d(V::PairPotential, at::AbstractAtoms, Idom) =
-      partial_energy_d(PairSitePotential(V), at, Idom)
 
 site_energy(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
-      partial_energy(V, at, (i0,))
+      energy(V, at; domain = (i0,))
 
 site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
-      partial_energy_d(V, at, (i0,))
+      rmul!(forces(V, at; domain = (i0,)), -one(eltype(at)))
+
+
+
+# ------------------------------------------------
+#  specialisation for Pair potentials
 
 
 include("analyticpotential.jl")
