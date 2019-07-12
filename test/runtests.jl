@@ -56,6 +56,9 @@ catch
 end
 println(" done.")
 
+# x = rand()
+# sqrt(x)
+# eam_W4.ϕ.p2.f(x)
 ##
 
 @testset "JuLIP" begin
@@ -64,3 +67,12 @@ println(" done.")
       @testset "$(testid)" begin include(testfile); end
    end
 end
+
+
+
+at = set_pbc!( bulk(:W, cubic = true), false ) * 2
+fdtest(eam_W4, at, verbose=true)
+
+Testing.fdtest_R2R(r -> eam_W4.ϕ(r), r -> (@D eam_W4.ϕ(r)), 2.5 .+ rand(10))
+Testing.fdtest_R2R(r -> eam_W4.ρ(r), r -> (@D eam_W4.ρ(r)), 2.5 .+ rand(10))
+Testing.fdtest_R2R(r -> eam_W4.F(r), r -> (@D eam_W4.F(r)), 2.5 .+ rand(10))
