@@ -89,17 +89,17 @@ sw = StillingerWeber()
 set_calculator!(at3, sw)
 push!(calculators, (sw, at3))
 
-# EAM Potential
-at9 = set_pbc!( bulk(:Fe, cubic = true), false ) * (2,1,1)
-eam = eam_Fe
-push!(calculators, (eam, at9))
-
-if eam_W4 != nothing
-   # Another EAM Potential
-   at10 = set_pbc!( bulk(:W, cubic = true), false ) * (2,1,2)
-   eam4 = eam_W4
-   push!(calculators, (eam4, at10))
-end
+# # EAM Potential
+# at9 = set_pbc!( bulk(:Fe, cubic = true), false ) * (2,1,1)
+# eam = eam_Fe
+# push!(calculators, (eam, at9))
+#
+# if eam_W4 != nothing
+#    # Another EAM Potential
+#    at10 = set_pbc!( bulk(:W, cubic = true), false ) * (2,1,2)
+#    eam4 = eam_W4
+#    push!(calculators, (eam4, at10))
+# end
 
 # ========== Run the finite-difference tests for all calculators ============
 
@@ -130,8 +130,8 @@ f(x) = JuLIP.Potentials.site_energy(sw, set_dofs!(at, x), 1)
 df(x) = (JuLIP.Potentials.site_energy_d(sw, set_dofs!(at, x), 1) |> mat)[:]
 println(@test fdtest(f, df, dofs(at); verbose=true))
 
-println("fd test for partial_energy")
+println("fd test for partial energy")
 Idom = [2,4,10]
-f(x) = JuLIP.Potentials.partial_energy(sw, set_dofs!(at, x), Idom)
-df(x) = (JuLIP.Potentials.partial_energy_d(sw, set_dofs!(at, x), Idom) |> mat)[:]
+f(x) = JuLIP.Potentials.energy(sw, set_dofs!(at, x); domain = Idom)
+df(x) = - (JuLIP.Potentials.forces(sw, set_dofs!(at, x); domain = Idom) |> mat)[:]
 println(@test fdtest(f, df, dofs(at); verbose=true))

@@ -21,6 +21,7 @@ end
 # a simplified way to calculate gradients of pair potentials
 @inline grad(V::PairPotential, r::Real, R::JVec) = ((@D V(r)) / r) * R
 
+
 function energy(V::PairPotential, at::AbstractAtoms)
    nlist = neighbourlist(at, cutoff(V))::PairList
    return 0.5 * sum(V, nlist.r)
@@ -35,7 +36,6 @@ function forces(V::PairPotential, at::AbstractAtoms{T}) where {T}
    return dE
 end
 
-# TODO: rewrite using generator once bug is fixed (???or maybe decide not to bother???)
 virial(V::PairPotential, at::AbstractAtoms) =
    - 0.5 * sum(  grad(V, r, R) * R'
                  for (_₁, _₂, r, R) in pairs(at, cutoff(V))   )
@@ -180,10 +180,14 @@ end
 cutoff(psp::PairSitePotential) = cutoff(psp.pp)
 
 # special implementation of site energy and forces for a plain pair potential
-evaluate(psp::PairSitePotential, r, R) = 0.5 * sum(psp.pp, r)
+evaluate!(tmp, psp::PairSitePotential, R) = 0.5 * sum(psp.pp ∘ norm, R)
 
-evaluate_d(psp::PairSitePotential, r, R) =
-            [ 0.5 * grad(psp.pp, s, S) for (s, S) in zip(r, R) ]
+function evaluate_d!(dEs, tmp, psp::PairSitePotential, RR)
+   for (i, R) in enumerate(RR)
+      dEs[i] = 0.5 * grad(psp.pp, norm(R), R)
+   end
+   return dEs
+end
 
 """
 prototype of a multi-species pair potential
