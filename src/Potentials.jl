@@ -33,7 +33,7 @@ using SparseArrays: sparse
 
 import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum,
-              site_energy, site_energy_d, partial_energy, partial_energy_d,
+              site_energy, site_energy_d,
               energy!, forces!, virial!,
               alloc_temp, alloc_temp_d
 
@@ -45,19 +45,15 @@ export PairPotential, SitePotential, ZeroSitePotential
 function evaluate end
 function evaluate_d end
 function evaluate_dd end
+function evaluate! end
+function evaluate_d! end
+function evaluate_dd! end
 function grad end
-function hess end
 function precond end
 
-#   Experimental Prototypes for non-allocating maps
-
-evaluate!(       tmp,  V, args...) = evaluate(V, args...)
-evaluate_d!(dEs, tmpd, V, args...) = copyto!(dEs, evaluate_d(V, args...))
 
 include("potentials_base.jl")
 # * @pot, @D, @DD, @GRAD and related things
-
-# TODO: introduce type parameter into SitePotential{T}
 
 """
 `SitePotential`:abstractsupertype for generic site potentials
@@ -72,16 +68,26 @@ Can also be used as a constructor for analytic pair potentials, e.g.,
 lj = @analytic r -> r^(-12) - 2 * r^(-6)
 ```
 """
-abstract type PairPotential <: AbstractCalculator end
+abstract type PairPotential <: SitePotential end
 
 
+evaluate(V::SitePotential, R) =
+      evaluate!(alloc_temp(V, length(R)), V, R)
+evaluate_d(V::SitePotential, R::AbstractVector{JVec{T}}) where {T} =
+      evaluate_d!(zeros(JVec{T}, length(R)),
+                  alloc_temp_d(V, length(R)),
+                  V, R)
+evaluate_dd(V::SitePotential, R::AbstractVector{JVec{T}}) where {T} =
+      evaluate_dd!(zeros(JMat{T}, length(R), length(R)),
+                   alloc_temp_dd(V, length(R)),
+                   V, R)
+
+evaluate(V::PairPotential, r::Number) = evaluate!(alloc_temp(V, 1), V, r)
+evaluate_d(V::PairPotential, r::Number) = evaluate_d!(alloc_temp_d(V, 1), V, r)
+evaluate_dd(V::PairPotential, r::Number) = evaluate_dd!(alloc_temp_d(V, 1), V, r)
 
 NeighbourLists.sites(at::AbstractAtoms, rcut::AbstractFloat) =
       sites(neighbourlist(at, rcut))
-
-# NeighbourLists.pairs(at::AbstractAtoms, rcut::AbstractFloat) =
-#       pairs(neighbourlist(at, rcut))
-
 
 "a site potential that just returns zero"
 mutable struct ZeroSitePotential <: SitePotential
@@ -89,14 +95,15 @@ end
 
 @pot ZeroSitePotential
 
-evaluate(p::ZeroSitePotential, R::AbstractVector{JVec{T}}
-      ) where {T} = zero(T)
-evaluate_d(p::ZeroSitePotential, R::AbstractVector{JVec{T}}
-      ) where {T} = zeros(T, length(R))
+# evaluate(p::ZeroSitePotential, R::AbstractVector{JVec{T}}
+#       ) where {T} = zero(T)
+# evaluate_d(p::ZeroSitePotential, R::AbstractVector{JVec{T}}
+#       ) where {T} = zeros(T, length(R))
 cutoff(::ZeroSitePotential) = Bool(0)
 
 evaluate!(tmp, p::ZeroSitePotential, args...) = Bool(0)
 evaluate_d!(dEs, tmp, V::ZeroSitePotential, args...) = fill!(dEs, zero(eltype(dEs)))
+evaluate_dd!(hEs, tmp, V::ZeroSitePotential, args...) = fill!(hEs, zero(eltype(hEs)))
 
 
 # Implementation of a generic site potential
@@ -111,6 +118,8 @@ alloc_temp_d(V::SitePotential, at::AbstractAtoms) =
       alloc_temp_d(V, max_neigs(neighbourlist(at, cutoff(V))))
 
 alloc_temp_d(V::SitePotential, N::Integer) = (dV = zeros(JVecF, N), )
+
+alloc_temp_dd(V::SitePotential, N::Integer) = nothing
 
 energy(V::SitePotential, at::AbstractAtoms; kwargs...) =
       energy!(alloc_temp(V, at), V, at; kwargs...)
@@ -157,7 +166,7 @@ function virial!(tmp, V::SitePotential, at::AbstractAtoms{T};
    for i in domain
       _j, _r, R = neigs(nlist, i)
       evaluate_d!(tmp.dV, tmp, V, R)
-      vir += site_virial(tmp.dV, T)
+      vir += site_virial(tmp.dV, R)
    end
    return vir
 end

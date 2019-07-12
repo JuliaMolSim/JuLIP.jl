@@ -10,42 +10,44 @@ export ZeroPairPotential, PairSitePotential, ZBLPotential,
          LennardJones, lennardjones,
          Morse, morse
 
-function site_energies(V::PairPotential, at::AbstractAtoms{T}) where {T}
-   Es = zeros(T, length(at))
-   for (i,_2,r,_3) in pairs(at, cutoff(V))
-      Es[i] += 0.5 * V(r)
+## TODO: kill this one?
+grad(V::PairPotential, r::Real, R::JVec) = ((@D V(r)) / r) * R
+
+
+evaluate!(tmp, V::PairPotential, r::Union{Number, JVec}) = V(r)
+evaluate_d!(tmp, V::PairPotential, r::Union{Number, JVec}) = @D V(r)
+
+function evaluate!(tmp, V::PairPotential, R::AbstractVector{JVec{T}}) where {T}
+   Es = zero(T)
+   for i = 1:length(R)
+      Es += T(0.5) * evaluate!(tmp, V, norm(R[i]))
    end
    return Es
 end
 
-# a simplified way to calculate gradients of pair potentials
-@inline grad(V::PairPotential, r::Real, R::JVec) = ((@D V(r)) / r) * R
-
-
-function energy(V::PairPotential, at::AbstractAtoms)
-   nlist = neighbourlist(at, cutoff(V))::PairList
-   return 0.5 * sum(V, nlist.r)
-end
-
-function forces(V::PairPotential, at::AbstractAtoms{T}) where {T}
-   nlist = neighbourlist(at, cutoff(V))::PairList
-   dE = zeros(JVec{T}, length(at))
-   @simd for n = 1:npairs(nlist)
-      @inbounds dE[nlist.i[n]] += grad(V, nlist.r[n], nlist.R[n])
+function evaluate_d!(dEs, tmp, V::PairPotential, R::AbstractVector{JVec{T}}) where {T}
+   for i = 1:length(R)
+      r = norm(R[i])
+      dEs[i] = (T(0.5) * evaluate_d!(tmp, V, r) / r) * R[i]
    end
-   return dE
+   return dEs
 end
 
-virial(V::PairPotential, at::AbstractAtoms) =
-   - 0.5 * sum(  grad(V, r, R) * R'
-                 for (_₁, _₂, r, R) in pairs(at, cutoff(V))   )
+function evaluate_dd!(hEs, tmp, V::PairPotential, R::AbstractVector{<: JVec})
+   n = length(R)
+   for i = 1:n
+      hEs[i,i] = 0.5 * _hess!(tmp, V, norm(R[i]), R[i])
+   end
+end
 
-function hess(V::PairPotential, r, R)
+function _hess!(tmp, V::PairPotential, r::Number, R::JVec)
    R̂ = R/r
    P = R̂ * R̂'
    dV = (@D V(r))/r
    return ((@DD V(r)) - dV) * P + dV * I
 end
+
+
 
 # an FF preconditioner for pair potentials
 function precon(V::PairPotential, r::T, R, innerstab=T(0.1)) where {T}
@@ -54,25 +56,6 @@ function precon(V::PairPotential, r::T, R, innerstab=T(0.1)) where {T}
    S = R/r
    return (1-innerstab) * (abs(hV) * S * S' + abs(dV / r) * (I - S * S')) +
              innerstab  * (abs(hV) + abs(dV / r)) * I
-end
-
-hessian_pos(V::PairPotential, at::AbstractAtoms) =
-      _precon_or_hessian_pos(V, at, hess)
-
-# this assembles a hessian or preconditioner for a pair potential
-# as a block-matrix
-function _precon_or_hessian_pos(V::PairPotential, at::AbstractAtoms{T}, hfun) where {T}
-   nlist = neighbourlist(at, cutoff(V))
-   I, J, Z = Int[], Int[], JMat{T}[]
-   for C in (I, J, Z); sizehint!(C, 2*npairs(nlist)); end
-   for (i, j, r, R) in pairs(nlist)
-      h = 0.5 * hfun(V, r, R)
-      append!(I, (i,  i,  j, j))
-      append!(J, (i,  j,  i, j))
-      append!(Z, (h, -h, -h, h))
-   end
-   hE = sparse(I, J, Z, length(at), length(at))
-   return hE
 end
 
 
@@ -160,34 +143,11 @@ struct ZeroPairPotential <: PairPotential end
 
 @pot ZeroPairPotential
 
-evaluate(p::ZeroPairPotential, r::T) where {T} = T(0.0)
-evaluate_d(p::ZeroPairPotential, r::T) where {T} = T(0.0)
-evaluate_dd(p::ZeroPairPotential, r::T) where {T} = T(0.0)
+evaluate(p::ZeroPairPotential, r::T) where {T <: Number} = T(0.0)
+evaluate_d(p::ZeroPairPotential, r::T) where {T <: Number} = T(0.0)
+evaluate_dd(p::ZeroPairPotential, r::T) where {T <: Number} = T(0.0)
 cutoff(p::ZeroPairPotential) = Bool(0) # the weakest number type
 
-
-# ========================================================
-# wrapping a pair potential in a site potential
-
-SitePotential(pp::PairPotential) = PairSitePotential(pp)
-
-struct PairSitePotential{P} <: SitePotential
-   pp::P
-end
-
-@pot PairSitePotential
-
-cutoff(psp::PairSitePotential) = cutoff(psp.pp)
-
-# special implementation of site energy and forces for a plain pair potential
-evaluate!(tmp, psp::PairSitePotential, R) = 0.5 * sum(psp.pp ∘ norm, R)
-
-function evaluate_d!(dEs, tmp, psp::PairSitePotential, RR)
-   for (i, R) in enumerate(RR)
-      dEs[i] = 0.5 * grad(psp.pp, norm(R), R)
-   end
-   return dEs
-end
 
 """
 prototype of a multi-species pair potential
@@ -208,14 +168,13 @@ Implementation of the ZBL potential to model close approach.
 struct ZBLPotential{TV} <: PairPotential
    Z1::Int
    Z2::Int
-   V::TV
+   V::TV   # analytic
 end
 
 @pot ZBLPotential
 
-@inline evaluate(V::ZBLPotential, args...) = evaluate(V.V, args...)
-@inline evaluate_d(V::ZBLPotential, args...) = evaluate_d(V.V, args...)
-@inline grad(V::ZBLPotential, args...) = grad(V.V, args...)
+evaluate(V::ZBLPotential, r::Number) = evaluate(V.V, r::Number)
+evaluate_d(V::ZBLPotential, r::Number) = evaluate_d(V.V, r::Number)
 cutoff(::ZBLPotential) = Inf
 
 ZBLPotential(Z1::Integer, Z2::Integer) =
@@ -242,9 +201,6 @@ ZBLPotential(D::Dict) = ZBLPotential(D["Z1"], D["Z2"])
 Base.convert(::Val{:JuLIP_ZBLPotential}, D::Dict) = ZBLPotential(D)
 
 
-
-
-
 # ====================================================================
 #   A product of two pair potentials: primarily used for cutoff mechanisms
 
@@ -258,15 +214,10 @@ end
 
 import Base.*
 *(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
-@inline evaluate(p::ProdPot, r) = p.p1(r) * p.p2(r)
-evaluate_d(p::ProdPot, r) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
-evaluate_dd(p::ProdPot, r) = (p.p1(r) * (@DD p.p2(r)) +
+@inline evaluate(p::ProdPot, r::Number) = p.p1(r) * p.p2(r)
+evaluate_d(p::ProdPot, r::Number) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
+evaluate_dd(p::ProdPot, r::Number) = (p.p1(r) * (@DD p.p2(r)) +
               2 * (@D p.p1(r)) * (@D p.p2(r)) + (@DD p.p1(r)) * p.p2(r))
 cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
 
-# expand usage of prodpot to be useful for TightBinding.jl
-#       basically, we want to allow that
-#       a pair potential can depend on direction as well!
-#       in this case, @D is already the gradient and @GRAD remains undefined
-evaluate(p::ProdPot, r, R) = p.p1(r, R) * p.p2(r, R)
-evaluate_d(p::ProdPot, r, R) = p.p1(r,R) * (@D p.p2(r,R)) + (@D p.p1(r,R)) * p.p2(r,R)
+# ====================================================================

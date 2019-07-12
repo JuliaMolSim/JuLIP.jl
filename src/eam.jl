@@ -69,40 +69,46 @@ function evaluate_d!(dEs::AbstractVector{JVec{T}}, tmp, V::EAM1, Rs) where {T}
    return dEs
 end
 
-# TODO: which of the two `evaluate_dd` and `hess` should we be using?
-#       probably these two should be equivalent
-evaluate_dd(V::EAM1, r, R) = hess(V, r, R)
-hess(V::EAM1, r, R) = _hess_(V, r, R, identity)
+
+alloc_temp_dd(V::EAM1, N::Integer) =
+      ( ∇ρ = zeros(JVecF, N),
+         r = zeros(Float64, N) )
+
+evaluate_dd!(hEs, tmp, V::EAM1, R) = _hess_!(hEs, tmp, V, R, identity)
 
 # ff preconditioner specification for EAM potentials
 #   (just replace id with abs and hess with precon in the hessian code)
-precon(V::EAM1, r, R, stab=0.0) = _hess_(V, r, R, abs, stab)
+precon!(hEs, tmp, V::EAM1, R, stab=0.0) = _hess_!(hEs, tmp, V, r, R, abs, stab)
 
 
-function _hess_(V::EAM1, r::AbstractVector{T}, R, fabs, stab=T(0)) where {T}
-   # allocate storage
-   H = zeros(JMat{T}, length(r), length(r))
+function _hess_!(hEs, tmp, V::EAM1, R::AbstractVector{JVec{T}}, fabs, stab=T(0)
+                 ) where {T}
+   for i = 1:length(R)
+      r = norm(R[i])
+      tmp.r[i] = r
+      tmp.∇ρ[i] = grad(V.ρ, r, R[i])
+   end
    # precompute some stuff
-   ρ̄ = sum(V.ρ(s) for s in r)
-   ∇ρ = [ grad(V.ρ, s, S) for (s, S) in zip(r, R) ]
+   ρ̄ = sum(V.ρ, tmp.r)
    dF = @D V.F(ρ̄)
    ddF = @DD V.F(ρ̄)
    # assemble
-   for i = 1:length(r)
-      for j = 1:length(r)
-         H[i,j] = (1-stab) * fabs(ddF) * ∇ρ[i] * ∇ρ[j]'
+   for i = 1:length(R)
+      for j = 1:length(R)
+         hEs[i,j] = (1-stab) * fabs(ddF) * tmp.∇ρ[i] * tmp.∇ρ[j]'
       end
-      S = R[i] / r[i]
-      dϕ = @D V.ϕ(r[i])
-      dρ = @D V.ρ(r[i])
-      ddϕ = @DD V.ϕ(r[i])
-      ddρ = @DD V.ρ(r[i])
-      a = fabs(0.5 * (ddϕ) + dF * ddρ)
-      b = fabs((0.5 * (dϕ) + dF * (dρ)) / r[i])
-      H[i,i] += ( (1-stab) * ( a * S * S' + b * (I - S * S') )
+      r = tmp.r[i]
+      S = R[i] / r
+      dϕ = @D V.ϕ(r)
+      dρ = @D V.ρ(r)
+      ddϕ = @DD V.ϕ(r)
+      ddρ = @DD V.ρ(r)
+      a = fabs(0.5 * ddϕ + dF * ddρ)
+      b = fabs((0.5 * dϕ + dF *  dρ) / r)
+      hEs[i,i] += ( (1-stab) * ( (a-b) * S * S' + b * I )
                    + stab  * ( (a+b) * I ) )
    end
-   return H
+   return hEs
 end
 
 
