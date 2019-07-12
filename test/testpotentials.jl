@@ -71,22 +71,6 @@ push!(calculators,
       ( ZBLPotential(4, 7) * SplineCutoff(6.0, 8.0),
         rattle!(bulk(:W, cubic=true, pbc=false) * (3,3,2), 0.1) ) )
 
-# PairSitePotential (pair potential wrapped in a site potential)
-at8 = set_pbc!( bulk(:Al, cubic=true), false ) * 2
-pp = lennardjones(r0=rnn(:Al))
-psp = SitePotential(pp)
-if notCI
-   push!(calculators, (psp, at8))
-end
-
-println("--------------------------------------------------")
-println(" PairSitePotential Consistency test: ")
-println("--------------------------------------------------")
-println(" E_pp - E_psp = ", energy(pp, at8) - energy(psp, at8))
-println(" |Frc_pp - Frc_psp| = ", maxnorm(forces(pp, at8) - forces(psp, at8)))
-println("--------------------------------------------------")
-println(@test abs(energy(pp, at8) - energy(psp, at8)) < 1e-11)
-
 # Stillinger-Weber model
 at3 = set_pbc!( bulk(:Si, cubic=true) * 2, (false, true, false) )
 sw = StillingerWeber()

@@ -1,7 +1,7 @@
 using Test, JuLIP, StaticArrays, Printf, LinearAlgebra
 using JuLIP.Potentials
 using JuLIP.Testing
-using JuLIP.Potentials: evaluate_d, evaluate_dd, hess
+using JuLIP.Potentials: evaluate_d, evaluate_dd
 
 h2("Testing pair potential hessian")
 
@@ -69,8 +69,8 @@ for (idx, _2, r1, R1) in sites(at, cutoff(eam))
 end
 
 # evaluate site gradient and hessian
-dVs = evaluate_d(eam, r, R)
-hVs = hess(eam, r, R)
+dVs = evaluate_d(eam, R)
+hVs = evaluate_dd(eam, R)
 # and convert them to vector form
 dV = mat(dVs)[:]
 hV = zeros(3*size(hVs,1), 3*size(hVs,2))
@@ -86,7 +86,7 @@ for p = 2:9
    for n = 1:length(matR)
       matR[n] += h
       r = norm.(R)
-      dVh = mat(evaluate_d(eam, r, R))[:]
+      dVh = mat(evaluate_d(eam, R))[:]
       hVh[:, n] = (dVh - dV) / h
       matR[n] -= h
    end

@@ -131,15 +131,20 @@ function evaluate!(tmp, calc::StillingerWeber, R)
 end
 
 
-alloc_temp_d(V::StillingerWeber, N::Integer) =
-      (  dV = zeros(JVecF, N),
-         r = zeros(Float64, N),
+alloc_temp_d(V::StillingerWeber, N::Integer, T = Float64) =
+      (  dV = zeros(JVec{T}, N),
+         r = zeros(T, N),
+         S = zeros(JVec{T}, N),
+         V3 = zeros(T, N),
+         gV3 = zeros(JVec{T}, N)  )
+
+alloc_temp_dd(V::StillingerWeber, N::Integer) =
+      (  r = zeros(Float64, N),
          S = zeros(JVecF, N),
          V3 = zeros(Float64, N),
          gV3 = zeros(JVecF, N)  )
 
-
-function evaluate_d!(dEs, tmp, calc::StillingerWeber, R::AbstractVector{JVecF})
+function evaluate_d!(dEs, tmp, calc::StillingerWeber, R::AbstractVector{<:JVec})
    for i = 1:length(R)
       tmp.r[i] = r = norm(R[i])
       tmp.S[i] = R[i] / r
@@ -157,25 +162,26 @@ end
 
 
 function _ad_dV(V::StillingerWeber, R_dofs)
-   R = vecs( reshape(R_dofs, 3, length(R_dofs) ÷ 3) )   # TODO: skip reshape step
+   R = vecs( reshape(R_dofs, 3, length(R_dofs) ÷ 3) )
    r = norm.(R)
-   dV = evaluate_d(V, r, R)
-   return mat(dV)[:]        # TODO: this comes up quite a bit -> turn it into a `vec` or `dofs` call?
+   dV = zeros(eltype(R), length(R))
+   tmpd = alloc_temp_d(V, length(R), eltype(R[1]))
+   evaluate_d!(dV, tmpd, V, R)
+   return mat(dV)[:]
 end
 
 
-function _ad_ddV(V::StillingerWeber, r::AbstractVector{T}, R) where {T}
+function _ad_ddV!(hEs, V::StillingerWeber, R::AbstractVector{JVec{T}}) where {T}
    ddV = ForwardDiff.jacobian( Rdofs -> _ad_dV(V, Rdofs), mat(R)[:] )
    # convert into a block-format
-   n = length(r)
-   hV = zeros(JMat{T}, n, n)
+   n = length(R)
    for i = 1:n, j = 1:n
-      hV[i, j] = ddV[ ((i-1)*3).+(1:3), ((j-1)*3).+(1:3) ]
+      hEs[i, j] = ddV[ ((i-1)*3).+(1:3), ((j-1)*3).+(1:3) ]
    end
-   return hV
+   return hEs
 end
 
-hess(V::StillingerWeber, r, R) = _ad_ddV(V, r, R)
+evaluate_dd!(hEs, tmp, V::StillingerWeber, R) = _ad_ddV!(hEs, V, R)
 
 # function hess(V::StillingerWeber, r, R)
 #    n = length(r)

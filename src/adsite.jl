@@ -44,12 +44,12 @@ ADPotential(V, rcut) = ADPotential(V, rcut, ForwardDiff.gradient)
 
 cutoff(V::ADPotential) = V.rcut
 
-evaluate(V::ADPotential, r, R) = V.V(R)
+evaluate(V::ADPotential, R) = V.V(R)
 
 # evaluate_d(V::ADPotential, r, R) =
 #    ForwardDiff.gradient( S -> V.V(vecs(S)), mat(R)[:] ) |> vecs
 
-evaluate_d(V::ADPotential, r, R) =
+evaluate_d(V::ADPotential, R) =
    V.gradfun( S -> V.V(vecs(S)), collect(mat(R)[:]) ) |> vecs |> collect
 
 # function evaluate_dd(V::ADPotential, r, R)
