@@ -92,9 +92,9 @@ const WrappedAnalyticFunction = AnalyticFunction{F64fun, F64fun, F64fun}
 F64fun(p::AnalyticFunction) =
    AnalyticFunction(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd))
 
-evaluate(p::AnalyticFunction, r::Number) = p.f(r)
-evaluate_d(p::AnalyticFunction, r::Number) = p.f_d(r)
-evaluate_dd(p::AnalyticFunction, r::Number) = p.f_dd(r)
+evaluate!(tmp, p::AnalyticFunction, r::Number) = p.f(r)
+evaluate_d!(tmp, p::AnalyticFunction, r::Number) = p.f_d(r)
+evaluate_dd!(tmp, p::AnalyticFunction, r::Number) = p.f_dd(r)
 cutoff(V::AnalyticFunction) = Inf
 
 

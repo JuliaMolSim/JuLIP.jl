@@ -52,7 +52,6 @@ h2("Testing EAM hessian")
 # setup a geometry
 at = bulk(:Fe, cubic=true) * 2
 set_pbc!(at, false)
-dir = joinpath(dirname(@__FILE__), "..", "data") * "/"
 eam = eam_Fe
 set_calculator!(at, eam)
 rattle!(at, 0.1)
@@ -60,7 +59,7 @@ rattle!(at, 0.1)
 h3("test a single stencil")
 r = []
 R = []
-for (idx, _2, r1, R1) in sites(at, cutoff(eam))
+for (idx, _j, R1) in sites(at, cutoff(eam))
    if idx == 3
       global r = r1
       global R = R1

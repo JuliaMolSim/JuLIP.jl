@@ -4,25 +4,26 @@ hessian_pos(V::SitePotential, at::AbstractAtoms) =
 
 # implementation of a generic assembly of a global block-hessian from
 # local site-hessians
-function _precon_or_hessian_pos(V::SitePotential, at::AbstractAtoms{T}, hfun) where {T}
+function _precon_or_hessian_pos(V, at::AbstractAtoms{T}, hfun) where {T}
    nlist = neighbourlist(at, cutoff(V))
-   maxN = max_neigs(nlist)
+   maxN = maxneigs(nlist)
    hEs = zeros(JMat{T}, maxN, maxN)
    tmp = alloc_temp_dd(V, maxN)
    I, J, Z = Int[], Int[], JMat{T}[]
    # a crude size hint
-   for C in (I, J, Z); sizehint!(C, 24*npairs(nlist)); end
-   for (i, neigs, r, R) in sites(nlist)
+   for C in (I, J, Z); sizehint!(C, npairs(nlist)); end
+   for (i, neigs, R) in sites(nlist)
       nneigs = length(neigs)
       # [1] the "off-centre" component of the hessian:
       # h[a, b] = ∂_{Ra} ∂_{Rb} V     (this is a nneigs x nneigs block-matrix)
+      fill!(hEs, zero(JMat{T}))
       hfun(hEs, tmp, V, R)
       for a = 1:nneigs, b = 1:nneigs
-         if norm(hEs[a,b], Inf) > 0
+         # if norm(hEs[a,b], Inf) > 0
             push!(I, neigs[a])
             push!(J, neigs[b])
             push!(Z, hEs[a,b])
-         end
+         # end
       end
 
       # [2] the ∂_{Ri} ∂_{Ra} terms
@@ -32,20 +33,20 @@ function _precon_or_hessian_pos(V::SitePotential, at::AbstractAtoms{T}, hfun) wh
       hii = zero(JMat{T})
       for b = 1:nneigs
          hib = -sum( hEs[a, b] for a = 1:nneigs )
-         if norm(hib, Inf) > 0
+         # if norm(hib, Inf) > 0
             hii -= hib
             append!(I, (i,         neigs[b] ))
             append!(J, (neigs[b],  i        ))
             append!(Z, (hib,       hib'     ))
-         end
+         # end
       end
 
       # and finally add the  ∂_{Ri}^2 term, which is precomputed above
-      if norm(hii, Inf) > 0
+      # if norm(hii, Inf) > 0
          push!(I, i)
          push!(J, i)
          push!(Z, hii)
-      end
+      # end
    end
    return sparse(I, J, Z, length(at), length(at))
 end
