@@ -35,7 +35,7 @@ import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum,
               site_energy, site_energy_d,
               energy!, forces!, virial!,
-              alloc_temp, alloc_temp_d
+              alloc_temp, alloc_temp_d, alloc_temp_dd 
 
 export PairPotential, SitePotential, ZeroSitePotential
 
@@ -89,6 +89,9 @@ evaluate_dd(V::PairPotential, r::Number) = evaluate_dd!(alloc_temp_d(V, 1), V, r
 NeighbourLists.sites(at::AbstractAtoms, rcut::AbstractFloat) =
       sites(neighbourlist(at, rcut))
 
+NeighbourLists.pairs(at::AbstractAtoms, rcut::AbstractFloat) =
+      pairs(neighbourlist(at, rcut))
+
 "a site potential that just returns zero"
 mutable struct ZeroSitePotential <: SitePotential
 end
@@ -110,12 +113,12 @@ evaluate_dd!(hEs, tmp, V::ZeroSitePotential, args...) = fill!(hEs, zero(eltype(h
 # ================================================
 
 alloc_temp(V::SitePotential, at::AbstractAtoms) =
-      alloc_temp(V, max_neigs(neighbourlist(at, cutoff(V))))
+      alloc_temp(V, maxneigs(neighbourlist(at, cutoff(V))))
 
 alloc_temp(V::SitePotential, N::Integer) = nothing
 
 alloc_temp_d(V::SitePotential, at::AbstractAtoms) =
-      alloc_temp_d(V, max_neigs(neighbourlist(at, cutoff(V))))
+      alloc_temp_d(V, maxneigs(neighbourlist(at, cutoff(V))))
 
 alloc_temp_d(V::SitePotential, N::Integer) = (dV = zeros(JVecF, N), )
 
@@ -135,7 +138,7 @@ function energy!(tmp, V::SitePotential, at::AbstractAtoms{T};
    E = zero(T)
    nlist = neighbourlist(at, cutoff(V))
    for i in domain
-      _j, _r, R = neigs(nlist, i)
+      _j, R = neigs(nlist, i)
       E += evaluate!(tmp, V, R)
    end
    return E
@@ -145,7 +148,7 @@ function forces!(frc, tmp, V::SitePotential, at::AbstractAtoms;
                  domain=1:length(at)) where {T}
    nlist = neighbourlist(at, cutoff(V))
    for i in domain
-      j, _r, R = neigs(nlist, i)
+      j, R = neigs(nlist, i)
       evaluate_d!(tmp.dV, tmp, V, R)
       for a = 1:length(j)
          frc[j[a]] -= tmp.dV[a]
@@ -164,7 +167,7 @@ function virial!(tmp, V::SitePotential, at::AbstractAtoms{T};
    vir = zero(JMat{T})
    nlist = neighbourlist(at, cutoff(V))
    for i in domain
-      _j, _r, R = neigs(nlist, i)
+      _j, R = neigs(nlist, i)
       evaluate_d!(tmp.dV, tmp, V, R)
       vir += site_virial(tmp.dV, R)
    end
@@ -179,7 +182,7 @@ function site_energies!(Es, tmp, V::SitePotential, at::AbstractAtoms{T};
          domain = 1:length(at)) where {T}
    nlist = neighbourlist(at, cutoff(V))
    for i in domain
-      _j, _r, R = neigs(nlist, i)
+      _j, R = neigs(nlist, i)
       Es[i] = evaluate!(tmp, V, R)
    end
    return Es

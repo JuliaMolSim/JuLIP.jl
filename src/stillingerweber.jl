@@ -222,30 +222,33 @@ evaluate_dd!(hEs, tmp, V::StillingerWeber, R) = _ad_ddV!(hEs, V, R)
 
 
 
-function precon(V::StillingerWeber, r::AbstractVector{T}, R, innerstab=0.0
-               ) where {T}
-   n = length(r)
-   pV = zeros(JMat{T}, n, n)
+function precon!(hEs, tmp, V::StillingerWeber, R::AbstractVector{JVec{T}}, innerstab=0.0
+                 ) where {T}
+   n = length(R)
+   r = tmp.r
+   V3 = tmp.V3
+   S = tmp.S
 
    # two-body contributions
-   for (i, (r1, R1)) in enumerate(zip(r, R))
-      pV[i,i] += precon(V.V2, r1, R1)
+   for (i, R1) in enumerate(R)
+      r[i] = norm(R1)
+      V3[i] = V.V3(r[i])
+      S[i] = R1 / r[i]
+      hEs[i,i] += precon!(nothing, V.V2, r[i], R1)
    end
 
    # three-body terms
-   S = [ R1/r1 for (R1,r1) in zip(R, r) ]
-   V3 = V.V3.(r)
    for i1 = 1:(n-1), i2 = (i1+1):n
       Θ = dot(S[i1], S[i2])
       dΘ1 = (T(1.0)/r[i1]) * S[i2] - (Θ/r[i1]) * S[i1]
       dΘ2 = (T(1.0)/r[i2]) * S[i1] - (Θ/r[i2]) * S[i2]
       # ψ = (Θ + 1/3)^2, ψ' = (Θ + 1/3), ψ'' = 2.0
       a = abs((V3[i1] * V3[i2] * T(2.0)))
-      pV[i1,i2] += a * dΘ1 * dΘ2'
-      pV[i1,i1] += a * dΘ1 * dΘ1'
-      pV[i2, i2] += a * dΘ2 * dΘ2'
-      pV[i2, i1] += a * dΘ2 * dΘ1'
+      hEs[i1,i2] += a * dΘ1 * dΘ2'
+      hEs[i1,i1] += a * dΘ1 * dΘ1'
+      hEs[i2, i2] += a * dΘ2 * dΘ2'
+      hEs[i2, i1] += a * dΘ2 * dΘ1'
    end
 
-   return pV
+   return hEs
 end

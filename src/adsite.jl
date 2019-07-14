@@ -2,7 +2,7 @@
 
 import ForwardDiff
 
-using JuLIP: vecs, mat
+using JuLIP: vecs, mat, JVec
 
 export ADPotential
 
@@ -44,17 +44,14 @@ ADPotential(V, rcut) = ADPotential(V, rcut, ForwardDiff.gradient)
 
 cutoff(V::ADPotential) = V.rcut
 
-evaluate(V::ADPotential, R) = V.V(R)
+evaluate!(tmp, V::ADPotential, R::AbstractVector{<: JVec}) = V.V(R)
 
-# evaluate_d(V::ADPotential, r, R) =
-#    ForwardDiff.gradient( S -> V.V(vecs(S)), mat(R)[:] ) |> vecs
+function evaluate_d!(dEs, tmp, V::ADPotential, R::AbstractVector{<: JVec})
+   dV = V.gradfun( S -> V.V(vecs(S)), collect(mat(R)[:]) ) |> vecs
+   copyto!(dEs, dV)
+   return dEs
+end
 
-evaluate_d(V::ADPotential, R) =
-   V.gradfun( S -> V.V(vecs(S)), collect(mat(R)[:]) ) |> vecs |> collect
-
-# function evaluate_dd(V::ADPotential, r, R)
-#
-# end
 
 
 

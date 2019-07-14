@@ -30,7 +30,8 @@ at = bulk(:Al, cubic=true) * (20,20,2)
 at = rattle!(at, 0.02)
 set_calculator!(at, calc)
 minimise!(at, precond = :exp, method = :lbfgs,
-          robust_energy_difference = true, verbose=2)
+          robust_energy_difference = true, verbose=2
+          )
 
 h2("Variable Cell Test")
 calc = lennardjones(r0=rnn(:Al))
@@ -88,6 +89,7 @@ h2("Test optimisation with VariableCell")
 # start with a clean `at`
 at = bulk(:Al) * 2   # cubic=true,
 apply_defm!(at, I + 0.02 * rand(3,3))
+calc = lennardjones(r0=rnn(:Al))
 set_calculator!(at, calc)
 variablecell!(at)
 println(@test JuLIP.Testing.fdtest(calc, at, verbose=true, rattle=0.1))
@@ -103,7 +105,6 @@ h2("Check sigvol derivative")
 println(@test fdtest(c -> JuLIP.sigvol(reshape(c, (3,3))),
                      c -> JuLIP.sigvol_d(reshape(c, (3,3)))[:],
                      rand(3,3)))
-
 
 
 # TODO: revive this after introducing external potentials

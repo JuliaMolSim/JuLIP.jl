@@ -21,16 +21,16 @@ catch
    global hasase = false
 end
 julip_tests = [
-   # ("testaux.jl", "Miscellaneous"),
-   # ("test_atoms.jl", "Atoms"),
-   # ("test_build.jl", "Build"),
-   # ("test_fio.jl", "File IO"),
-   # ("testanalyticpotential.jl", "Analytic Potential"),
-   # ("testpotentials.jl", "Potentials"),
-   # ("test_ad.jl", "AD Potentials"),
-   # ("testvarcell.jl", "Variable Cell"),
+   ("testaux.jl", "Miscellaneous"),
+   ("test_atoms.jl", "Atoms"),
+   ("test_build.jl", "Build"),
+   ("test_fio.jl", "File IO"),
+   ("testanalyticpotential.jl", "Analytic Potential"),
+   ("testpotentials.jl", "Potentials"),
+   ("test_ad.jl", "AD Potentials"),
+   ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
-   # ("testsolve.jl", "Solve"),
+   ("testsolve.jl", "Solve"),
 ]
 
 # remove testsolve if on Travis

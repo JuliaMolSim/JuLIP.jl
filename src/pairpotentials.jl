@@ -16,6 +16,7 @@ grad(V::PairPotential, r::Real, R::JVec) = ((@D V(r)) / r) * R
 
 evaluate!(tmp, V::PairPotential, r::Union{Number, JVec}) = V(r)
 evaluate_d!(tmp, V::PairPotential, r::Union{Number, JVec}) = @D V(r)
+evaluate_dd!(tmp, V::PairPotential, r::Union{Number, JVec}) = @DD V(r)
 
 function evaluate!(tmp, V::PairPotential, R::AbstractVector{JVec{T}}) where {T}
    Es = zero(T)
@@ -38,24 +39,34 @@ function evaluate_dd!(hEs, tmp, V::PairPotential, R::AbstractVector{<: JVec})
    for i = 1:n
       hEs[i,i] = 0.5 * _hess!(tmp, V, norm(R[i]), R[i])
    end
+   return hEs
 end
 
 function _hess!(tmp, V::PairPotential, r::Number, R::JVec)
    R̂ = R/r
    P = R̂ * R̂'
-   dV = (@D V(r))/r
-   return ((@DD V(r)) - dV) * P + dV * I
+   dV = evaluate_d!(tmp, V, r) / r
+   ddV = evaluate_dd!(tmp, V, r)
+   return (ddV - dV) * P + dV * I
 end
 
-
+function precon!(hEs, tmp, V::PairPotential, R::AbstractVector{<: JVec}, innerstab=T(0.0))
+   n = length(R)
+   for i = 1:n
+      hEs[i,i] = precon!(tmp, V, norm(R[i]), R[i], innerstab)
+   end
+   return hEs
+end
 
 # an FF preconditioner for pair potentials
-function precon(V::PairPotential, r::T, R, innerstab=T(0.1)) where {T}
-   dV = @D V(r)
-   hV = @DD V(r)
-   S = R/r
-   return (1-innerstab) * (abs(hV) * S * S' + abs(dV / r) * (I - S * S')) +
-             innerstab  * (abs(hV) + abs(dV / r)) * I
+function precon!(tmp, V::PairPotential, r::T, R::JVec{T}, innerstab=T(0.1)
+                 ) where {T <: Number}
+   r = norm(R)
+   dV = evaluate_d!(tmp, V, r)
+   ddV = evaluate_dd!(tmp, V, r)
+   R̂ = R/r
+   return (1-innerstab) * (abs(ddV) * R̂ * R̂' + abs(dV / r) * (I - R̂ * R̂')) +
+             innerstab  * (abs(ddV) + abs(dV / r)) * I
 end
 
 

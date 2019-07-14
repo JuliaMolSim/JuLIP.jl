@@ -19,7 +19,7 @@ using LinearAlgebra: cholesky, I, Symmetric, norm
 import SuiteSparse
 
 import JuLIP:             update!
-import JuLIP.Potentials:  precon, cutoff
+import JuLIP.Potentials:  precon!, cutoff
 import Base:              *, \, size
 import LinearAlgebra:     ldiv!, mul!, dot
 
@@ -68,7 +68,7 @@ end
 
 
 
-function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
+function IPPrecon(p, at::AbstractAtoms;
          updatedist=0.2 * rnn(at), tol=1e-7, updatefreq=10, stab=0.01,
          solver = :chol, innerstab=0.0)
    # make sure we don't use this in a context it is not intended for!
@@ -147,12 +147,8 @@ atind2lininds(i::Integer) = (i-1) * 3 + [1;2;3]
 """
 build the preconditioner matrix associated with the potential V
 """
-precon_matrix(V::AbstractCalculator, at::AbstractAtoms;
-              preconmap = (V, r, R) -> precon(V, r, R)) =
-   _pos_to_dof(_precon_or_hessian_pos(V, at, preconmap), at)
-
-precon_matrix(V::AbstractCalculator, at::AbstractAtoms, innerstab;
-              preconmap = (V, r, R) -> precon(V, r, R, innerstab)) =
+precon_matrix(V, at::AbstractAtoms, innerstab = 0.1;
+              preconmap = (hEs, tmp, V, R) -> precon!(hEs, tmp, V, R, innerstab)) =
    _pos_to_dof(_precon_or_hessian_pos(V, at, preconmap), at)
 
 """
@@ -173,15 +169,20 @@ Keyword arguments:
       C. Ortner, and G. Csanyi. A universal preconditioner for simulating condensed
       phase materials. J. Chem. Phys., 144, 2016.
 """
-mutable struct Exp{T, TV} <: PairPotential
+mutable struct Exp{T, TV}
    Vexp::TV
    energyscale::T
 end
 
 cutoff(P::Exp) = cutoff(P.Vexp)
 
-precon(P::Exp{T}, r::T, R, innerstab=T(0)) where {T} =
-      (P.energyscale * P.Vexp(r) + innerstab) * one(JMat{T})
+function precon!(hEs, tmp, P::Exp{T}, R::AbstractVector{<: JVec}, innerstab=0) where {T}
+   n = length(R)
+   for i = 1:n
+      hEs[i,i] = (P.energyscale * P.Vexp(norm(R[i]))+innerstab) * one(JMat{T})
+   end
+   return hEs
+end
 
 function Exp(at::AbstractAtoms{T};
              A=T(3.0), r0=rnn(at), cutoff_mult=T(2.2), energyscale = T(1.0),

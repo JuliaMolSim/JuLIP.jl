@@ -1,7 +1,8 @@
 
-import JuLIP.Potentials: @pot, @D, evaluate, evaluate_d, PairPotential, @analytic
+import JuLIP.Potentials: @pot, @D, evaluate!, evaluate_d!, PairPotential, @analytic
 using LinearAlgebra: norm
 using BenchmarkTools
+using JuLIP, Test
 
 h3("generate hand-coded morse potential")
 
@@ -13,8 +14,10 @@ end
 
 @pot Morseold
 
-evaluate(p::Morseold, r) = p.e0 * (exp(-2*p.A*(r/p.r0-1.0)) - 2.0*exp(-p.A*(r/p.r0-1.0)))
-evaluate_d(p::Morseold, r) = -2.0*p.e0*p.A/p.r0*(exp(-2*p.A*(r/p.r0-1.0)) - exp(-p.A*(r/p.r0-1.0)))
+evaluate!(tmp, p::Morseold, r::Number) =
+      p.e0 * (exp(-2*p.A*(r/p.r0-1.0)) - 2.0*exp(-p.A*(r/p.r0-1.0)))
+evaluate_d!(tmp, p::Morseold, r::Number) =
+      -2.0*p.e0*p.A/p.r0*(exp(-2*p.A*(r/p.r0-1.0)) - exp(-p.A*(r/p.r0-1.0)))
 
 A = 4.1
 e0 = 0.99

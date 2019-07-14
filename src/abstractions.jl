@@ -497,6 +497,8 @@ some calculator or potential; see developer docs for more information
 """
 alloc_temp_d(args...) = nothing
 
+alloc_temp_dd(args...) = nothing 
+
 """
 `energy!`: non-allocating version of `energy`
 """
