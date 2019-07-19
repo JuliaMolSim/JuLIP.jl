@@ -178,15 +178,22 @@ end
 #                 and some access not covered above
 
 
-function neighbourlist(at::Atoms, cutoff::AbstractFloat; recompute=false, kwargs...)
-   # todo -> re-design this from scratch . . .
-   PairList(positions(at), cutoff, cell(at), pbc(at); kwargs...)
-   # if !has_data(at, (:nlist, cutoff)) || recompute
-   #    set_transient!(at, (:nlist, cutoff),
-   #          PairList(positions(at), cutoff, cell(at), pbc(at))
-   #       )
-   # end
-   # return get_data(at, (:nlist, cutoff))
+function neighbourlist(at::Atoms, cutoff::AbstractFloat;
+            recompute=false, key="nlist:default", kwargs...)
+   # we are allowed to use a stored list
+   if !recompute
+      if has_data(at, key)
+         nlist = get_data(key)
+         if cutoff(nlist) >= cutoff
+            return nlist
+         end
+      end
+   end
+   # we are either forces to recompute, or no nlist exists or is not
+   # suitable for the request.
+   nlist = PairList(positions(at), cutoff, cell(at), pbc(at); kwargs...)
+   set_data!(at, key, nlist, 0.0)
+   return nlist
 end
 
 neighbourlist(at::Atoms) = neighbourlist(at, cutoff(at))

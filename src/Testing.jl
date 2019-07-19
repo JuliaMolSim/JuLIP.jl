@@ -182,6 +182,6 @@ h3(str) = (printstyled(str, bold=true, color=:magenta); println())
 
 print_tf(::Test.Pass) = printstyled("+", bold=true, color=:green)
 print_tf(::Test.Fail) = printstyled("-", bold=true, color=:red)
-
+print_tf(::Tuple{Test.Error,Bool}) = printstyled("x", bold=true, color=:magenta)
 
 end

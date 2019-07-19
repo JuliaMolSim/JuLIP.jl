@@ -35,7 +35,7 @@ import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum,
               site_energy, site_energy_d,
               energy!, forces!, virial!,
-              alloc_temp, alloc_temp_d, alloc_temp_dd 
+              alloc_temp, alloc_temp_d, alloc_temp_dd
 
 export PairPotential, SitePotential, ZeroSitePotential
 
@@ -91,6 +91,7 @@ NeighbourLists.sites(at::AbstractAtoms, rcut::AbstractFloat) =
 
 NeighbourLists.pairs(at::AbstractAtoms, rcut::AbstractFloat) =
       pairs(neighbourlist(at, rcut))
+
 
 "a site potential that just returns zero"
 mutable struct ZeroSitePotential <: SitePotential
@@ -202,7 +203,6 @@ site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int
 
 include("analyticpotential.jl")
 # * AnalyticFunction
-# * WrappedPPotential
 
 include("cutoffs.jl")
 #   * SWCutoff
@@ -214,6 +214,7 @@ include("pairpotentials.jl")
 # * LennardJonesPotential
 # * MorsePotential
 # * SimpleExponential
+# * WrappedPairPotential
 
 include("adsite.jl")
 # * ADPotential : Site potential using ForwardDiff
@@ -233,7 +234,7 @@ include("hessians.jl")
 
 
 
-
+include("multi.jl")
 
 
 

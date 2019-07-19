@@ -160,14 +160,6 @@ evaluate_dd(p::ZeroPairPotential, r::T) where {T <: Number} = T(0.0)
 cutoff(p::ZeroPairPotential) = Bool(0) # the weakest number type
 
 
-"""
-prototype of a multi-species pair potential
-"""
-struct MultiPairPotential{TV}
-   V::Matrix{TV}
-   Z2V::Dict{Int, Int}
-end
-
 
 # ------------------------------------------------------------------------
 
@@ -232,3 +224,36 @@ evaluate_dd(p::ProdPot, r::Number) = (p.p1(r) * (@DD p.p2(r)) +
 cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
 
 # ====================================================================
+
+
+
+"""
+`struct WrappedPairPotential`
+
+wraps a pairpotential using `FunctionWrappers` in order to allow
+type-stable storage of multiple potentials. This is the main technique
+required at the moment to work with multi-component systems.
+Otherwise, this is not advisable since it disables a range of
+possible compiler optimisations.
+"""
+struct WrappedPairPotential <: SimplePairPotential
+   f::F64fun
+   f_d::F64fun
+   f_dd::F64fun
+   rcut::Float64
+end
+
+@pot WrappedPairPotential
+
+cutoff(V::WrappedPairPotential) = V.rcut
+# evaluate, etc are all derived from SimplePairPotential
+
+function WrappedPairPotential(V::PairPotential)
+   @assert (0 < cutoff(V) < Inf)
+   f, f_d, f_dd = let V=V
+      (F64fun(r -> evaluate(V, r)),
+              F64fun(r -> evaluate_d(V, r)),
+              F64fun(r -> evaluate_dd(V, r)))
+   end
+   return WrappedPairPotential(f, f_d, f_dd, cutoff(V))
+end
