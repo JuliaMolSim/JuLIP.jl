@@ -58,11 +58,7 @@ end
 
 evaluate(V::MOneBody,sp) = V.E0[sp]
 
-<<<<<<< HEAD
-function site_energies(V::MOneBody{T}, at::Atoms) where {T}
-=======
 function site_energies(V::MOneBody{T}, at::AbstractAtoms) where {T}
->>>>>>> co/restruct
    E = zeros(T, length(at))
    for i in 1:length(at)
       E[i] = V(chemical_symbols(at)[i])
