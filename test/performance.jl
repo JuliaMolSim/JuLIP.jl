@@ -43,8 +43,19 @@ perfbm("STILLINGER-WEBER",
          bulk(:Si, cubic=true) * (12,15,12),
          StillingerWeber())
 
+##
+using BenchmarkTools
+using JuLIP
+using JuLIP: AbstractAtoms, AbstractCalculator
 
-# Performance prior to restructuring 
+at = bulk(:Al, cubic=true) * (10,10,8)
+calc = lennardjones(r0=rnn(:Al))
+tmp = JuLIP.alloc_temp(calc, at)
+JuLIP.energy!(tmp, calc, at)
+
+
+# Performance prior to restructuring
+# TODO: fix performance of PairPotentials
 # --------------------------------------------------------------------------
 # LENNARD-JONES
 # Energy Assembly (without nlist):   66.695 ms (41653 allocations: 47.65 MiB)
