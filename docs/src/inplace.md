@@ -58,9 +58,9 @@ a neighbourlist, then calculate `N` (cf. `NeighbourLists.maxneigs`)
 then allocate `tmp, tmpd` and then use that to call the non-allocating
 versions `energy!, ...`.
 
-It is *required* that `tmpd` has a field `tmpd.dV` which will be used to
-store the site energy derivatives.
-
+It is *required* that `tmp` has a field `temp.R` and that
+`tmpd` has fields `tmpd.dV, tmp.R` which will be used to
+store the neighbourhood information and the site energy derivatives.
 
 ### Pair Potentials
 
@@ -70,12 +70,18 @@ the functions
 evaluate!(       tmp, calc, R::AbstractVector{<:JVec})
 evaluate_d!(dV, tmpd, calc, R::AbstractVector{<:JVec})
 ```
-are imlemented through calls to only
+are implemented through calls to only
 ```{julia}
 evaluate!(   tmp, calc, r::Number)
 evaluate_d!(tmpd, calc, r::Number)
 ```
-
+which in turn are implemented as
+```
+evaluate(calc, r)
+evaluate_d(calc, r)
+```
+A new implementation of a `PairPotential` may overload these definitions
+at any of these three levels of implementation.
 
 ### Hessians and Preconditioners
 

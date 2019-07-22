@@ -112,7 +112,8 @@ function StillingerWeber(; brittle = false,
 end
 
 alloc_temp(V::StillingerWeber, N::Integer) =
-      (  S = zeros(JVecF, N),
+      (  R = zeros(JVecF, N),
+         S = zeros(JVecF, N),
          V3 = zeros(Float64, N)  )
 
 function evaluate!(tmp, calc::StillingerWeber, R)
@@ -133,6 +134,7 @@ end
 
 alloc_temp_d(V::StillingerWeber, N::Integer, T = Float64) =
       (  dV = zeros(JVec{T}, N),
+         R = zeros(JVecF, N),
          r = zeros(T, N),
          S = zeros(JVec{T}, N),
          V3 = zeros(T, N),
