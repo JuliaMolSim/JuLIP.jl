@@ -65,7 +65,6 @@ using JuLIP
 at = bulk(:Si, cubic=true) * 4
 deleteat!(at, 1)
 set_calculator!(at, StillingerWeber())
-set_constraint!(at, FixedCell(at))
 minimise!(at)
 # Visualisation is current not working
 # JuLIP.Visualise.draw(at)   # (this will only work in a ipynb)

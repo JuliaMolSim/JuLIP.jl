@@ -1,12 +1,16 @@
 
 using MacroTools: @capture, prewalk
+
 using Calculus: differentiate
 
-export AnalyticFunction, @analytic
 using CommonSubexpressions
 
 import FunctionWrappers
 import FunctionWrappers: FunctionWrapper
+
+export AnalyticFunction, @analytic
+
+
 const ScalarFun{T} = FunctionWrapper{T, Tuple{T}}
 
 """
@@ -47,6 +51,9 @@ end
 
 # ================== Analytical Potentials ==========================
 
+abstract type SimplePairPotential <: PairPotential end
+
+
 """
 `struct AnalyticFunction`: described an analytic function, allowing to
 evaluate at least 2 derivatives.
@@ -75,7 +82,7 @@ V = @analytic( r -> exp(s) * s, s = r^2 )
 V = @analytic r -> exp(r^2) * r^2
 ```
 """
-struct AnalyticFunction{F0,F1,F2} <: PairPotential
+struct AnalyticFunction{F0,F1,F2} <: SimplePairPotential
    f::F0
    f_d::F1
    f_dd::F2
@@ -83,16 +90,10 @@ end
 
 @pot AnalyticFunction
 
-const WrappedAnalyticFunction = AnalyticFunction{F64fun, F64fun, F64fun}
-
 F64fun(p::AnalyticFunction) =
-   AnalyticFunction(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd))
+   WrappedPairPotential(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd))
 
-evaluate(p::AnalyticFunction, r::Number) = p.f(r)
-evaluate_d(p::AnalyticFunction, r::Number) = p.f_d(r)
-evaluate_dd(p::AnalyticFunction, r::Number) = p.f_dd(r)
 cutoff(V::AnalyticFunction) = Inf
-
 
 """
 `@analytic`: generate C2 function from symbol
@@ -108,8 +109,6 @@ macro analytic(args...)
    end
 end
 
-
-# TODO: this is a hack to make tight-binding work; but it should be reconsidered
-# right now I am thinking it is actually ok as is!
-evaluate(p::AnalyticFunction, r, R) = evaluate(p, r)
-evaluate_d(p::AnalyticFunction, r, R) = evaluate_d(p, r)
+evaluate!(tmp, p::SimplePairPotential, r::Number) = p.f(r)
+evaluate_d!(tmp, p::SimplePairPotential, r::Number) = p.f_d(r)
+evaluate_dd!(tmp, p::SimplePairPotential, r::Number) = p.f_dd(r)

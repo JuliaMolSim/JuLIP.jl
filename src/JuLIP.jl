@@ -3,11 +3,15 @@
 
 module JuLIP
 
-using Reexport, NeighbourLists, StaticArrays, Parameters
-
+using Reexport
+@reexport using NeighbourLists
 
 # quickly switch between Matrices and Vectors of SVectors, etc
 include("arrayconversions.jl")
+
+# File IO
+include("FIO.jl")
+@reexport using JuLIP.FIO
 
 # define types and abstractions of generic functions
 include("abstractions.jl")
@@ -17,10 +21,7 @@ include("chemistry.jl")
 
 # the main atoms type
 include("atoms.jl")
-
-# File IO
-include("FIO.jl")
-@reexport using JuLIP.FIO
+include("dofmanagement.jl")
 
 # how to build some simple domains
 include("build.jl")
@@ -28,14 +29,11 @@ include("build.jl")
 
 # a few auxiliary routines
 include("utils.jl")
+@reexport using JuLIP.Utils
 
 # interatomic potentials prototypes and some example implementations
 include("Potentials.jl")
 @reexport using JuLIP.Potentials
-
-# submodule JuLIP.Constraints
-include("Constraints.jl")
-@reexport using JuLIP.Constraints
 
 # basic preconditioning capabilities
 include("preconditioners.jl")
@@ -49,10 +47,6 @@ include("Solve.jl")
 include("Experimental.jl")
 @reexport using JuLIP.Experimental
 
-# codes to facilitate testing
-include("Testing.jl")
-
-
 # the following are some sub-modules that are primarily used
 # to create further abstractions to be shared across several
 # modules in the JuLIP-verse.
@@ -60,19 +54,8 @@ include("mlips.jl")
 include("nbody.jl")
 
 
-
-# # only try to import Visualise, it is not needed for the rest to work.
-# try
-#    # some visualisation options
-#    if isdefined(Main, :JULIPVISUALISE)
-#       if Main.JULIPVISUALISE == true
-#          include("Visualise.jl")
-#       end
-#    end
-# catch
-#    JuLIP.julipwarn("""JuLIP.Visualise did not import correctly, probably because
-#                `imolecule` is not correctly installed.""")
-# end
+# codes to facilitate testing
+include("Testing.jl")
 
 
 end # module

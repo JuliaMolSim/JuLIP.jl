@@ -7,17 +7,91 @@ module Build
 
 import JuLIP
 using ..Chemistry
-using JuLIP: JVec, JMat, JVecF, JMatF, JVecsF, mat,
+using JuLIP: JVec, JMat, JVecF, JMatF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
-      chemical_symbols, set_cell!, set_pbc!, update_data!,
-      set_defm!, defm
+      chemical_symbols, set_cell!, set_pbc!, update_data!
 
 using LinearAlgebra: I, Diagonal, isdiag, norm
 
 import Base: union
+import JuLIP: Atoms
 
 export repeat, bulk, cluster, autocell!, append
 
+
+
+
+_auto_pbc(pbc::Tuple{Bool, Bool, Bool}) = JVec(pbc...)
+_auto_pbc(pbc::Bool) = JVec(pbc, pbc, pbc)
+_auto_pbc(pbc::AbstractVector) = JVec(pbc...)
+
+_auto_cell(cell) = cell
+_auto_cell(cell::AbstractMatrix) = JMat(cell)
+_auto_cell(C::AbstractVector{T}) where {T <: Real} = (
+   length(C) == 3 ? JMatF(C[1], 0.0, 0.0, 0.0, C[2], 0.0, 0.0, 0.0, C[3]) :
+                    JMatF(C...) )  # (case 2 requires that length(C) == 0
+_auto_cell(C::AbstractVector{T}) where {T <: AbstractVector} = JMatF([ C[1] C[2] C[3] ])
+_auto_cell(C::AbstractVector) = _auto_cell([ c for c in C ])
+
+"""
+`autocell!(at::Atoms) -> Atoms`
+
+generates cell vectors that contain all atom positions + a small buffer,
+sets the cell of `at` accordingly (in-place) and returns the same atoms objet
+with the new cell.
+"""
+autocell!(at::Atoms) = set_cell!(at, _autocell(positions(at)))
+
+function _autocell(X::Vector{JVec{T}}) where T
+   ext = extrema(mat(X), dims = (2,))
+   C = Diagonal([ e[2] - e[1] + 1.0  for e in ext ][:])
+   return JMat{T}(C)
+end
+
+# if we have no clue about X just return it and see what happens
+_auto_X(X) = X
+# if the elements of X weren't inferred, try to infer before reading
+# TODO: this might lead to a stack overflow!!
+_auto_X(X::AbstractVector) = _auto_X( [x for x in X] )
+# the cases where we know what to do ...
+_auto_X(X::AbstractVector{T}) where {T <: AbstractVector} = [ JVecF(x) for x in X ]
+_auto_X(X::AbstractVector{T}) where {T <: Real} = _auto_X(reshape(X, 3, :))
+_auto_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
+                              [ JVecF(X[:,n]) for n = 1:size(X,2) ])
+
+_auto_M(M::AbstractVector{T}) where {T <: AbstractFloat} = Vector{T}(M)
+_auto_M(M::AbstractVector) = Vector{Float64}(M)
+
+_auto_Z(Z::AbstractVector) = Vector{Int16}(Z)
+
+
+Atoms(; kwargs...) = Atoms{Float64}(; kwargs...)
+
+Atoms{T}(; X = JVec{T}[],
+           P = JVec{T}[],
+           M = T[],
+           Z = Int16[],
+           cell = zero(JMat{T}),
+           pbc = JVec(false, false, false),
+           calc = nothing ) where {T} =
+      Atoms(X, P, M, Z, cell, pbc, calc)
+
+Atoms(X, P, M, Z, cell, pbc, calc=nothing) =
+      Atoms(_auto_X(X), _auto_X(P), _auto_M(M), _auto_Z(Z),
+            _auto_cell(cell), _auto_pbc(pbc), calc)
+
+Atoms(Z::Vector{Int16}, X::Vector{JVec{T}}; kwargs...) where {T} =
+  Atoms{T}(; Z=Z, X=X, kwargs...)
+
+
+"""
+simple way to construct an atoms object from just positions
+"""
+Atoms(s::Symbol, X::Vector{JVec{T}}; kwargs...) where {T} =
+      Atoms{T}(; X=X, Z=fill(atomic_number(s), length(X)), cell=_autocell(X),
+                 pbc = (false, false, false), kwargs... )
+
+Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
 
 
 
@@ -66,7 +140,7 @@ end
 _convert_pbc(pbc::NTuple{3, Bool}) = pbc
 _convert_pbc(pbc::Bool) = (pbc, pbc, pbc)
 
-function bulk(sym::Symbol; cubic = false, pbc = (true,true,true))
+function bulk(sym::Symbol; T=Float64, cubic = false, pbc = (true,true,true))
    symm = symmetry(sym)
    if symm in _simple_structures
       X, C = _simple_bulk(sym, cubic)
@@ -76,8 +150,12 @@ function bulk(sym::Symbol; cubic = false, pbc = (true,true,true))
    m = atomic_mass(sym)
    z = atomic_number(sym)
    nat = length(X)
-   return Atoms( X, fill(zero(JVecF), nat), fill(m, nat), fill(z, nat), C,
-                 _convert_pbc(pbc) )
+   return Atoms( convert(Vector{JVec{T}}, X),
+                 fill(zero(JVec{T}), nat),
+                 fill(T(m), nat),
+                 fill(UInt16(z), nat),
+                 convert(JMat{T}, C),
+                 _convert_pbc(pbc)  )
 end
 
 
@@ -118,11 +196,12 @@ the use of an orthorhombic unit cell (for now).
    remaining dimension(s) the b.c. will be periodic.
 * `shape` : shape of the cluster, at the moment only `:ball` is allowed
 
-## TODO
+## todo
  * lift the restriction of single species
  * allow other shapes
 """
-function cluster(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothing) where T
+function cluster(atu::Atoms{T}, R::Real;
+                 dims = [1,2,3], shape = :ball, x0=nothing) where {T}
    sym = chemical_symbols(atu)[1]
    # check that the cell is orthorombic
    if !isdiag(cell(atu))
@@ -138,7 +217,7 @@ function cluster(atu::Atoms{T}, R::Real; dims = [1,2,3], shape = :ball, x0=nothi
    Fu = cell(atu)'
    L = [ j ∈ dims ? 2 * (ceil(Int, R/Fu[j,j])+3) : 1    for j = 1:3]
    # multiply
-   at = Atoms(atu) * L
+   at = atu * L
    # find point closest to centre
    x̄ = sum( x[dims] for x in at.X ) / length(at.X)
    i0 = findmin( [norm(x[dims] - x̄) for x in at.X] )[2]
@@ -232,32 +311,6 @@ function Base.deleteat!(at::Atoms, n)
 end
 
 
-"""
-simple way to construct an atoms object from just positions
-"""
-Atoms(s::Symbol, X::Vector{JVecF}) =
-      Atoms( X, fill(zero(JVecF), length(X)), fill(atomic_mass(s), length(X)),
-             fill(atomic_number(s), length(X)), _autocell(X),
-             (false, false, false) )
-
-Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
-
-
-function _autocell(X::Vector{JVec{T}}) where T
-   ext = extrema(mat(X), dims = (2,))
-   C = Diagonal([ e[2] - e[1] + 1.0  for e in ext ][:])
-   return JMat{T}(C)
-end
-
-"""
-`autocell!(at::Atoms) -> Atoms`
-
-generates cell vectors that contain all atom positions + a small buffer,
-sets the cell of `at` accordingly (in-place) and returns the same atoms objet
-with the new cell.
-"""
-autocell!(at::Atoms) = set_cell!(at, _autocell(positions(at)))
-
 
 union(at1::Atoms, at2::Atoms) =
    Atoms( X = union(at1.X, at2.X),
@@ -267,7 +320,7 @@ union(at1::Atoms, at2::Atoms) =
           cell = cell(at1),
           pbc = pbc(at1) )
 
-append(at::Atoms, X::JVecsF) =
+append(at::Atoms, X::AbstractVector{<:JVec}) =
    Atoms( X = union(at.X, X),
           P = union(at.P, zeros(JVecF, length(X))),
           M = union(at.M, zeros(length(X))),

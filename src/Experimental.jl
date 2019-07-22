@@ -29,7 +29,8 @@ function newton!(a::AbstractAtoms; maxsteps=20, tol=1e-10)
     return x
 end
 
-function constrained_bond_newton!(a::AbstractAtoms, i::Integer, j::Integer, bondlength::Float64;
+function constrained_bond_newton!(a::AbstractAtoms, i::Integer, j::Integer,
+                                  bondlength::AbstractFloat;
                                   maxsteps=20, tol=1e-10)
     I1 = atomdofs(a, i)
     I2 = atomdofs(a, j)

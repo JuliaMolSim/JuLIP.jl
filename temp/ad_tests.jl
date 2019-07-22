@@ -1,4 +1,4 @@
-using JuLIP, ForwardDiff, StaticArrays, BenchmarkTools # , ReverseDiff
+using JuLIP, ForwardDiff, StaticArrays, BenchmarkTools
 
 # simple EAM potential
 f(R) = sqrt( 1.0 + sum( exp(-norm(r)) for r in R ) )
@@ -9,7 +9,7 @@ R0 = [ @SVector rand(3) for n = 1:nneigs ]
 
 f_fd(R) =  ForwardDiff.gradient( T -> f(vecs(T)),  mat(R)[:] ) |> vecs
 
-function f_d(R::JVecsF)
+function f_d(R::AbstractVector{<:JVec})
    ∇f = zeros(JVecF, length(R))
    ρ̄ = sum( exp(-norm(r)) for r in R )
    dF = 0.5 * (1.0 + ρ̄)^(-0.5)
