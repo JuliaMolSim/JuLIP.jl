@@ -1,10 +1,11 @@
+
 using JuLIP, ForwardDiff, StaticArrays, BenchmarkTools, Test, LinearAlgebra
 
 # simple EAM-like potential
 f(R) = sqrt( 1.0 + sum( exp(-norm(r)) for r in R ) )
 
 # hand-coded gradient
-function f_d(R::JVecsF)
+function f_d(R::AbstractVector{<:JVec})
    ∇f = zeros(JVecF, length(R))
    ρ̄ = sum( exp(-norm(r)) for r in R )
    dF = 0.5 * (1.0 + ρ̄)^(-0.5)

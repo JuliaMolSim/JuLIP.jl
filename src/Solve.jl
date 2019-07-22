@@ -14,17 +14,13 @@ import LineSearches
 using Optim: OnceDifferentiable, optimize, ConjugateGradient, LBFGS
 using LineSearches: BackTracking
 
-using JuLIP: AbstractAtoms, Preconditioner, update!, Identity,
-            dofs, energy, gradient, set_dofs!, set_constraint!, site_energies,
-            Dofs, calculator, constraint, AbstractCalculator, r_sum
+using LinearAlgebra: I
+using JuLIP: AbstractAtoms, update!,
+             dofs, energy, gradient, set_dofs!, site_energies,
+             Dofs, calculator, AbstractCalculator, r_sum, fixedcell
 
 using JuLIP.Potentials: SitePotential
 using JuLIP.Preconditioners: Exp
-using JuLIP.Constraints: FixedCell
-
-
-# TODO: move to Optim 0.11, and exploit the new alphaguess functionality of
-#       Linesearches. This gives awful error messages.
 
 
 
@@ -32,10 +28,10 @@ export minimise!
 
 
 
-Ediff(V::AbstractCalculator, at::AbstractAtoms, Es0::Vector{Float64}) =
+Ediff(V::AbstractCalculator, at::AbstractAtoms, Es0::Vector) =
    r_sum(site_energies(V, at) - Es0)
 
-Ediff(at::AbstractAtoms, Es0::Vector{Float64}, x::Dofs) =
+Ediff(at::AbstractAtoms, Es0::Vector, x::Dofs) =
    Ediff(calculator(at), set_dofs!(at, x), Es0)
 
 
@@ -60,13 +56,13 @@ Ediff(at::AbstractAtoms, Es0::Vector{Float64}, x::Dofs) =
 
 ## Preconditioner
 
-`precond` may be a valid preconditioner, e.g.,
-`Identity()` or `Exp(at)`, or one of the following symbols
+`precond` may be a valid preconditioner, e.g., `I` or `Exp(at)`, or one of
+the following symbols
 
 * `:auto` : the code will make the best choice it can with the avilable
    information
 * `:exp` : will use `Exp(at)`
-* `:id` : will use `Identity()`
+* `:id` : will use `I`
 """
 function minimise!(at::AbstractAtoms;
                   precond = :auto,
@@ -91,7 +87,7 @@ function minimise!(at::AbstractAtoms;
    # create a preconditioner
    if isa(precond, Symbol)
       if precond == :auto
-         if isa(constraint(at), FixedCell)
+         if fixedcell(at)
             precond = :exp
          else
             precond = :id
@@ -104,7 +100,7 @@ function minimise!(at::AbstractAtoms;
             precond = Exp(at)
          end
       elseif precond == :id
-         precond = Identity()
+         precond = I
       else
          error("unknown symbol for precond")
       end
@@ -112,7 +108,7 @@ function minimise!(at::AbstractAtoms;
 
    # choose the optimisation method Optim.jl
    if method == :auto || method == :cg
-      if isa(precond, Identity)
+      if precond == I
          optimiser = ConjugateGradient(linesearch = BackTracking(order=2, maxstep=maxstep))
       else
          optimiser = ConjugateGradient( P = precond,

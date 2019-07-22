@@ -2,8 +2,6 @@
 # implementation of Spline-based pair potentials
 # and other functionality
 #
-# TODO: explore allowing arbitrary order of splines?
-#
 
 import Dierckx
 using Dierckx: Spline1D
@@ -42,18 +40,12 @@ SplinePairPotential(spl::Spline1D) =
 
 cutoff(V::SplinePairPotential) = V.rcut
 
-evaluate(V::SplinePairPotential, r, R) = evaluate(V, r)
-evaluate(V::SplinePairPotential, r) = V.spl(r)
+evaluate(V::SplinePairPotential, r::Number) = V.spl(r)
+evaluate_d(V::SplinePairPotential, r::Number) = _deriv(V, r, 1)
+evaluate_dd(V::SplinePairPotential, r::Number) = _deriv(V, r, 2)
 
 _deriv(V::SplinePairPotential, r, nu) =
    Dierckx.derivative(V.spl, r, nu)
-   # Dierckx.__derivative(V.spl.t, V.spl.c, V.spl.k, r, nu, V.spl.bc, V.wrk)
-
-evaluate_d(V::SplinePairPotential, r, R) = _deriv(V, r, 1)
-evaluate_d(V::SplinePairPotential, r) = _deriv(V, r, 1)
-
-evaluate_dd(V::SplinePairPotential, r, R) = _deriv(V, r, 2)
-evaluate_dd(V::SplinePairPotential, r) = _deriv(V, r, 2)
 
 
 

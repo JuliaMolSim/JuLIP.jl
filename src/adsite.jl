@@ -2,7 +2,7 @@
 
 import ForwardDiff
 
-using JuLIP: vecs, mat
+using JuLIP: vecs, mat, JVec
 
 export ADPotential
 
@@ -28,7 +28,7 @@ JuLIP.Potentials.ad_evaluate(pot::P1, R::Matrix{T}) where {T<:Real} =
 Notes:
 
 * For an `FDPotential`, the argument to `ad_evaluate` will be
-`R::Matrix` rather than `R::JVecsF`; this is an unfortunate current limitation of
+`R::Matrix` rather than `R::Vector{<:JVec}`; this is an unfortunate current limitation of
 `ForwardDiff`. Hopefully it can be fixed.
 * TODO: allow arguments `(r, R)` then use chain-rule to combine them.
 """
@@ -44,17 +44,14 @@ ADPotential(V, rcut) = ADPotential(V, rcut, ForwardDiff.gradient)
 
 cutoff(V::ADPotential) = V.rcut
 
-evaluate(V::ADPotential, r, R) = V.V(R)
+evaluate!(tmp, V::ADPotential, R::AbstractVector{<: JVec}) = V.V(R)
 
-# evaluate_d(V::ADPotential, r, R) =
-#    ForwardDiff.gradient( S -> V.V(vecs(S)), mat(R)[:] ) |> vecs
+function evaluate_d!(dEs, tmp, V::ADPotential, R::AbstractVector{<: JVec})
+   dV = V.gradfun( S -> V.V(vecs(S)), collect(mat(R)[:]) ) |> vecs
+   copyto!(dEs, dV)
+   return dEs
+end
 
-evaluate_d(V::ADPotential, r, R) =
-   V.gradfun( S -> V.V(vecs(S)), collect(mat(R)[:]) ) |> vecs |> collect
-
-# function evaluate_dd(V::ADPotential, r, R)
-#
-# end
 
 
 

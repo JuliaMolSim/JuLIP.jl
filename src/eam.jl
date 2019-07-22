@@ -1,13 +1,12 @@
-export EAM
 
 using NeighbourLists
 using DelimitedFiles: readdlm
 using JuLIP: r_sum
-
 using LinearAlgebra: rmul!
 
+export EAM
+
 # =================== General Single-Species EAM Potential ====================
-# TODO: Alloy potential
 
 """
 `struct EAM1`
@@ -47,76 +46,69 @@ end
 @pot EAM1
 
 
-
 EAM1(ϕ, ρ, F) = EAM1(ϕ, ρ, F, nothing)
 
 cutoff(V::EAM1) = max(cutoff(V.ϕ), cutoff(V.ρ))
 
-# evaluate(V::EAM1, r, R) =
-#     length(r) == 0 ? V.F(0.0) :
-#            V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
-evaluate(V::TV, r, R) where TV <: EAM1 =
-    length(r) == 0 ? V.F(0.0) :
-           V.F( sum(t->V.ρ(t), r) ) + 0.5 * sum(t->V.ϕ(t), r)
-
-# TODO: this creates a lot of unnecessary overhead; probaby better to
-#       define vectorised versions of pair potentials
-function evaluate_d(V::EAM1, r, R)
-   if length(r) == 0; return JVecF[]; end
-   ρ̄ = sum(V.ρ(s) for s in r)
-   dF = @D V.F(ρ̄)
-   #         (0.5 * ϕ'          + F' *  ρ')           * ∇r     (where ∇r = R/r)
-   return [ ((0.5 * (@D V.ϕ(s)) + dF * (@D V.ρ(s))) / s) * S  for (s, S) in zip(r, R) ]
-end
-
-
-function evaluate_d!(out, V::EAM1, rs, Rs)
-   if length(rs) == 0; return out; end
-   ρ̄ = sum(V.ρ(s) for s in rs)
-   dF = @D V.F(ρ̄)
-   for (i, (r, R)) in enumerate(zip(rs, Rs))
-      out[i] += ((0.5 * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
+function evaluate!(tmp, V::EAM1, R::AbstractVector{JVec{T}}) where {T}
+   if  length(R) == 0
+      return V.F(T(0.0))
+   else
+      return V.F(sum(V.ρ ∘ norm, R)) + T(0.5) * sum(V.ϕ ∘ norm, R)
    end
-   return out
+end
+
+function evaluate_d!(dEs::AbstractVector{JVec{T}}, tmp, V::EAM1, Rs) where {T}
+   if length(Rs) == 0; return dEs; end
+   ρ̄ = sum(V.ρ ∘ norm, Rs)
+   dF = @D V.F(ρ̄)
+   for (i, R) in enumerate(Rs)
+      r = norm(R)
+      dEs[i] = ((T(0.5) * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
+   end
+   return dEs
 end
 
 
-# TODO: which of the two `evaluate_dd` and `hess` should we be using?
-#       probably these two should be equivalent
-evaluate_dd(V::EAM1, r, R) = hess(V, r, R)
-hess(V::EAM1, r, R) = _hess_(V, r, R, identity)
+alloc_temp_dd(V::EAM1, N::Integer) =
+      ( ∇ρ = zeros(JVecF, N),
+         r = zeros(Float64, N) )
+
+evaluate_dd!(hEs, tmp, V::EAM1, R) = _hess_!(hEs, tmp, V, R, identity)
 
 # ff preconditioner specification for EAM potentials
 #   (just replace id with abs and hess with precon in the hessian code)
-precon(V::EAM1, r, R, stab=0.0) = _hess_(V, r, R, abs, stab)
+precon!(hEs, tmp, V::EAM1, R, stab=0.0) = _hess_!(hEs, tmp, V, R, abs, stab)
 
 
-function _hess_(V::EAM1, r, R, fabs, stab=0.0)
-   # allocate storage
-   H = zeros(JMatF, length(r), length(r))
+function _hess_!(hEs, tmp, V::EAM1, R::AbstractVector{JVec{T}}, fabs, stab=T(0)
+                 ) where {T}
+   for i = 1:length(R)
+      r = norm(R[i])
+      tmp.r[i] = r
+      tmp.∇ρ[i] = grad(V.ρ, r, R[i])
+   end
    # precompute some stuff
-   ρ̄ = sum(V.ρ(s) for s in r)
-   ∇ρ = [ grad(V.ρ, s, S) for (s, S) in zip(r, R) ]
+   ρ̄ = sum(V.ρ, tmp.r)
    dF = @D V.F(ρ̄)
    ddF = @DD V.F(ρ̄)
-   # something to stabilize for the precon version
-   Id = one(JMatF)
    # assemble
-   for i = 1:length(r)
-      for j = 1:length(r)
-         H[i,j] = (1-stab) * fabs(ddF) * ∇ρ[i] * ∇ρ[j]'
+   for i = 1:length(R)
+      for j = 1:length(R)
+         hEs[i,j] = (1-stab) * fabs(ddF) * tmp.∇ρ[i] * tmp.∇ρ[j]'
       end
-      S = R[i] / r[i]
-      dϕ = @D V.ϕ(r[i])
-      dρ = @D V.ρ(r[i])
-      ddϕ = @DD V.ϕ(r[i])
-      ddρ = @DD V.ρ(r[i])
-      a = fabs(0.5 * (ddϕ) + dF * ddρ)
-      b = fabs((0.5 * (dϕ) + dF * (dρ)) / r[i])
-      H[i,i] += ( (1-stab) * ( a * S * S' + b * (Id - S * S') )
-                   + stab  * ( (a+b) * Id ) )
+      r = tmp.r[i]
+      S = R[i] / r
+      dϕ = @D V.ϕ(r)
+      dρ = @D V.ρ(r)
+      ddϕ = @DD V.ϕ(r)
+      ddρ = @DD V.ρ(r)
+      a = fabs(0.5 * ddϕ + dF * ddρ)
+      b = fabs((0.5 * dϕ + dF *  dρ) / r)
+      hEs[i,i] += ( (1-stab) * ( (a-b) * S * S' + b * I )
+                   + stab  * ( (a+b) * I ) )
    end
-   return H
+   return hEs
 end
 
 
@@ -153,8 +145,8 @@ end
 mutable struct FSEmbed end
 @pot FSEmbed
 evaluate(V::FSEmbed, ρ̄) = - sqrt(ρ̄)
-evaluate_d(V::FSEmbed, ρ̄) = - 0.5 / sqrt(ρ̄)
-evaluate_dd(V::FSEmbed, ρ̄) = 0.25 * ρ̄^(-3/2)
+evaluate_d(V::FSEmbed, ρ̄::T) where {T} = - T(0.5) / sqrt(ρ̄)
+evaluate_dd(V::FSEmbed, ρ̄::T) where {T} = T(0.25) * ρ̄^(T(-3/2))
 
 """
 `FinnisSinclair`: constructs an EAM potential with embedding function
@@ -235,66 +227,3 @@ function read_fs(fname)
 
    return F, ρfun, ϕfun, ρ, r, info
 end
-
-
-
-
-# ================= Efficient implementation of EAM forces =======================
-
-import JuLIP: energy, forces
-
-# the main justification for these codes is that vectorised evaluation of the
-# splines gives a factor 2 speed-up, probably this is primarily due to
-# the function call overhead (maybe also allocations)
-# In fact, this optimised codes gives a factor 3 speed-up for energy and factor 7
-# for forces
-# TODO: need a proper julia spline library
-
-function _rhobar(V::EAM1, nlist::PairList)
-   ρ = V.ρ(nlist.r)
-   ρ̄ = zeros(nsites(nlist))
-   for n = 1:npairs(nlist)
-      ρ̄[nlist.i[n]] += ρ[n]
-   end
-   return ρ̄
-end
-
-function energy(V::EAM1{SplinePairPotential, SplinePairPotential, T},
-                        at::AbstractAtoms) where T
-   nlist = neighbourlist(at, cutoff(V))::PairList
-   ρ̄ = _rhobar(V, nlist)
-   ϕ = V.ϕ(nlist.r)
-   return sum( V.F(s) for s in ρ̄ ) + 0.5 * sum(ϕ)
-end
-
-function forces(V::EAM1{SplinePairPotential, SplinePairPotential, T},
-                        at::AbstractAtoms) where T
-   nlist = neighbourlist(at, cutoff(V))::PairList
-   ρ̄ = _rhobar(V, nlist)
-   dF = [ @D V.F(t)  for t in ρ̄ ]
-   dρ = @D V.ρ(nlist.r)
-   dϕ = @D V.ϕ(nlist.r)
-
-   # compute the forces
-   dE = zerovecs(length(at))
-   for n = 1:npairs(nlist)
-      f = ((0.5 * dϕ[n] + dF[nlist.i[n]] * dρ[n])/nlist.r[n]) * nlist.R[n]
-      dE[nlist.i[n]] += f
-      dE[nlist.j[n]] -= f
-   end
-   return dE
-end
-
-
-export energy_map, forces_map
-using JuLIP:Atoms
-
-energy_map(V::EAM1, at::Atoms) =
-   r_sum( maptosites!( (r,R) -> V(r,R),
-                         zeros(length(at)),
-                         sites(at, cutoff(V)) ) )
-
-forces_map(V::EAM1, at::Atoms) =
-   rmul!( maptosites_d!( ((r, R) -> @D V(r, R)),
-                          zeros(JVecF, length(at)),
-                          sites(at, cutoff(V)) ), -1 )

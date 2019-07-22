@@ -2,7 +2,10 @@
 using JuLIP, Test, Printf
 using JuLIP.Testing
 
-include("aux.jl")
+h0("   JuLIP Tests   ")
+
+@info("preparing the tests...")
+
 verbose=true
 
 ## check whether on CI
@@ -17,18 +20,17 @@ try
 catch
    global hasase = false
 end
-
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
    ("test_atoms.jl", "Atoms"),
    ("test_build.jl", "Build"),
+   ("test_fio.jl", "File IO"),
    ("testanalyticpotential.jl", "Analytic Potential"),
    ("testpotentials.jl", "Potentials"),
    ("test_ad.jl", "AD Potentials"),
    ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
    ("testsolve.jl", "Solve"),
-   ("test_fio.jl", "File IO"),
 ]
 
 # remove testsolve if on Travis
@@ -39,7 +41,7 @@ end
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
 ## ===== some prototype potentials ======
-print("Loading some interatomic potentials . .")
+@info("Loading some interatomic potentials . .")
 data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
 eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
 print(" .")
@@ -53,8 +55,7 @@ catch
 end
 println(" done.")
 
-##
-h0("Starting JuLIP Tests")
+
 
 @testset "JuLIP" begin
    for (testfile, testid) in julip_tests

@@ -9,15 +9,15 @@ Look at `?` for
 """
 module Testing
 
+using Test
 using JuLIP: AbstractCalculator, AbstractAtoms, energy, gradient, forces,
-         constraint, calculator, set_positions!, dofs, NullConstraint,
-         mat, vecs, positions, rattle!, set_dofs!, set_constraint!, set_calculator!
+         calculator, set_positions!, dofs,
+         mat, vecs, positions, rattle!, set_dofs!, set_calculator!
 using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, grad, @D
-using JuLIP.Constraints: FixedCell
 using Printf
 using LinearAlgebra: norm
 
-export fdtest, fdtest_hessian
+export fdtest, fdtest_hessian, h0, h1, h2, h3, print_tf
 
 """
 first-order finite-difference test for scalar F
@@ -140,11 +140,6 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
                 verbose=true, rattle=0.01)
    X0 = copy(positions(at))
    calc0 = calculator(at)
-   cons0 = constraint(at)
-   # if no constraint is attached, then attach the NullConstraint
-   if typeof(constraint(at)) == NullConstraint
-      set_constraint!(at, FixedCell(at))
-   end
    set_calculator!(at, calc)
    # random perturbation to positions (and cell for VariableCell)
    # perturb atom positions a bit to get out of equilibrium states
@@ -157,9 +152,36 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
    # restore original atom positions
    set_positions!(at, X0)
    set_calculator!(at, calc0)
-   set_constraint!(at, cons0)
    return result
 end
 
+
+function h0(str)
+   dashes = "≡"^(length(str)+4)
+   printstyled(dashes, color=:magenta); println()
+   printstyled("  "*str*"  ", bold=true, color=:magenta); println()
+   printstyled(dashes, color=:magenta); println()
+end
+
+function h1(str)
+   dashes = "="^(length(str)+2)
+   printstyled(dashes, color=:magenta); println()
+   printstyled(" " * str * " ", bold=true, color=:magenta); println()
+   printstyled(dashes, color=:magenta); println()
+end
+
+function h2(str)
+   dashes = "-"^length(str)
+   printstyled(dashes, color=:magenta); println()
+   printstyled(str, bold=true, color=:magenta); println()
+   printstyled(dashes, color=:magenta); println()
+end
+
+h3(str) = (printstyled(str, bold=true, color=:magenta); println())
+
+
+print_tf(::Test.Pass) = printstyled("+", bold=true, color=:green)
+print_tf(::Test.Fail) = printstyled("-", bold=true, color=:red)
+print_tf(::Tuple{Test.Error,Bool}) = printstyled("x", bold=true, color=:magenta)
 
 end

@@ -1,29 +1,27 @@
 
 module Preconditioners
 
-using JuLIP: AbstractAtoms, Preconditioner, JVecs, JVecsF, Dofs, maxdist,
-            constraint, cutoff, positions, defm, JVecF, forces, mat, vecs,
-            set_positions!, julipwarn, chemical_symbols, rnn, JVec, JMat ,
-            AbstractCalculator, calculator
-
-using JuLIP.Potentials: @analytic, evaluate, evaluate_d, PairPotential, HS,
-         SitePotential, sites, C0Shift, _precon_or_hessian_pos
-
-using JuLIP.Constraints: project!, FixedCell, _pos_to_alldof
-
 using AlgebraicMultigrid
 
+using JuLIP: AbstractAtoms, Dofs, maxdist,
+            cutoff, positions, forces, mat, vecs,
+            set_positions!, chemical_symbols, rnn, JVec, JMat ,
+            AbstractCalculator, calculator, cell,
+            fixedcell, projectxfree, _pos_to_dof
+
+using JuLIP.Potentials: @pot, @analytic, evaluate, evaluate_d, PairPotential, HS,
+                        SitePotential, sites, C0Shift, _precon_or_hessian_pos
+
 using SparseArrays: SparseMatrixCSC
+
+using LinearAlgebra: cholesky, I, Symmetric, norm
+
 import SuiteSparse
 
-import JuLIP: update!
-import JuLIP.Potentials: precon, cutoff
-
-import Base: *, \, size
-
-using LinearAlgebra
-
-import LinearAlgebra: ldiv!, mul!, dot
+import JuLIP:             update!
+import JuLIP.Potentials:  precon!, cutoff
+import Base:              *, \, size
+import LinearAlgebra:     ldiv!, mul!, dot
 
 export Exp, FF
 
@@ -55,7 +53,7 @@ preconditioner is updated
 * `stab`: stabilisation constant {0.01}, add `stab * I` to `P`
 * `solve`: which solver to used, `:amg` or `:chol`, default is `:amg`
 """
-mutable struct IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer} <: Preconditioner
+mutable struct IPPrecon{TV, TS, T <: AbstractFloat, TI <: Integer}
    p::TV
    solver::TS
    A::SparseMatrixCSC{T, TI}
@@ -70,11 +68,11 @@ end
 
 
 
-function IPPrecon(p::AbstractCalculator, at::AbstractAtoms;
+function IPPrecon(p, at::AbstractAtoms;
          updatedist=0.2 * rnn(at), tol=1e-7, updatefreq=10, stab=0.01,
          solver = :chol, innerstab=0.0)
    # make sure we don't use this in a context it is not intended for!
-   @assert isa(constraint(at), FixedCell)
+   @assert fixedcell(at)
    A = AlgebraicMultigrid.poisson(12)
    if solver == :amg
       solver = ruge_stuben(A)
@@ -121,7 +119,7 @@ function force_update!(P::IPPrecon, at::AbstractAtoms)
    # construct the preconditioner matrix ...
    Pmat = precon_matrix(P.p, at, P.innerstab)
    Pmat = Pmat + P.stab * I
-   Pmat = project!(constraint(at), Pmat)
+   Pmat = projectxfree(at, Pmat)
    # and the AMG solver
    P.A = Pmat
    P.solver = update_solver!(P)
@@ -149,13 +147,9 @@ atind2lininds(i::Integer) = (i-1) * 3 + [1;2;3]
 """
 build the preconditioner matrix associated with the potential V
 """
-precon_matrix(V::AbstractCalculator, at::AbstractAtoms;
-              preconmap = (V, r, R) -> precon(V, r, R)) =
-   _pos_to_alldof(_precon_or_hessian_pos(V, at, preconmap), at)
-
-precon_matrix(V::AbstractCalculator, at::AbstractAtoms, innerstab;
-              preconmap = (V, r, R) -> precon(V, r, R, innerstab)) =
-   _pos_to_alldof(_precon_or_hessian_pos(V, at, preconmap), at)
+precon_matrix(V, at::AbstractAtoms, innerstab = 0.1;
+              preconmap = (hEs, tmp, V, R) -> precon!(hEs, tmp, V, R, innerstab)) =
+   _pos_to_dof(_precon_or_hessian_pos(V, at, preconmap), at)
 
 """
 A variant of the `Exp` preconditioner; see
@@ -175,23 +169,28 @@ Keyword arguments:
       C. Ortner, and G. Csanyi. A universal preconditioner for simulating condensed
       phase materials. J. Chem. Phys., 144, 2016.
 """
-mutable struct Exp{T, TV} <: PairPotential
+mutable struct Exp{T, TV}
    Vexp::TV
    energyscale::T
 end
 
 cutoff(P::Exp) = cutoff(P.Vexp)
 
-# innerstab is ignored here
-precon(P::Exp{T}, r, R, innerstab=0.0) where {T} = (P.energyscale * P.Vexp(r)) * one(JMat{T})
+function precon!(hEs, tmp, P::Exp{T}, R::AbstractVector{<: JVec}, innerstab=0) where {T}
+   n = length(R)
+   for i = 1:n
+      hEs[i,i] = (P.energyscale * P.Vexp(norm(R[i]))+innerstab) * one(JMat{T})
+   end
+   return hEs
+end
 
-function Exp(at::AbstractAtoms;
-             A=3.0, r0=rnn(at), cutoff_mult=2.2, energyscale = 1.0,
-             kwargs...)
-   e0 = energyscale == :auto ? 1.0 : energyscale
+function Exp(at::AbstractAtoms{T};
+             A=T(3.0), r0=rnn(at), cutoff_mult=T(2.2), energyscale = T(1.0),
+             kwargs...) where {T}
+   e0 = energyscale == :auto ? T(1.0) : energyscale
    rcut = r0 * cutoff_mult
    Vexp = let A=A, r0=r0
-      @analytic r -> exp( - A * (r/r0 - 1.0))
+      @analytic r -> exp( - A * (r/r0 - 1))
    end * C0Shift(rcut)
    P = IPPrecon(Exp(Vexp, e0), at; kwargs...)
    if energyscale == :auto
@@ -202,14 +201,14 @@ function Exp(at::AbstractAtoms;
 end
 
 # want μ * <P v, v> ~ <∇E(x+hv) - ∇E(x), v> / h
-function estimate_energyscale(at, P)
+function estimate_energyscale(at::AbstractAtoms{T}, P) where {T}
    # get the P-matrix at current configuration
    A = precon_matrix(P.p, at)
    # determine direction in which the cell is maximal
-   F = Matrix(defm(at))
+   F = Matrix(cell(at)')
    X0 = positions(at)
    _, i = maximum( (norm(F[:, j]), j) for j = 1:3 ) # hack to make findmax work again
-   Fi = JVecF(F[:, i])
+   Fi = JVec{T}(F[:, i])
    # an associated perturbation
    V = [sin(2*pi * dot(Fi, x)/dot(Fi,Fi)) * Fi for x in X0]
    # compute gradient at current positions
@@ -233,12 +232,16 @@ end
 
 
 
-
-
 """
-`FF`: defines a preconditioner based on a force-field;
+`FF`: defines a preconditioner based on a force-field; implementation
+is close to the paper where this idea is described:
 
-TODO: thorough documentation and reference once the paper is finished
+   Preconditioners for the geometry optimisation and saddle point search of
+   molecular systems; Letif Mones, Christoph Ortner & Gábor Csányi;
+   Scientific Reports 8, Article number: 13991 (2018)
+
+Each potential has to define a `precon` method from which the preconditioner
+is build.
 """
 FF(at::AbstractAtoms, V::AbstractCalculator; kwargs...) =
       IPPrecon(V, at; kwargs...)
