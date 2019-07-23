@@ -58,14 +58,6 @@ push!(calculators,
       (lennardjones(r0=rnn(:Al)),
        bulk(:Al, cubic=true, pbc=(true,false,false)) * (3,3,2) ) )
 
-# TODO PROBABLY NEED TO REVISIT THIS ONE
-# # [3] JuLIP's EMT calculator
-# at2 = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )
-# set_positions!(at2, positions(at))
-# emt2 = JuLIP.Potentials.EMTCalculator(at2)
-# set_calculator!(at2, emt2)
-# push!(calculators, (emt2, at2))
-
 # ZBL Calculator
 push!(calculators,
       ( ZBLPotential(4, 7) * SplineCutoff(6.0, 8.0),
@@ -92,6 +84,40 @@ if eam_W != nothing   # finnis-sinclair
    at11 = set_pbc!( bulk(:W, cubic = true), false ) * 2
    push!(calculators, (eam_W, at11))
 end
+
+
+# JuLIP's EMT implementation
+at = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )
+rattle!(at, 0.02)
+emt = EMT(at)
+push!(calculators, (EMT(at), at))
+
+# check consistencuy with ase implementation
+if hasase
+   @info("Test JuLIP vs ASE EMT implementation")
+   pyemt = ASE.Models.EMTCalculator()
+   print("   energy: ")
+   println(@test abs(energy(emt, at) - energy(pyemt, at)) < 1e-10)
+   print("   forces: ")
+   println(@test norm(forces(pyemt, at) - forces(emt, at), Inf) < 1e-10)
+else
+   @info("no ase found => skipping EMT consistency test")
+end
+
+# and a multi-species EMT
+at1 = bulk(:Cu, cubic=true)
+at1.Z[[2,4]] .= 13   # Al
+at = set_pbc!(at1 * 2, false)
+rattle!(at, 0.02)
+emt = EMT(at)
+push!(calculators, (emt, at))
+
+
+# using ASE, LinearAlgebra
+# pyemt = ASE.Models.EMTCalculator()
+# energy(pyemt, at) - energy(emt, at)
+# maximum(norm.(forces(pyemt, at) - forces(emt, at)))
+# norm(forces(pyemt, at) - forces(emt, at), Inf)
 
 
 # ========== Run the finite-difference tests for all calculators ============

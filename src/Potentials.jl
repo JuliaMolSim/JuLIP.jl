@@ -241,5 +241,6 @@ include("multi.jl")
 # experimental multi-species code
 # -> eventually this is to be integrated into all the main codebase
 
+include("emt.jl") 
 
 end

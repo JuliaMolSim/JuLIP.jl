@@ -1,7 +1,7 @@
 using JuLIP.Chemistry: atomic_number
 using JuLIP: Atoms
 
-abstract type MSitePotential end
+abstract type MSitePotential <: AbstractCalculator end
 
 # Experimental Multi-component codes
 
@@ -54,7 +54,7 @@ alloc_temp(V::MSitePotential, at::AbstractAtoms) =
 
 alloc_temp(V::MSitePotential, N::Integer) =
       ( R = zeros(JVecF, N),
-        Z = zeros(JVec{Int16}, N), )
+        Z = zeros(Int16, N), )
 
 alloc_temp_d(V::MSitePotential, at::AbstractAtoms) =
       alloc_temp_d(V, maxneigs(neighbourlist(at, cutoff(V))))
@@ -62,7 +62,7 @@ alloc_temp_d(V::MSitePotential, at::AbstractAtoms) =
 alloc_temp_d(V::MSitePotential, N::Integer) =
       (dV = zeros(JVecF, N),
         R = zeros(JVecF, N),
-        Z = zeros(JVec{Int16}, N), )
+        Z = zeros(Int16, N), )
 
 energy(V::MSitePotential, at::AbstractAtoms; kwargs...) =
       energy!(alloc_temp(V, at), V, at; kwargs...)
@@ -91,7 +91,7 @@ function forces!(frc, tmp, calc::MSitePotential, at::Atoms{T};
    nlist = neighbourlist(at, cutoff(calc))
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
-      evaluate_d!(tmp.dV, tmp, V, R, Z, Int16(at.Z[i]))
+      evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
       for a = 1:length(j)
          frc[j[a]] -= tmp.dV[a]
          frc[i]    += tmp.dV[a]

@@ -248,6 +248,16 @@ end
 cutoff(V::WrappedPairPotential) = V.rcut
 # evaluate, etc are all derived from SimplePairPotential
 
+function WrappedPairPotential(V::AnalyticFunction, rcut)
+   @assert (0 < rcut < Inf)
+   f, f_d, f_dd = let V=V, rc = rcut
+      (F64fun(r -> evaluate(V, r) * (r<rc)),
+              F64fun(r -> evaluate_d(V, r) * (r<rc)),
+              F64fun(r -> evaluate_dd(V, r) * (r<rc)))
+   end
+   return WrappedPairPotential(f, f_d, f_dd, cutoff(V))
+end
+
 function WrappedPairPotential(V::PairPotential)
    @assert (0 < cutoff(V) < Inf)
    f, f_d, f_dd = let V=V, rc = cutoff(V)

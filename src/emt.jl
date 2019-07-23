@@ -1,13 +1,10 @@
 
 
 using JuLIP.FIO: load_json
+using JuLIP: chemical_symbol, atomic_number
+using JuLIP.Potentials: WrappedAnalyticFunction, F64fun, @D
 
-using JuLIP: chemical_symbols, atomic_number
-
-
-
-using JuLIP.Potentials: WrappedAnalyticFunction, F64fun,
-                        cutsw, cutsw_d, evaluate, evaluate_d, HS
+import JuLIP.Potentials: evaluate!, evaluate_d!
 
 
 export EMT
@@ -20,15 +17,15 @@ in Julia, largely for fun and comparison with Python, but also to demonstrate
 how to implement a multi-component calculator in JuLIP
 """
 struct EMT <: MSitePotential
-   pair::Vector{HS{WrappedAnalyticFunction}}
+   pair::Vector{WrappedPairPotential}
    Cpair::Vector{Float64}
-   rho::Vector{HS{WrappedAnalyticFunction}}
+   rho::Vector{WrappedPairPotential}
    embed::Vector{WrappedAnalyticFunction}
    z2ind::Dict{Int, Int}
    rc::Float64
 end
 
-cutoff(calc::EMTCalculator) = calc.rc + 0.5
+cutoff(calc::EMT) = calc.rc + 0.5
 
 
 # ========================== Initialisation  ============================
@@ -38,20 +35,20 @@ function _load_emt()
    return D["params"], D["acut"], D["rc"], D["beta"]
 end
 
-EMT(at::ASEAtoms) = EMT(unique(at.Z))
+EMT(at::Atoms) = EMT(unique(at.Z))
 EMT(sym::Vector{Symbol}) = EMT(atomic_number.(sym))
 
-function EMT(Z::Vector{Int})
+function EMT(Z::Vector{<:Integer})
    # load all the parameters
    params, acut, rc, β = _load_emt()
    rcplus = rc +  0.5   # the actual cutoff
    # get unique Z numbers and use them to allocate the EMT calculator
    Z = unique(Z)
    nZ = length(Z)
-   emt = EMT(pair = Vector{WrappedPairPotential}(undef, nZ),
-             Cpair = Vector{Float64}(undef, nZ),
-             rho = Vector{WrappedPairPotential}(undef, nZ),
-             embed = Vector{WrappedAnalyticFunction}(undef, nZ),
+   emt = EMT(Vector{WrappedPairPotential}(undef, nZ),  # pair
+             Vector{Float64}(undef, nZ),   # Cpair
+             Vector{WrappedPairPotential}(undef, nZ),  # rho
+             Vector{WrappedAnalyticFunction}(undef, nZ), # embed
              Dict{Int,Int}(),
              rc)
    # loop through unique symbols/Z and for each compute the relevant potentials
@@ -60,15 +57,14 @@ function EMT(Z::Vector{Int})
       emt.z2ind[z] = i
       sym = chemical_symbol(z)
 
-      p = params[sym]
+      p = params[String(sym)]
       # cut-off: this is a FD function; this is AWFUL! replace with spline???
       # Θ = 1.0 / (1.0 + exp($acut * (r - $rc) ))
       # pair potential
       n0, κ, s0 = p["n0"], p["κ"], p["s0"]
       emt.pair[i] = WrappedPairPotential(
-            @analytic(
-            r -> n0 * exp( -κ * (r / β - s0) ) * θ,
-            θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ), rcplus)
+            @analytic(r -> n0 * exp( -κ * (r / β - s0) ) * θ,
+                      θ = 1.0 / (1.0 + exp(acut * (r - rc) )) ), rcplus)
       emt.Cpair[i] = p["Cpair"]
       # radial electron density function
       η2, γ1 = p["η2"], p["γ1"]
@@ -93,7 +89,7 @@ end
 function evaluate!(tmp, emt::EMT, 𝐑, 𝐙, z0)
    ρ̄ = 0.0
    Es = 0.0
-   i0 = emt.z2ind(z0)
+   i0 = emt.z2ind[z0]
    for (R, Z) in zip(𝐑, 𝐙)
       i = emt.z2ind[Z]
       r = norm(R)
@@ -106,7 +102,7 @@ end
 
 function evaluate_d!(dEs, tmp, emt::EMT, 𝐑, 𝐙, z0)
    ρ̄ = 0.0
-   i0 = emt.z2ind(z0)
+   i0 = emt.z2ind[z0]
    for (R, Z) in zip(𝐑, 𝐙)
       i = emt.z2ind[Z]
       r = norm(R)
@@ -121,7 +117,4 @@ function evaluate_d!(dEs, tmp, emt::EMT, 𝐑, 𝐙, z0)
       drho = @D emt.rho[i](r)
       dEs[j] = (dpair + dF * drho) * R̂
    end
-end
-
-
 end
