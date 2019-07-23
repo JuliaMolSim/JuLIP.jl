@@ -13,32 +13,6 @@ isCI = haskey(ENV, "CI")
 notCI = !isCI
 eam_W4 = nothing
 
-## check whether ASE is available
-global hasase = true
-try
-   import ASE
-catch
-   global hasase = false
-end
-julip_tests = [
-   ("testaux.jl", "Miscellaneous"),
-   ("test_atoms.jl", "Atoms"),
-   ("test_build.jl", "Build"),
-   ("test_fio.jl", "File IO"),
-   ("testanalyticpotential.jl", "Analytic Potential"),
-   ("testpotentials.jl", "Potentials"),
-   ("test_ad.jl", "AD Potentials"),
-   ("testvarcell.jl", "Variable Cell"),
-   ("testhessian.jl", "Hessian"),
-   ("testsolve.jl", "Solve"),
-]
-
-# remove testsolve if on Travis
-if isCI
-   julip_tests = julip_tests[1:end-1]
-end
-
-# "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
 ## ===== some prototype potentials ======
 @info("Loading some interatomic potentials . .")
@@ -54,6 +28,30 @@ catch
    global eam_W4 = nothing
 end
 println(" done.")
+
+
+
+julip_tests = [
+   ("testaux.jl", "Miscellaneous"),
+   ("test_atoms.jl", "Atoms"),
+   ("test_build.jl", "Build"),
+   ("test_fio.jl", "File IO"),
+   ("testanalyticpotential.jl", "Analytic Potential"),
+   ("testpotentials.jl", "Potentials"),
+   ("test_ad.jl", "AD Potentials"),
+   ("testvarcell.jl", "Variable Cell"),
+   ("testhessian.jl", "Hessian"),
+   ]
+
+# add solver tests if not on travis
+if !isCI
+   push!(julip_tests, ("testsolve.jl", "Solve"))
+else
+   @info("on CI : don't run solver tests")
+end
+
+
+# "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
 
 
