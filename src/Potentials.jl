@@ -207,6 +207,7 @@ site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int
 
 include("analyticpotential.jl")
 # * AnalyticFunction
+# * F64fun, WrappedAnalyticFunction
 
 include("cutoffs.jl")
 #   * SWCutoff
@@ -241,6 +242,7 @@ include("multi.jl")
 # experimental multi-species code
 # -> eventually this is to be integrated into all the main codebase
 
-include("emt.jl") 
+include("emt.jl")
+# a simple analytic EAM potential. (EMT -> embedded medium theory)
 
 end
