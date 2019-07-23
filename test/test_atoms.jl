@@ -16,21 +16,6 @@ at = bulk(:Si)
 at1 = deepcopy(at)
 println(@test at == at1)
 
-if hasase
-   h3("Check correct implementation of `repeat` and `*` ...")
-   for n in [ (2,1,1), (2,2,1), (2,3,4), (2,3,1) ]
-      println(@test (at * n) == Atoms(ASE.bulk(:Si) * n) == repeat(at, n))
-   end
-
-   h3("   check correct repeat of momenta ...")
-   at_ase = ASE.bulk("Si")
-   P = rand(JVecF, 2)
-   set_momenta!(at_ase, P)
-   set_momenta!(at, P)
-   println(@test Atoms(at_ase) == at)
-   println(@test Atoms(at_ase * (2,4,3)) == (at * (2,4,3)))
-end
-
 h3("Check setindex! and getindex ...")
 at = bulk(:Si, cubic=true)
 x = at[2]

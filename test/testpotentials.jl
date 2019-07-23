@@ -92,17 +92,6 @@ rattle!(at, 0.02)
 emt = EMT(at)
 push!(calculators, (EMT(at), at))
 
-# check consistencuy with ase implementation
-if hasase
-   @info("Test JuLIP vs ASE EMT implementation")
-   pyemt = ASE.Models.EMTCalculator()
-   print("   energy: ")
-   println(@test abs(energy(emt, at) - energy(pyemt, at)) < 1e-10)
-   print("   forces: ")
-   println(@test norm(forces(pyemt, at) - forces(emt, at), Inf) < 1e-10)
-else
-   @info("no ase found => skipping EMT consistency test")
-end
 
 # and a multi-species EMT
 at1 = bulk(:Cu, cubic=true)
@@ -112,12 +101,6 @@ rattle!(at, 0.02)
 emt = EMT(at)
 push!(calculators, (emt, at))
 
-
-# using ASE, LinearAlgebra
-# pyemt = ASE.Models.EMTCalculator()
-# energy(pyemt, at) - energy(emt, at)
-# maximum(norm.(forces(pyemt, at) - forces(emt, at)))
-# norm(forces(pyemt, at) - forces(emt, at), Inf)
 
 
 # ========== Run the finite-difference tests for all calculators ============
