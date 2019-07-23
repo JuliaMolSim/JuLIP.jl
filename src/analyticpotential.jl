@@ -91,7 +91,7 @@ end
 @pot AnalyticFunction
 
 F64fun(p::AnalyticFunction) =
-   WrappedPairPotential(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd))
+   AnalyticFunction(F64fun(p.f), F64fun(p.f_d), F64fun(p.f_dd))
 
 cutoff(V::AnalyticFunction) = Inf
 
