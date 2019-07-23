@@ -250,10 +250,10 @@ cutoff(V::WrappedPairPotential) = V.rcut
 
 function WrappedPairPotential(V::PairPotential)
    @assert (0 < cutoff(V) < Inf)
-   f, f_d, f_dd = let V=V
-      (F64fun(r -> evaluate(V, r)),
-              F64fun(r -> evaluate_d(V, r)),
-              F64fun(r -> evaluate_dd(V, r)))
+   f, f_d, f_dd = let V=V, rc = cutoff(V)
+      (F64fun(r -> evaluate(V, r) * (r<rc)),
+              F64fun(r -> evaluate_d(V, r) * (r<rc)),
+              F64fun(r -> evaluate_dd(V, r) * (r<rc)))
    end
    return WrappedPairPotential(f, f_d, f_dd, cutoff(V))
 end
