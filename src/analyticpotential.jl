@@ -95,6 +95,8 @@ F64fun(p::AnalyticFunction) =
 
 cutoff(V::AnalyticFunction) = Inf
 
+const WrappedAnalyticFunction = AnalyticFunction{F64fun,F64fun,F64fun}
+
 """
 `@analytic`: generate C2 function from symbol
 """
