@@ -99,3 +99,24 @@ function forces!(frc, tmp, calc::MSitePotential, at::Atoms{T};
    end
    return frc
 end
+
+function virial!(tmp, calc::MSitePotential, at::Atoms{T};
+                 domain=1:length(at)) where {T}
+   nlist = neighbourlist(at, cutoff(calc))
+   vir = zero(JMat{T})
+   for i in domain
+      j, R, Z = neigsz!(tmp, nlist, at, i)
+      evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
+      vir += site_virial(tmp.dV, R)
+   end
+   return vir
+end
+
+
+evaluate(V::MSitePotential, R, Z, z) =
+      evaluate!(alloc_temp(V, length(R)), V, R, Z, z)
+
+evaluate_d(V::MSitePotential, R::AbstractVector{JVec{T}}, Z, z) where {T} =
+      evaluate_d!(zeros(JVec{T}, length(R)),
+                  alloc_temp_d(V, length(R)),
+                  V, R, Z, z)
