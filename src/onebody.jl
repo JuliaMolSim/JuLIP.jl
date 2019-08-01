@@ -25,9 +25,9 @@ evaluate(V::OneBody) = V.E0
 
 site_energies(V::OneBody, at::AbstractAtoms) = fill(V(), length(at))
 
-energy(V::OneBody, at::AbstractAtoms) = length(at) * V()
-forces(V::OneBody, at::AbstractAtoms{T}) where {T} = zeros(JVec{T}, length(at))
-virial(V::OneBody, at::AbstractAtoms{T}) where {T} = zero(JMat{T})
+energy(V::OneBody, at::AbstractAtoms; domain = 1:length(at)) = length(domain) * V()
+forces(V::OneBody, at::AbstractAtoms{T}; kwargs...) where {T} = zeros(JVec{T}, length(at))
+virial(V::OneBody, at::AbstractAtoms{T}; kwargs...) where {T} = zero(JMat{T})
 site_energy(V::OneBody, at::AbstractAtoms, i0::Integer) = V()
 site_energy_d(V::OneBody, at::AbstractAtoms{T}, i0::Integer) where {T} =
       zeros(JVec{T}, length(at))

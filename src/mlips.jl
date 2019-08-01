@@ -122,12 +122,12 @@ end
 
 SumIP(args...) = SumIP([args...])
 
-energy(sumip::SumIP, at::AbstractAtoms) =
-         sum(energy(calc, at) for calc in sumip.components)
-forces(sumip::SumIP, at::AbstractAtoms) =
-         sum(forces(calc, at) for calc in sumip.components)
-virial(sumip::SumIP, at::AbstractAtoms) =
-         sum(virial(calc, at) for calc in sumip.components)
+energy(sumip::SumIP, at::AbstractAtoms; kwargs...) =
+         sum(energy(calc, at; kwargs...) for calc in sumip.components)
+forces(sumip::SumIP, at::AbstractAtoms; kwargs...) =
+         sum(forces(calc, at; kwargs...) for calc in sumip.components)
+virial(sumip::SumIP, at::AbstractAtoms; kwargs...) =
+         sum(virial(calc, at; kwargs...) for calc in sumip.components)
 site_energy(sumip::SumIP, at::AbstractAtoms, i0::Integer) =
          sum(site_energy(V, at, i0) for V in sumip.components)
 site_energy_d(sumip::SumIP, at::AbstractAtoms, i0::Integer) =
