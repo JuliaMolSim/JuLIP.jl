@@ -193,10 +193,10 @@ function site_energies!(Es, tmp, V::SitePotential, at::AbstractAtoms{T};
    return Es
 end
 
-site_energy(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
+site_energy(V::SitePotential, at::AbstractAtoms, i0::Integer) =
       energy(V, at; domain = (i0,))
 
-site_energy_d(V::Union{SitePotential, PairPotential}, at::AbstractAtoms, i0::Int) =
+site_energy_d(V::SitePotential, at::AbstractAtoms, i0::Integer) =
       rmul!(forces(V, at; domain = (i0,)), -one(eltype(at)))
 
 
