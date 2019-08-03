@@ -101,12 +101,9 @@ end
 
 @pot ZeroSitePotential
 
-# evaluate(p::ZeroSitePotential, R::AbstractVector{JVec{T}}
-#       ) where {T} = zero(T)
-# evaluate_d(p::ZeroSitePotential, R::AbstractVector{JVec{T}}
-#       ) where {T} = zeros(T, length(R))
 cutoff(::ZeroSitePotential) = Bool(0)
-
+energy(V::ZeroSitePotential, at::AbstractAtoms{T}; kwargs...) where T = zero(T)
+forces(V::ZeroSitePotential, at::AbstractAtoms{T}; kwargs...) where T = zeros(JVec{T}, length(at))
 evaluate!(tmp, p::ZeroSitePotential, args...) = Bool(0)
 evaluate_d!(dEs, tmp, V::ZeroSitePotential, args...) = fill!(dEs, zero(eltype(dEs)))
 evaluate_dd!(hEs, tmp, V::ZeroSitePotential, args...) = fill!(hEs, zero(eltype(hEs)))

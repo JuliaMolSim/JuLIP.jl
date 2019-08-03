@@ -19,11 +19,11 @@ Implementation of the C^∞ Stillinger-Weber type cut-off potential
 
 `d_cutinf` implements the first derivative
 """
-@inline cutsw(r::T, Rc::T, Lc::T) where {T} =
+@inline cutsw(r::T, Rc, Lc) where {T} =
     T(1) / ( T(1) + exp( Lc / ( max(Rc-r, T(0)) + T(1e-2) ) ) )
 
 "derivative of `cutsw`"
-@inline function cutsw_d(r::T, Rc::T, Lc::T) where {T}
+@inline function cutsw_d(r::T, Rc, Lc) where {T}
     t = T(1) / ( max(Rc-r, T(0)) + T(1e-2) )    # a numerically stable (Rc-r)^{-1}
     e = T(1) / (T(1) + exp(Lc * t))             # compute exponential only once
     return - Lc * (T(1) - e) * e * t^2

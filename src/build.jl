@@ -9,7 +9,8 @@ import JuLIP
 using ..Chemistry
 using JuLIP: JVec, JMat, JVecF, JMatF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
-      chemical_symbols, set_cell!, set_pbc!, update_data!
+      chemical_symbols, set_cell!, set_pbc!, update_data!,
+      apply_defm!
 
 using LinearAlgebra: I, Diagonal, isdiag, norm
 
@@ -164,12 +165,12 @@ auxiliary function to convert a general cell to a cubic one; this is a bit of
 a hack, so to not make a mess of things, this will only work in very restrictive
 circumstances and otherwise throw an error. But it could be revisited.
 """
-function _cubic_cell(atu::Atoms)
+function _cubic_cell(atu::Atoms{T}) where {T}
    @assert length(atu) == 1
    ru = JuLIP.rmin(atu)
    at = bulk(chemical_symbol(atu.Z[1]), cubic=true)
    r = JuLIP.rmin(at)
-   return set_defm!(at, (ru/r) * defm(at); updatepositions=true)
+   return apply_defm!(at, (ru/r) * one(JMat{T}))
 end
 
 
