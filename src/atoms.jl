@@ -84,8 +84,11 @@ Base.eltype(::Atoms{T}) where {T} = T
 length(at::Atoms) = length(at.X)
 
 getindex(at::Atoms, i::Integer) = at.X[i]
+
 function setindex!(at::Atoms{T}, val, i::Integer) where {T}
+   u = norm(at.X[i] - val)
    at.X[i] = convert(JVec{T}, val)
+   update_data!(at, u)
    return val
 end
 
