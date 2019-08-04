@@ -89,7 +89,11 @@ Atoms(Z::Vector{Int16}, X::Vector{JVec{T}}; kwargs...) where {T} =
 simple way to construct an atoms object from just positions
 """
 Atoms(s::Symbol, X::Vector{JVec{T}}; kwargs...) where {T} =
-      Atoms{T}(; X=X, Z=fill(atomic_number(s), length(X)), cell=_autocell(X),
+      Atoms{T}(; X = X,
+                 M = fill(one(T), length(X)),
+                 P = zeros(JVec{T}, length(X)), 
+                 Z = fill(atomic_number(s), length(X)),
+                 cell = _autocell(X),
                  pbc = (false, false, false), kwargs... )
 
 Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
