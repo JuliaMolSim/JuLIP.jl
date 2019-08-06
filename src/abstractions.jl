@@ -26,7 +26,8 @@ export positions, get_positions, set_positions!,
        preconditioner,
        volume,
        chemical_symbols,
-       atomic_numbers
+       atomic_numbers,
+       AbstractAtoms, AbstractCalculator
 
 
 # temporary prototypes while rewriting
@@ -497,7 +498,7 @@ some calculator or potential; see developer docs for more information
 """
 alloc_temp_d(args...) = nothing
 
-alloc_temp_dd(args...) = nothing 
+alloc_temp_dd(args...) = nothing
 
 """
 `energy!`: non-allocating version of `energy`
