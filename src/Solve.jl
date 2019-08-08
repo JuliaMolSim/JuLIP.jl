@@ -73,7 +73,8 @@ function minimise!(at::AbstractAtoms;
                   store_trace = false,
                   extended_trace = false,
                   maxstep = Inf,
-                  callback = nothing)
+                  callback = nothing,
+                  g_calls_limit = 1_000)
 
    # create an objective function
    if robust_energy_difference
@@ -130,6 +131,7 @@ function minimise!(at::AbstractAtoms;
 
    results = optimize( obj_f, obj_g!, dofs(at), optimiser,
                         Optim.Options( f_tol = ftol, g_tol = gtol,
+                                       g_calls_limit = g_calls_limit,
                                        store_trace = store_trace,
                                        extended_trace = extended_trace,
                                        callback = callback,
