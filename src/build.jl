@@ -91,7 +91,7 @@ simple way to construct an atoms object from just positions
 Atoms(s::Symbol, X::Vector{JVec{T}}; kwargs...) where {T} =
       Atoms{T}(; X = X,
                  M = fill(one(T), length(X)),
-                 P = zeros(JVec{T}, length(X)), 
+                 P = zeros(JVec{T}, length(X)),
                  Z = fill(atomic_number(s), length(X)),
                  cell = _autocell(X),
                  pbc = (false, false, false), kwargs... )
@@ -206,7 +206,8 @@ the use of an orthorhombic unit cell (for now).
  * allow other shapes
 """
 function cluster(atu::Atoms{T}, R::Real;
-                 dims = [1,2,3], shape = :ball, x0=nothing) where {T}
+                 dims = findall(pbc(atu).==true),
+                 shape = :ball, x0=nothing) where {T}
    sym = chemical_symbols(atu)[1]
    # check that the cell is orthorombic
    if !isdiag(cell(atu))
