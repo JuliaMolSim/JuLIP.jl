@@ -10,7 +10,7 @@ using ..Chemistry
 using JuLIP: JVec, JMat, JVecF, JMatF, mat,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
       chemical_symbols, set_cell!, set_pbc!, update_data!,
-      apply_defm!
+      apply_defm!, calculator, set_calculator!
 
 using LinearAlgebra: I, Diagonal, isdiag, norm
 
@@ -290,7 +290,9 @@ function Base.repeat(at::Atoms, n::NTuple{3})
       X[i+1:i+nat0] = [b+x for x in X0]
       i += nat0
    end
-   return Atoms(X, P, M, Z, Diagonal(collect(n)) * cell(at), pbc(at))
+   at1 = Atoms(X, P, M, Z, Diagonal(collect(n)) * cell(at), pbc(at))
+   set_calculator!(at1, calculator(at))
+   return at1
 end
 
 Base.repeat(at::Atoms, n::Integer) = repeat(at, (n,n,n))
@@ -313,6 +315,7 @@ function Base.deleteat!(at::Atoms, n)
    deleteat!(at.M, n)
    deleteat!(at.Z, n)
    update_data!(at, Inf)
+   JuLIP.reset_clamp!(at)
    return at
 end
 

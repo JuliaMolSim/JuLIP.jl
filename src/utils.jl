@@ -93,8 +93,9 @@ end
 
 
 """
-`dist(at, X1, X2, p = Inf)`
-`dist(at1, at2, p = Inf)`
+* `dist(at, X1, X2, p = Inf)`
+* `dist(at1, at2, p = Inf)`
+* `dist(at, x1, x2)`
 
 Returns the maximum distance (p = Inf) or alternatively a p-norm of
 distances between the two configurations `X1, X2` or `at1, at2`.
@@ -107,11 +108,17 @@ function dist(at::AbstractAtoms,
    @assert length(X1) == length(X2) == length(at)
    F = cell(at)'
    Finv = inv(F)
-   bcrem = [ p ? 1.0 : Inf for p in pbc(at) ]
-   d = [ norm(_project_pbc_(F, Finv, bcrem, x1 - x2))
-         for (x1, x2) in zip(X1, X2) ]
+   d = [ pernorm(F, Finv, pbc(at), x1 - x2) for (x1, x2) in zip(X1, X2) ]
    return norm(d, p)
 end
+
+function dist(at::AbstractAtoms, x1::JVec, x2::JVec)
+   F = cell(at)'
+   Finv = inv(F)
+   return pernorm(F, Finv, pbc(at), x1 - x2)
+end
+
+pernorm(F, Finv, p, x) = norm(_project_pbc_(F, Finv, p, x))
 
 dist(at::AbstractAtoms, X::AbstractVector) = dist(at, positions(at), X)
 
@@ -120,10 +127,12 @@ function dist(at1::AbstractAtoms, at2::AbstractAtoms, p = Inf)
    return dist(at1, positions(at1), positions(at2), p)
 end
 
-function _project_pbc_(F, Finv, bcrem, x)
+_myrem(λ::Real, p::Bool) = p ? rem(λ, 1.0, RoundNearest) : λ
+
+function _project_pbc_(F, Finv, p, x)
    λ = Finv * x     # convex coordinates
    # convex coords projected to the unit
-   λp = JVec(rem(λ[1], bcrem[1]), rem(λ[2], bcrem[2]), rem(λ[3], bcrem[3]))
+   λp = JVec(_myrem(λ[1], p[1]), _myrem(λ[2], p[2]), _myrem(λ[3], p[3]))
    return F * λp     # convert back to real coordinates
 end
 

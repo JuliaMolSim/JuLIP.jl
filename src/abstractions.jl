@@ -1,6 +1,6 @@
 
 import LinearAlgebra: ldiv!, mul!
-using LinearAlgebra: det, UniformScaling
+using LinearAlgebra: det, UniformScaling, isdiag
 import Base: length, getindex, setindex!, deleteat!
 
 import NeighbourLists: cutoff
