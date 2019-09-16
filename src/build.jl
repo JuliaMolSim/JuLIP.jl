@@ -65,6 +65,7 @@ _auto_M(M::AbstractVector) = Vector{Float64}(M)
 
 _auto_Z(Z::AbstractVector) = Vector{Int16}(Z)
 
+const PositionArray{T} = Union{AbstractMatrix{T}, AbstractVector{JVec{T}}}
 
 Atoms(; kwargs...) = Atoms{Float64}(; kwargs...)
 
@@ -85,10 +86,14 @@ Atoms(Z::Vector{Int16}, X::Vector{JVec{T}}; kwargs...) where {T} =
   Atoms{T}(; Z=Z, X=X, kwargs...)
 
 
+Atoms( Z::Vector{<: Integer}, X::PositionArray{T}; kwargs...
+       ) where {T <: AbstractFloat} =
+   Atoms{T}(; Z=Z, X=X, kwargs...)
+
 """
 simple way to construct an atoms object from just positions
 """
-Atoms(s::Symbol, X::Vector{JVec{T}}; kwargs...) where {T} =
+Atoms(s::Symbol, X::PositionArray{T}; kwargs...) where {T <: AbstractFloat} =
       Atoms{T}(; X = X,
                  M = fill(one(T), length(X)),
                  P = zeros(JVec{T}, length(X)),
