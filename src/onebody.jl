@@ -49,16 +49,16 @@ this should not normally be constructed by a user, but instead E0 should be
 passed to the relevant lsq functions, which will construct it.
 This structure deals with multi-species configurations.
 """
-mutable struct MOneBody{T} <: AbstractCalculator
+mutable struct MOneBody{T <: AbstractFloat} <: AbstractCalculator
    E0::Dict{Symbol, T}
 end
 
 @pot MOneBody
 
 
-evaluate(V::MOneBody,sp) = V.E0[sp]
+evaluate(V::MOneBody, sp) = V.E0[sp]
 
-function site_energies(V::MOneBody{T}, at::AbstractAtoms) where {T}
+function site_energies(V::MOneBody, at::AbstractAtoms{T}) where {T}
    E = zeros(T, length(at))
    for i in 1:length(at)
       E[i] = V(chemical_symbols(at)[i])
@@ -66,7 +66,7 @@ function site_energies(V::MOneBody{T}, at::AbstractAtoms) where {T}
    return E
 end
 
-energy(V::MOneBody, at::AbstractAtoms) = sum(site_energies(V,at))
+energy(V::MOneBody, at::AbstractAtoms) = sum(site_energies(V, at))
 
 forces(V::MOneBody, at::AbstractAtoms{T}) where {T} = zeros(JVec{T}, length(at))
 
@@ -74,19 +74,12 @@ virial(V::MOneBody, at::AbstractAtoms{T}) where {T} = zero(JMat{T})
 
 Dict(V::MOneBody) = Dict("__id__" => "MOneBody", "E0" => V.E0)
 
-function convert_str_2_symb(D::Dict{String,T}) where {T}
-   Dout = Dict{Symbol,T}()
-   for key in keys(D)
-      Dout[Symbol(key)] = D[key]
-   end
-   return Dout
-end
-
 convert_str_2_symb(D::Dict{Symbol,T}) where {T} = D #already in the correct form
 
-MOneBody(D::Dict{String, T}) where {T} = MOneBody(convert_str_2_symb(D["E0"]))
+# convert the E0 Dict{String} read from JSON into a Dict{Symbol}
+MOneBody(D::Dict{String}, T=Float64) =
+   Dict( Symbol(key) => T(val) for (key, val) in D ) |> MOneBody
 
-convert(::Val{:MOneBody}, D::Dict) = MOneBody(convert_str_2_symb(D["E0"]))
-
+convert(::Val{:MOneBody}, D::Dict) = MOneBody(D)
 
 ==(V1::MOneBody, V2::MOneBody) = (V1.E0 == V2.E0)
