@@ -3,11 +3,11 @@ module Utils
 
 import JuLIP.Chemistry: rnn
 
-using JuLIP: AbstractAtoms, JVec, positions, set_positions!,
+using JuLIP: AbstractAtoms, JVec, JMat, positions, set_positions!,
              chemical_symbols, cell, pbc, mat, dofs, set_dofs!,
-             fixedcell, variablecell
+             fixedcell, variablecell, apply_defm!
 
-using LinearAlgebra: norm
+using LinearAlgebra: norm, I
 
 export rattle!, r_sum, r_dot,
        swapxy!, swapxz!, swapyz!,
@@ -41,7 +41,7 @@ randomly perturbs the atom positions
 * `rnn` : nearest-neighbour distance
 * `respect_constraint`: set false to also perturb the constrained atom positions
 """
-function rattle!(at::AbstractAtoms, r::AbstractFloat; rnn = 1.0)
+function rattle!(at::AbstractAtoms{T}, r::AbstractFloat; rnn = 1.0) where {T}
    # TODO: revive the respect_constraint keyword!
      # respect_constraint = (constraint(at) != nothing))
    # if respect_constraint
@@ -50,10 +50,10 @@ function rattle!(at::AbstractAtoms, r::AbstractFloat; rnn = 1.0)
    #    set_dofs!(at, x)
    # else
    X = positions(at) |> mat
-   X .+= r * rnn * 2.0/sqrt(3) * (rand(Float64, size(X)) .- 0.5)
+   X .+= r * rnn * 2.0/sqrt(3) * (rand(T, size(X)) .- 0.5)
    set_positions!(at, X)
    if variablecell(at)
-      apply_defm!(at, I + (r/rnn) * (rand(JMatF) .- 0.5))
+      apply_defm!(at, I + (r/rnn) * (rand(JMat{T}) .- 0.5))
    end
    return at
 end
