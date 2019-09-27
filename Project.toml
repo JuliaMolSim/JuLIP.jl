@@ -1,6 +1,6 @@
 name = "JuLIP"
 uuid = "945c410c-986d-556a-acb1-167a618e0462"
-version = "0.8.4"
+version = "0.8.5"
 
 [deps]
 AlgebraicMultigrid = "2169fc97-5a83-5252-b627-83903c6c433c"
