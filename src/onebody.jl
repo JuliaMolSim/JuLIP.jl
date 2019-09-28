@@ -80,6 +80,6 @@ convert_str_2_symb(D::Dict{Symbol,T}) where {T} = D #already in the correct form
 MOneBody(D::Dict{String}, T=Float64) =
    Dict( Symbol(key) => T(val) for (key, val) in D ) |> MOneBody
 
-convert(::Val{:MOneBody}, D::Dict) = MOneBody(D)
+convert(::Val{:MOneBody}, D::Dict) = MOneBody(D["E0"])
 
 ==(V1::MOneBody, V2::MOneBody) = (V1.E0 == V2.E0)
