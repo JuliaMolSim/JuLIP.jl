@@ -88,7 +88,7 @@ end
 
 # some standard Base functionality lifted to IPPrecon
 ldiv!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: AlgebraicMultigrid.MultiLevel =
-   copyto!(out, solve(P.solver, f, 200, AlgebraicMultigrid.V(), P.tol))
+   copyto!(out, solve(P.solver, f, AlgebraicMultigrid.V(); maxiter = 200, tol = P.tol))
 ldiv!(out::Dofs, P::IPPrecon{TV, TS}, f::Dofs) where TV where TS <: SuiteSparse.CHOLMOD.Factor =
    copyto!(out, P.solver \ f)
 mul!(out::Dofs, P::IPPrecon, x::Dofs) = mul!(out, P.A, x)
