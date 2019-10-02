@@ -30,7 +30,6 @@ end
 println(" done.")
 
 
-
 julip_tests = [
    ("testaux.jl", "Miscellaneous"),
    ("test_atoms.jl", "Atoms"),
@@ -41,6 +40,7 @@ julip_tests = [
    ("test_ad.jl", "AD Potentials"),
    ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
+   ("test_onebody.jl", "One-Body"),
    ]
 
 # add solver tests if not on travis
@@ -52,8 +52,6 @@ end
 
 
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
-
-
 
 @testset "JuLIP" begin
    for (testfile, testid) in julip_tests

@@ -55,6 +55,8 @@ end
 
 @pot MOneBody
 
+MOneBody(args...) = MOneBody(Dict(args...))
+
 
 evaluate(V::MOneBody, sp) = V.E0[sp]
 
