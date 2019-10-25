@@ -62,6 +62,15 @@ end
 i2z(V, i::Integer) = i2z(V.zlist, i)
 z2i(V, z::Integer) = z2i(V.zlist, z)
 
+Dict(zlist::ZList) = Dict("__id__" => "JuLIP_ZList",
+                          "list" => zlist.list)
+Base.convert(::Val{:JuLIP_ZList}, D::Dict) = ZList(D)
+ZList(D::Dict) = ZList(D["list"])
+
+Dict(zlist::SZList) = Dict("__id__" => "JuLIP_SZList",
+                          "list" => zlist.list)
+Base.convert(::Val{:JuLIP_SZList}, D::Dict) = SZList(D)
+SZList(D::Dict) = SZList(SVector(Int16.(D["list"])...))
 
 
 # ----------------------------------------------------------------------
@@ -83,6 +92,13 @@ function neigsz!(tmp, nlist::PairList, at::Atoms, i::Integer)
    end
    return j, R, (@view Z[1:length(j)])
 end
+
+function neigsz(nlist::PairList, at::Atoms, i::Integer)
+   j, R = NeighbourLists.neigs(nlist, i)
+   return j, R, at.Z[j]
+end
+
+
 
 
 alloc_temp(V::MSitePotential, at::AbstractAtoms) =
@@ -158,6 +174,12 @@ evaluate_d(V::MSitePotential, R::AbstractVector{JVec{T}}, Z, z) where {T} =
                   V, R, Z, z)
 
 
+site_energy(V::MSitePotential, at::AbstractAtoms, i0::Integer) =
+      energy(V, at; domain = (i0,))
+
+site_energy_d(V::MSitePotential, at::AbstractAtoms, i0::Integer) =
+      rmul!(forces(V, at; domain = (i0,)), -one(eltype(at)))
+
 # -------- Dispatch for MPairPotentials ------------------------------------
 
 evaluate!(tmp, V::MPairPotential, R::AbstractVector, Z::AbstractVector, z0) =
@@ -172,6 +194,8 @@ function evaluate_d!(dV, tmp, V::MPairPotential, R, Z, z0)
    end
    return dV
 end
+
+
 
 # -----------------------------------------------------------------------------
 

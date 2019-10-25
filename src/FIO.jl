@@ -54,7 +54,7 @@ and being able to read old version in the future.
 """
 function decode_dict(D::Dict)
     if !haskey(D, "__id__")
-        @error("JuLIP.IO.decode_dict: `D` has no key `__id__`")
+        error("JuLIP.IO.decode_dict: `D` has no key `__id__`")
     end
     return convert(Val(Symbol(D["__id__"])), D)
 end
