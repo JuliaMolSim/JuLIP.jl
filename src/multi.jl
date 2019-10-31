@@ -128,11 +128,13 @@ forces(V::MSitePotential, at::AbstractAtoms{T}; kwargs...) where {T} =
 
 function energy!(tmp, calc::MSitePotential, at::Atoms{T};
                  domain=1:length(at)) where {T}
-   E = 0.0
+   E = zero(T)
    nlist = neighbourlist(at, cutoff(calc))
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
-      E += evaluate!(tmp, calc, R, Z, Int16(at.Z[i]))
+      if length(j) > 0
+         E += evaluate!(tmp, calc, R, Z, Int16(at.Z[i]))
+      end
    end
    return E
 end
@@ -143,10 +145,12 @@ function forces!(frc, tmp, calc::MSitePotential, at::Atoms{T};
    nlist = neighbourlist(at, cutoff(calc))
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
-      evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
-      for a = 1:length(j)
-         frc[j[a]] -= tmp.dV[a]
-         frc[i]    += tmp.dV[a]
+      if length(j) > 0
+         evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
+         for a = 1:length(j)
+            frc[j[a]] -= tmp.dV[a]
+            frc[i]    += tmp.dV[a]
+         end
       end
    end
    return frc
@@ -158,8 +162,10 @@ function virial!(tmp, calc::MSitePotential, at::Atoms{T};
    vir = zero(JMat{T})
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
-      evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
-      vir += site_virial(tmp.dV, R)
+      if length(j > 0)
+         evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
+         vir += site_virial(tmp.dV, R)
+      end
    end
    return vir
 end
