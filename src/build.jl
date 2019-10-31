@@ -7,7 +7,7 @@ module Build
 
 import JuLIP
 using ..Chemistry
-using JuLIP: JVec, JMat, JVecF, JMatF, mat,
+using JuLIP: JVec, JMat, JVecF, JMatF, mat, vecs,
       Atoms, cell, cell_vecs, positions, momenta, masses, numbers, pbc,
       chemical_symbols, set_cell!, set_pbc!, update_data!,
       apply_defm!, calculator, set_calculator!
@@ -43,7 +43,7 @@ with the new cell.
 """
 autocell!(at::Atoms) = set_cell!(at, _autocell(positions(at)))
 
-function _autocell(X::Vector{JVec{T}}) where T
+function _autocell(X::AbstractVector{JVec{T}}) where T
    ext = extrema(mat(X), dims = (2,))
    C = Diagonal([ e[2] - e[1] + 1.0  for e in ext ][:])
    return JMat{T}(C)
