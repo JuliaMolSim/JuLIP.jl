@@ -231,13 +231,12 @@ include("eam.jl")
 include("onebody.jl")
 # code for 1-body functions ; TODO: move into `nbody`
 
-include("hessians.jl")
-# code for hessians of site potentials
-
-
 include("multi.jl")
 # experimental multi-species code
 # -> eventually this is to be integrated into all the main codebase
+
+include("hessians.jl")
+# code for hessians of site potentials
 
 include("emt.jl")
 # a simple analytic EAM potential. (EMT -> embedded medium theory)

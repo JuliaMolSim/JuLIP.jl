@@ -1,7 +1,8 @@
 
 
 export atomdofs, variablecell, fixedcell, dofmgr_resetref!, variablecell!,
-       fixedcell!, set_clamp!, set_free!, set_mask!, reset_clamp!
+       fixedcell!, set_clamp!, set_free!, set_mask!, reset_clamp!,
+       inplane!
 
 using SparseArrays: SparseMatrixCSC, nnz, sparse, findnz
 
@@ -299,8 +300,21 @@ function hessian(calc::AbstractCalculator, at::AbstractAtoms)
 end
 
 
+function inplane!(at::Atoms; free = 1:length(at), clamp = nothing, i1 = 1, i2 = 2)
+   if clamp != nothing
+      free = setdiff(1:length(at), clamp)
+   end
+   mask = fill(false, 3, length(at))
+   mask[i1, free] .= true
+   mask[i2, free] .= true
+   set_mask!(at, mask)
+   @show Int.(mask)
+   return at
+end
+
+
 # TODO:
-#   - in-plane, anti-plane
+#   - anti-plane
 #   - pressure
 #   - fixvolume
 #   - once we add an external potential we need to think about terminology

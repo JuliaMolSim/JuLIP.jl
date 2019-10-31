@@ -10,7 +10,8 @@ using JuLIP: AbstractAtoms, Dofs, maxdist,
             fixedcell, projectxfree, _pos_to_dof
 
 using JuLIP.Potentials: @pot, @analytic, evaluate, evaluate_d, PairPotential, HS,
-                        SitePotential, sites, C0Shift, _precon_or_hessian_pos
+                        SitePotential, sites, C0Shift, _precon_or_hessian_pos,
+                        MSitePotential
 
 using SparseArrays: SparseMatrixCSC
 
@@ -149,6 +150,10 @@ build the preconditioner matrix associated with the potential V
 """
 precon_matrix(V, at::AbstractAtoms, innerstab = 0.1;
               preconmap = (hEs, tmp, V, R) -> precon!(hEs, tmp, V, R, innerstab)) =
+   _pos_to_dof(_precon_or_hessian_pos(V, at, preconmap), at)
+
+precon_matrix(V::MSitePotential, at::AbstractAtoms, innerstab = 0.1;
+              preconmap = (hEs, tmp, V, R, Z, z0) -> precon!(hEs, tmp, V, R, Z, z0, innerstab)) =
    _pos_to_dof(_precon_or_hessian_pos(V, at, preconmap), at)
 
 """
