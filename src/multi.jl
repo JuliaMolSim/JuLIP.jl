@@ -132,9 +132,7 @@ function energy!(tmp, calc::MSitePotential, at::Atoms{T};
    nlist = neighbourlist(at, cutoff(calc))
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
-      if length(j) > 0
-         E += evaluate!(tmp, calc, R, Z, Int16(at.Z[i]))
-      end
+      E += evaluate!(tmp, calc, R, Z, Int16(at.Z[i]))
    end
    return E
 end
@@ -188,9 +186,10 @@ site_energy_d(V::MSitePotential, at::AbstractAtoms, i0::Integer) =
 
 # -------- Dispatch for MPairPotentials ------------------------------------
 
-evaluate!(tmp, V::MPairPotential, R::AbstractVector, Z::AbstractVector, z0) =
-   sum( evaluate!(tmp, V, norm(R[i]), Z[i], z0)
-        for i = 1:length(R) )
+evaluate!(tmp, V::MPairPotential,
+          R::AbstractVector{<: JVec{T}}, Z::AbstractVector, z0) where {T} =
+   length(R) == 0 ? zero(T) : sum( evaluate!(tmp, V, norm(R[i]), Z[i], z0)
+                                   for i = 1:length(R) )
 
 function evaluate_d!(dV, tmp, V::MPairPotential, R, Z, z0)
    dV = tmp.dV
@@ -203,8 +202,28 @@ end
 
 
 
-# -----------------------------------------------------------------------------
+# ------------------ Preconditioners for MPairPotentials ----------------------
 
+
+function precon!(hEs, tmp, V::MPairPotential, R::AbstractVector{<: JVec},
+                 Z::AbstractVector, z0, innerstab=T(0.0))
+   n = length(R)
+   for i = 1:n
+      hEs[i,i] = precon!(tmp, V, norm(R[i]), R[i], Z[i], z0, innerstab)
+   end
+   return hEs
+end
+
+# # an FF preconditioner for pair potentials
+# function precon!(tmp, V::PairPotential, r::T, R::JVec{T}, innerstab=T(0.1)
+#                  ) where {T <: Number}
+#    r = norm(R)
+#    dV = evaluate_d!(tmp, V, r)
+#    ddV = evaluate_dd!(tmp, V, r)
+#    R̂ = R/r
+#    return (1-innerstab) * (abs(ddV) * R̂ * R̂' + abs(dV / r) * (I - R̂ * R̂')) +
+#              innerstab  * (abs(ddV) + abs(dV / r)) * I
+# end
 
 
 
