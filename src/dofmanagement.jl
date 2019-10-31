@@ -308,7 +308,6 @@ function inplane!(at::Atoms; free = 1:length(at), clamp = nothing, i1 = 1, i2 = 
    mask[i1, free] .= true
    mask[i2, free] .= true
    set_mask!(at, mask)
-   @show Int.(mask)
    return at
 end
 
