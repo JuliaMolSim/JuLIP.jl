@@ -200,6 +200,11 @@ function evaluate_d!(dV, tmp, V::MPairPotential, R, Z, z0)
    return dV
 end
 
+evaluate(V::MPairPotential, r, z1, z0) =
+      evaluate!(alloc_temp(V, 1), V, r, z1, z0)
+
+evaluate_d(V::MPairPotential, r, z1, z0) =
+      evaluate_d!(alloc_temp_d(V, 1), V, r, z1, z0)
 
 
 # ------------------ Preconditioners for MPairPotentials ----------------------
