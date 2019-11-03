@@ -160,7 +160,7 @@ function virial!(tmp, calc::MSitePotential, at::Atoms{T};
    vir = zero(JMat{T})
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
-      if length(j > 0)
+      if length(j) > 0
          evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
          vir += site_virial(tmp.dV, R)
       end
