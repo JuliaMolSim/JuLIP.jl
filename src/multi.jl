@@ -188,14 +188,14 @@ site_energy_d(V::MSitePotential, at::AbstractAtoms, i0::Integer) =
 
 evaluate!(tmp, V::MPairPotential,
           R::AbstractVector{<: JVec{T}}, Z::AbstractVector, z0) where {T} =
-   length(R) == 0 ? zero(T) : sum( evaluate!(tmp, V, norm(R[i]), Z[i], z0)
-                                   for i = 1:length(R) )
+   length(R) == 0 ? zero(T) : T(0.5) * sum( evaluate!(tmp, V, norm(R[i]), Z[i], z0)
+                                            for i = 1:length(R) )
 
 function evaluate_d!(dV, tmp, V::MPairPotential, R, Z, z0)
    dV = tmp.dV
    for i = 1:length(R)
       r = norm(R[i])
-      dV[i] = (evaluate_d!(tmp, V, r, Z[i], z0)/r) * R[i]
+      dV[i] = ((evaluate_d!(tmp, V, r, Z[i], z0)/r) * R[i]) / 2
    end
    return dV
 end
@@ -229,9 +229,6 @@ end
 #    return (1-innerstab) * (abs(ddV) * R̂ * R̂' + abs(dV / r) * (I - R̂ * R̂')) +
 #              innerstab  * (abs(ddV) + abs(dV / r)) * I
 # end
-
-
-
 
 
 # struct MPairPotential <: MSitePotential
