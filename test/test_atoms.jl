@@ -20,7 +20,7 @@ h3("Check setindex! and getindex ...")
 at = bulk(:Si, cubic=true)
 x = at[2]
 println(@test x == JVec(1.3575, 1.3575, 1.3575))
-x += 0.1
+x = x .+ 0.1
 at[2] = x
 X = positions(at)
 println(@test !(X === at.X))
