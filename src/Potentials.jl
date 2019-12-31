@@ -44,6 +44,7 @@ export PairPotential, SitePotential, ZeroSitePotential
 
 function evaluate end
 function evaluate_d end
+function evaluate_ed end
 function evaluate_dd end
 function evaluate! end
 function evaluate_d! end
