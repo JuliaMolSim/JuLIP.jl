@@ -8,7 +8,10 @@ module MLIPs
 using JuLIP:       AbstractCalculator, AbstractAtoms
 using JuLIP.FIO:   decode_dict
 
-import JuLIP:      energy, forces, virial, site_energy, site_energy_d
+import JuLIP:      energy, forces, virial, site_energy, site_energy_d,
+                   alloc_temp, alloc_temp_d, evaluate, evaluate_d,
+                   evaluate!, evaluate_d!, evaluate_ed
+
 import Base:       Dict, convert, ==
 
 export IPSuperBasis, IPCollection, combine
@@ -33,7 +36,41 @@ of energies.
 """
 abstract type IPBasis end
 
+"""
+`alloc_B(B, x)`
+
+if `B::IPBasis` and `x` is some argument, then allocate storage to evaluate
+the basis when evaluated with argument `x`.
+"""
+function alloc_B end
+
+"""
+`alloc_dB(B, x)`
+
+if `B::IPBasis` and `x` is some argument, then allocate storage to evaluate
+the derivative of the basis when evaluated with argument `x`.
+"""
+function alloc_dB end
+
+evaluate(B::IPBasis, x, args...) =
+   evaluate!(alloc_B(B, x), alloc_temp(B, x), B, x, args...)
+
+function evaluate_ed(B::IPBasis, x, args...)
+   b = alloc_B(B, x)
+   db = alloc_dB(B, x)
+   tmp = alloc_temp_d(B, x)
+   evaluate_d!(b, db, tmp, B, x, args...)
+   return b, db
+end
+
+evaluate_d(B::IPBasis, x, args...) = evaluate_ed(B::IPBasis, x, args...)[2]
+
+
 # ========== wrap one more more calculators into a basis =================
+
+# the main difference with IPSuperBasis is that an IPCollection is
+# a basis of individual calculators, whereas an IPSuperBasis combines
+# two or more `IPBasis` sets.
 
 struct IPCollection{T} <: IPBasis
    coll::Vector{T}
@@ -146,5 +183,105 @@ SumIP(sumip::SumIP, V::AbstractCalculator) =
    SumIP( [ sumip.components; [V] ]  )
 SumIP(sum1::SumIP, sum2::SumIP) =
    SumIP( [ sum1.components; sum2.components ]  )
+
+
+
+
+# -------------------------------------------------------------
+#       JuLIP Calculator functionality for IPBasis
+# -------------------------------------------------------------
+
+using NeighbourLists: maxneigs
+using JuLIP: sites, neighbourlist, cutoff, JVec
+using JuLIP.Potentials: neigsz!
+
+function energy(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
+   E = zeros(length(shipB))
+   B = alloc_B(shipB)
+   nlist = neighbourlist(at, cutoff(shipB))
+   maxnR = maxneigs(nlist)
+   tmp = alloc_temp(shipB, maxnR)
+   tmpRZ = (R = zeros(JVec{T}, maxnR), Z = zeros(Int16, maxnR))
+   for i = 1:length(at)
+      j, R, Z = neigsz!(tmpRZ, nlist, at, i)
+      evaluate!(B, tmp, shipB, R, Z, at.Z[i])
+      E[:] .+= B[:]
+   end
+   return E
+end
+
+
+function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
+   # precompute the neighbourlist to count the number of neighbours
+   nlist = neighbourlist(at, cutoff(shipB))
+   maxR = maxneigs(nlist)
+   # allocate space accordingly
+   F = zeros(JVec{T}, length(at), length(shipB))
+   dB = alloc_dB(shipB, maxR)
+   tmp = alloc_temp_d(shipB, maxR)
+   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(Int16, maxR))
+   # assemble site gradients and write into F
+   for i = 1:length(at)
+      j, R, Z = neigsz!(tmpRZ, nlist, at, i)
+      evaluate_d!(dB, tmp, shipB, R, Z, at.Z[i])
+      for a = 1:length(R)
+         F[j[a], :] .-= dB[a, :]
+         F[i, :] .+= dB[a, :]
+      end
+   end
+   return [ F[:, iB] for iB = 1:length(shipB) ]
+end
+
+
+function virial(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
+   # precompute the neighbourlist to count the number of neighbours
+   nlist = neighbourlist(at, cutoff(shipB))
+   maxR = maxneigs(nlist)
+   # allocate space accordingly
+   V = zeros(JMat{T}, length(shipB))
+   dB = alloc_dB(shipB, maxR)
+   tmp = alloc_temp_d(shipB, maxR)
+   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(Int16, maxR))
+   # assemble site gradients and write into F
+   for i = 1:length(at)
+      j, R, Z = neigsz!(tmpRZ, nlist, at, i)
+      evaluate_d!(dB, tmp, shipB, R, Z, at.Z[i])
+      for iB = 1:length(shipB)
+         V[iB] += JuLIP.Potentials.site_virial(dB[:, iB], R)
+      end
+   end
+   return V
+end
+
+
+function _get_neigs(at::AbstractAtoms{T}, i0::Integer, rcut) where {T}
+   nlist = neighbourlist(at, rcut)
+   maxR = maxneigs(nlist)
+   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(Int16, maxR))
+   j, R, Z = neigsz!(tmpRZ, nlist, at, i0)
+   return j, R, Z
+end
+
+function site_energy(basis::IPBasis, at::AbstractAtoms, i0::Integer)
+   j, Rs, Zs = _get_neigs(at, i0, cutoff(basis))
+   return evaluate(basis, Rs, Zs, at.Z[i0])
+end
+
+
+function site_energy_d(basis::IPBasis, at::AbstractAtoms{T}, i0::Integer) where {T}
+   Ineigs, Rs, Zs = _get_neigs(at, i0, cutoff(basis))
+   dEs = [ zeros(JVec{T}, length(at)) for _ = 1:length(basis) ]
+   dB = alloc_dB(basis, length(Rs))
+   tmp = alloc_temp_d(basis, length(Rs))
+   evaluate_d!(dB, tmp, basis, Rs, Zs, at.Z[i0])
+   @assert dB isa Matrix{JVec{T}}
+   @assert size(dB) == (length(Rs), length(basis))
+   for iB = 1:length(basis), n = 1:length(Ineigs)
+      dEs[iB][Ineigs[n]] += dB[n, iB]
+      dEs[iB][i0] -= dB[n, iB]
+   end
+   return dEs
+end
+
 
 end

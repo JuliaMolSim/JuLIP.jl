@@ -34,6 +34,11 @@ include("utils.jl")
 # interatomic potentials prototypes and some example implementations
 include("Potentials.jl")
 @reexport using JuLIP.Potentials
+# and we want to import some more functions from `Potentials` which are really
+# central to JuLIP, so that they can be extended using just `import JuLIP: ...`
+import JuLIP.Potentials: evaluate, evaluate_d, evaluate_dd, evaluate_ed,
+                         evaluate!, evaluate_d!, evaluate_dd!,
+                         grad, precond
 
 # basic preconditioning capabilities
 include("preconditioners.jl")
