@@ -12,7 +12,8 @@ module FIO
 
 using JSON
 
-export load_dict, save_dict, decode_dict, save_json, load_json
+export load_dict, save_dict, save_json, load_json,
+       decode_dict, read_dict, write_dict
 
 #######################################################################
 #                     Conversions to and from Dict
@@ -56,8 +57,13 @@ function decode_dict(D::Dict)
     if !haskey(D, "__id__")
         error("JuLIP.IO.decode_dict: `D` has no key `__id__`")
     end
-    return convert(Val(Symbol(D["__id__"])), D)
+    return read_dict(Val(Symbol(D["__id__"])), D)
 end
+
+read_dict(D::Dict) = decode_dict(D)
+
+read_dict(v::Val, D::Dict) = convert(v, D)
+
 
 #######################################################################
 #                     JSON
@@ -78,4 +84,22 @@ save_json = save_dict
 load_json = load_dict
 
 
+## Some useful utility functions
+
+write_dict(A::Matrix{T}) where {T <: Number} =
+    Dict("__id__" => "JuLIP_Matrix",
+         "T"      => string(T),
+         "nrows"  => size(A, 1),
+         "ncols"  => size(A, 2),
+         "data"   => A[:])
+
+function read_dict(::Val{:JuLIP_Matrix}, D::Dict)
+   T = Meta.eval(Meta.parse(D["T"]))
+   return resize(T.(D["data"]), D["ncols"], D["nrows"])
+end
+
+
+
+
+##
 end
