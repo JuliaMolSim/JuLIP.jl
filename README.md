@@ -7,30 +7,33 @@
 <!-- [![Build Status](https://travis-ci.org/libAtoms/JuLIP.jl.svg?branch=master)](https://travis-ci.org/libAtoms/JuLIP.jl) -->
 
 A package for rapid implementation and testing of new interatomic potentials and
-molecular simulation algorithms. Requires v0.5 or v0.6 of Julia. Current
-development is for Julia v0.6.x. Documentation is essentially non-existent but
-the inline documentations is reasonably complete.
+molecular simulation algorithms. There are versions for Julia v0.5.x, 0.6.x and
+1.x. All development is for v1.x. Documentation is essentially non-existent but
+the inline documentations is reasonably complete, and there are extensive tests that can be read in the absence of examples.
 
 The design of `JuLIP` is heavily inspired by [ASE](https://gitlab.com/ase/ase).
 The main motivation for `JuLIP` is that, while `ASE` is pure Python and hence
 relies on external software to efficiently evaluate interatomic potentials,
 Julia allows the  implementation of fast potentials in pure Julia, often in just
 a few lines of code. `ASE` bindings compatible with `JuLIP` are provided by
-[ASE.jl](https://github.com/cortner/ASE.jl.git).
+[ASE.jl](https://github.com/cortner/ASE.jl.git). There are also reverse
+bindings available via [`pyjulip`](https://github.com/casv2/pyjulip) which enable using `JuLIP` models from `ASE`
 
-Contributions are welcome, especially for producing examples and tutorials. Any
-questions or suggestions, please ask on [![][gitter-img]][gitter-url].
-
-
+Contributions are very welcome, especially for producing examples and tutorials. Any questions or suggestions, please ask on [![][gitter-img]][gitter-url], or simply open an issue.
 
 # Installation
 
-Install JuLIP, from the Julia REPL:
+The latest versions of JuLIP are no longer installed in the `General` registry.
+To use these versions, you will first need to install the [`MolSim` registry](https://github.com/JuliaMolSim/MolSim) via
 ```julia
-Pkg.add("JuLIP")
+] registry add https://github.com/JuliaMolSim/MolSim.git
+```
+Then, to install `JuLIP`,
+```julia
+] add Pkg.add("JuLIP")
 ```
 and run
-```
+```julia
 Pkg.test("JuLIP")
 ```
 to make sure the installation succeeded. If a test fails, please open an issue.
@@ -55,8 +58,6 @@ pip install imolecule
 # Examples
 
 The following are some minimal examples to just get something to run.
-More intersting examples will hopefully follow soon.
-
 
 ## Vacancy in a bulk Si cell
 
@@ -66,6 +67,7 @@ at = bulk(:Si, cubic=true) * 4
 deleteat!(at, 1)
 set_calculator!(at, StillingerWeber())
 minimise!(at)
+@show energy(at)
 # Visualisation is current not working
 # JuLIP.Visualise.draw(at)   # (this will only work in a ipynb)
 ```
@@ -82,6 +84,9 @@ pot = let A = 4.0, r0 = r0
 end
 pot = pot * SplineCutoff(2.1 * r0, 3.5 * r0)
 # `pot` can now be used as a calculator to do something interesting ...
+# ... or something boring
+at = rattle!(bulk(:Fe, cubic=true) * 4, 0.1)
+energy(pot, at)
 ```
 
 ## Site Potential with AD
