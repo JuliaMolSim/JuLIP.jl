@@ -30,11 +30,11 @@ To use these versions, you will first need to install the [`MolSim` registry](ht
 ```
 Then, to install `JuLIP`,
 ```julia
-] add Pkg.add("JuLIP")
+] add JuLIP
 ```
 and run
 ```julia
-Pkg.test("JuLIP")
+] test JuLIP
 ```
 to make sure the installation succeeded. If a test fails, please open an issue.
 
