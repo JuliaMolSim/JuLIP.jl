@@ -95,7 +95,7 @@ write_dict(A::Matrix{T}) where {T <: Number} =
 
 function read_dict(::Val{:JuLIP_Matrix}, D::Dict)
    T = Meta.eval(Meta.parse(D["T"]))
-   return resize(T.(D["data"]), D["ncols"], D["nrows"])
+   return reshape(T.(D["data"]), D["nrows"], D["ncols"])
 end
 
 
