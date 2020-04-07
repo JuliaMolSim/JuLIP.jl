@@ -56,7 +56,6 @@ include("Experimental.jl")
 # to create further abstractions to be shared across several
 # modules in the JuLIP-verse.
 include("mlips.jl")
-include("nbody.jl")
 
 
 # codes to facilitate testing

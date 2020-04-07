@@ -1,4 +1,5 @@
 
+import JuLIP: read_dict, write_dict
 export @D, @DD, @GRAD, @pot
 
 
@@ -99,3 +100,69 @@ macro GRAD(fsig::Expr)
     insert!(fsig.args, 2, Val{:GRAD})
     return fsig
 end
+
+
+# ----------------------------------------------------------------------
+#    Managing a list of species
+# ----------------------------------------------------------------------
+
+abstract type AbstractZList end
+
+"""
+`ZList` and `SZList{NZ}` : simple data structures that store a list
+of species and convert between atomic numbers and the index in the list.
+Can be constructed via
+* `ZList(zors)` : where `zors` is an Integer  or `Symbol` (single species)
+* `ZList(zs1, zs2, ..., zsn)`
+* `ZList([sz1, zs2, ..., zsn])`
+* All of these take a kwarg `static = {true, false}`; if `true`, then `ZList`
+will return a `SZList{NZ}` for (possibly) faster access.
+"""
+struct ZList <: AbstractZList
+   list::Vector{Int16}
+end
+
+Base.length(zlist::AbstractZList) = length(zlist.list)
+
+struct SZList{N} <: AbstractZList
+   list::SVector{N, Int16}
+end
+
+ZList(zlist::AbstractVector{<: Integer}; static = false) = (
+   static ? SZList(SVector( (Int16.(sort(zlist)))... ))
+          :  ZList( convert(Vector{Int16}, sort(zlist)) ))
+
+ZList(s::Symbol; kwargs...) =
+      ZList( [ atomic_number(s) ]; kwargs... )
+
+ZList(S::AbstractVector{Symbol}; kwargs...) =
+      ZList( atomic_number.(S); kwargs... )
+
+ZList(args...; kwargs) =
+      ZList( [args...]; kwargs...)
+
+
+i2z(Zs::AbstractZList, i::Integer) = Zs.list[i]
+
+function z2i(Zs::AbstractZList, z::Integer)
+   for j = 1:length(Zs.list)
+      if Zs.list[j] == z
+         return j
+      end
+   end
+   error("z = $z not found in ZList $(Zs.list)")
+end
+
+i2z(V, i::Integer) = i2z(V.zlist, i)
+z2i(V, z::Integer) = z2i(V.zlist, z)
+
+write_dict(zlist::ZList) = Dict("__id__" => "JuLIP_ZList",
+                                  "list" => zlist.list)
+
+read_dict(::Val{:JuLIP_ZList}, D::Dict) = ZList(D)
+ZList(D::Dict) = ZList(D["list"])
+
+write_dict(zlist::SZList) = Dict("__id__" => "JuLIP_SZList",
+                                 "list" => zlist.list)
+read_dict(::Val{:JuLIP_SZList}, D::Dict) = SZList(D)
+SZList(D::Dict) = SZList(SVector(Int16.(D["list"])...))

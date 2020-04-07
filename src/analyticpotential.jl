@@ -111,6 +111,6 @@ macro analytic(args...)
    end
 end
 
-evaluate!(tmp, p::SimplePairPotential, r::Number) = p.f(r)
-evaluate_d!(tmp, p::SimplePairPotential, r::Number) = p.f_d(r)
-evaluate_dd!(tmp, p::SimplePairPotential, r::Number) = p.f_dd(r)
+evaluate!(tmp, p::SimplePairPotential, r::Number, args...) = p.f(r)
+evaluate_d!(tmp, p::SimplePairPotential, r::Number, args...) = p.f_d(r)
+evaluate_dd!(tmp, p::SimplePairPotential, r::Number, args...) = p.f_dd(r)
