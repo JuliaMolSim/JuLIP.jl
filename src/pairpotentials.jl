@@ -10,53 +10,65 @@ export ZeroPairPotential, PairSitePotential, ZBLPotential,
          LennardJones, lennardjones,
          Morse, morse
 
-## TODO: kill this one?
-grad(V::PairPotential, r::Real, R::JVec) = ((@D V(r)) / r) * R
-
 
 evaluate!(tmp, V::PairPotential, r::Union{Number, JVec}) = V(r)
-evaluate_d!(tmp, V::PairPotential, r::Union{Number, JVec}) = @D V(r)
-evaluate_dd!(tmp, V::PairPotential, r::Union{Number, JVec}) = @DD V(r)
+evaluate_d!(tmp, V::PairPotential, r::Number) = @D V(r)
+evaluate_dd!(tmp, V::PairPotential, r::Number) = @DD V(r)
+evaluate_d!(tmp, V::PairPotential, R::JVec) =
+      evaluate_d!(tmp, V, norm(R), R)
+evaluate_d!(tmp, V::PairPotential, r::Number, R::JVec) = ((@D V(r))/r) * R
+evaluate_dd!(tmp, V::PairPotential, r::Number) = @DD V(r)
+evaluate_dd!(tmp, V::PairPotential, R::JVec) =
+      evaluate_dd!(tmp, V, norm(R), R)
+evaluate_dd!(tmp, V::PairPotential, r::Number, R::JVec) =
+      _hess!(tmp, V, r, R)
 
-function evaluate!(tmp, V::PairPotential, R::AbstractVector{JVec{T}}) where {T}
+
+function evaluate!(tmp, V::PairPotential,
+                   R::AbstractVector{JVec{T}}, Z, z0) where {T}
    Es = zero(T)
    for i = 1:length(R)
-      Es += T(0.5) * evaluate!(tmp, V, norm(R[i]))
+      Es += T(0.5) * evaluate!(tmp, V, norm(R[i]), Z[i], z0)
    end
    return Es
 end
 
-function evaluate_d!(dEs, tmp, V::PairPotential, R::AbstractVector{JVec{T}}) where {T}
+function evaluate_d!(dEs, tmp, V::PairPotential,
+                     R::AbstractVector{JVec{T}}, Z, z0) where {T}
    for i = 1:length(R)
       r = norm(R[i])
-      dEs[i] = (T(0.5) * evaluate_d!(tmp, V, r) / r) * R[i]
+      dEs[i] = (T(0.5) * evaluate_d!(tmp, V, r, Z[i], z0) / r) * R[i]
    end
    return dEs
 end
 
-function evaluate_dd!(hEs, tmp, V::PairPotential, R::AbstractVector{<: JVec})
+function evaluate_dd!(hEs, tmp, V::PairPotential,
+                      R::AbstractVector{<: JVec}, Z, z0)
    n = length(R)
    for i = 1:n
-      hEs[i,i] = 0.5 * _hess!(tmp, V, norm(R[i]), R[i])
+      hEs[i,i] = 0.5 * _hess!(tmp, V, norm(R[i]), R[i], Z[i], z0)
    end
    return hEs
 end
 
-function _hess!(tmp, V::PairPotential, r::Number, R::JVec)
+function _hess!(tmp, V::PairPotential, r::Number, R::JVec, z1, z0)
    R̂ = R/r
    P = R̂ * R̂'
-   dV = evaluate_d!(tmp, V, r) / r
-   ddV = evaluate_dd!(tmp, V, r)
+   dV = evaluate_d!(tmp, V, r, z1, z0) / r
+   ddV = evaluate_dd!(tmp, V, r, z1, z0)
    return (ddV - dV) * P + dV * I
 end
 
-function precon!(hEs, tmp, V::PairPotential, R::AbstractVector{<: JVec}, innerstab=T(0.0))
+function precon!(hEs, tmp, V::PairPotential,
+                 R::AbstractVector{<: JVec{T}}, Z, z0,
+                 innerstab=T(0.0)) where {T}
    n = length(R)
    for i = 1:n
-      hEs[i,i] = precon!(tmp, V, norm(R[i]), R[i], innerstab)
+      hEs[i,i] = precon!(tmp, V, norm(R[i]), R[i], Z[i], z0, innerstab)
    end
    return hEs
 end
+
 
 # an FF preconditioner for pair potentials
 function precon!(tmp, V::PairPotential, r::T, R::JVec{T}, innerstab=T(0.1)

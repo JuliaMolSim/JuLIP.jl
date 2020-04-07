@@ -151,8 +151,8 @@ function evaluate_d!(dEs, tmp, calc::StillingerWeber, R::AbstractVector{<:JVec})
       tmp.r[i] = r = norm(R[i])
       tmp.S[i] = R[i] / r
       tmp.V3[i] = calc.V3(r)
-      tmp.gV3[i] = grad(calc.V3, r, R[i])
-      dEs[i] = 0.5 * grad(calc.V2, r, R[i])
+      tmp.gV3[i] = evaluate_dd(calc.V3, r, R[i])
+      dEs[i] = 0.5 * evaluate_dd(calc.V2, r, R[i])
    end
    for i1 = 1:(length(R)-1), i2 = (i1+1):length(R)
       a, b1, b2 = bondangle_d(tmp.S[i1], tmp.S[i2], tmp.r[i1], tmp.r[i2])
