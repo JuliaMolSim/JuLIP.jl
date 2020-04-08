@@ -10,7 +10,6 @@ import FunctionWrappers: FunctionWrapper
 
 export AnalyticFunction, @analytic
 
-
 const ScalarFun{T} = FunctionWrapper{T, Tuple{T}}
 
 """
@@ -51,8 +50,6 @@ end
 
 # ================== Analytical Potentials ==========================
 
-abstract type SimplePairPotential <: PairPotential end
-
 
 """
 `struct AnalyticFunction`: described an analytic function, allowing to
@@ -82,7 +79,7 @@ V = @analytic( r -> exp(s) * s, s = r^2 )
 V = @analytic r -> exp(r^2) * r^2
 ```
 """
-struct AnalyticFunction{F0,F1,F2} <: SimplePairPotential
+struct AnalyticFunction{F0,F1,F2} <: ExplicitPairPotential
    f::F0
    f_d::F1
    f_dd::F2
@@ -110,7 +107,3 @@ macro analytic(args...)
       )
    end
 end
-
-evaluate!(tmp, p::SimplePairPotential, r::Number, args...) = p.f(r)
-evaluate_d!(tmp, p::SimplePairPotential, r::Number, args...) = p.f_d(r)
-evaluate_dd!(tmp, p::SimplePairPotential, r::Number, args...) = p.f_dd(r)

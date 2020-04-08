@@ -44,10 +44,11 @@ ADPotential(V, rcut) = ADPotential(V, rcut, ForwardDiff.gradient)
 
 cutoff(V::ADPotential) = V.rcut
 
-evaluate!(tmp, V::ADPotential, R::AbstractVector{<: JVec}) = V.V(R)
+evaluate!(tmp, V::ADPotential, R::AbstractVector{<: JVec}, Z, z0) =
+      V.V(R, Z, z0)
 
-function evaluate_d!(dEs, tmp, V::ADPotential, R::AbstractVector{<: JVec})
-   dV = V.gradfun( S -> V.V(vecs(S)), collect(mat(R)[:]) ) |> vecs
+function evaluate_d!(dEs, tmp, V::ADPotential, R::AbstractVector{<: JVec}, Z, z0)
+   dV = V.gradfun( S -> V.V(vecs(S), Z, z0), collect(mat(R)[:]) ) |> vecs
    copyto!(dEs, dV)
    return dEs
 end

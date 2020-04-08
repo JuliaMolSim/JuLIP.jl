@@ -5,6 +5,8 @@ using JuLIP: sigvol_d
 using Test
 using LinearAlgebra
 
+##
+
 h2("Testing `minimise!` with equilibration with LJ calculator to lattice")
 calc = lennardjones(r0=rnn(:Al))
 at = bulk(:Al, cubic=true) * 10
@@ -25,6 +27,8 @@ println("check that the optimiser really converged to a lattice")
 @show norm(F*X0 - X1, Inf)
 @test norm(F*X0 - X1, Inf) < 1e-4
 
+##
+
 h2("same test but large and with Exp preconditioner")
 at = bulk(:Al, cubic=true) * (20,20,2)
 at = rattle!(at, 0.02)
@@ -32,6 +36,8 @@ set_calculator!(at, calc)
 minimise!(at, precond = :exp, method = :lbfgs,
           robust_energy_difference = true, verbose=2
           )
+
+##
 
 h2("Variable Cell Test")
 calc = lennardjones(r0=rnn(:Al))
@@ -44,6 +50,8 @@ println(@test (energy(at) == energy(at, x) == energy(calc, at)
                )
 minimise!(at, verbose = 2)
 
+##
+
 h2("FF preconditioner for StillingerWeber")
 at = bulk(:Si, cubic=true) * (10,10,2)
 at = set_pbc!(at, true)
@@ -53,13 +61,13 @@ P = FF(at, StillingerWeber())
 minimise!(at, precond = P, method = :lbfgs,
           robust_energy_difference = true, verbose=2)
 
+##
+
 h2("FF preconditioner for EAM")
 at = bulk(:W, cubic=true) * (10,10,2)
 at = set_pbc!(at, true)
 at = rattle!(at, 0.02)
 X0 = positions(at)
-
-##
 set_positions!(at, X0)
 set_calculator!(at, eam_W)
 P = FF(at, eam_W)

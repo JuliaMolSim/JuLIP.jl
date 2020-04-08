@@ -23,7 +23,7 @@
 
 using ForwardDiff
 using LinearAlgebra: dot
-using JuLIP: JVecF
+using JuLIP: JVecF, IntZ
 
 export StillingerWeber
 
@@ -91,7 +91,7 @@ V2(r) = 0.5 * ϵ * A * (B * (r/σ)^(-p) - 1.0) * exp(1.0 / (r/σ - a))
 V3(r) = sqrt(ϵ * λ) * exp(γ / (r/σ - a))
 ```
 """
-struct StillingerWeber{P1,P2} <: SitePotential
+struct StillingerWeber{P1,P2} <: SimpleSitePotential
    V2::P1
    V3::P2
 end
@@ -113,6 +113,7 @@ end
 
 alloc_temp(V::StillingerWeber, N::Integer) =
       (  R = zeros(JVecF, N),
+         Z = zeros(IntZ, N),
          S = zeros(JVecF, N),
          V3 = zeros(Float64, N)  )
 
@@ -134,7 +135,8 @@ end
 
 alloc_temp_d(V::StillingerWeber, N::Integer, T = Float64) =
       (  dV = zeros(JVec{T}, N),
-         R = zeros(JVecF, N),
+         R = zeros(JVec{T}, N),
+         Z = zeros(IntZ, N),
          r = zeros(T, N),
          S = zeros(JVec{T}, N),
          V3 = zeros(T, N),
@@ -151,8 +153,8 @@ function evaluate_d!(dEs, tmp, calc::StillingerWeber, R::AbstractVector{<:JVec})
       tmp.r[i] = r = norm(R[i])
       tmp.S[i] = R[i] / r
       tmp.V3[i] = calc.V3(r)
-      tmp.gV3[i] = evaluate_dd(calc.V3, r, R[i])
-      dEs[i] = 0.5 * evaluate_dd(calc.V2, r, R[i])
+      tmp.gV3[i] = evaluate_d(calc.V3, r, R[i])
+      dEs[i] = 0.5 * evaluate_d(calc.V2, r, R[i])
    end
    for i1 = 1:(length(R)-1), i2 = (i1+1):length(R)
       a, b1, b2 = bondangle_d(tmp.S[i1], tmp.S[i2], tmp.r[i1], tmp.r[i2])

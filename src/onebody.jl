@@ -4,9 +4,10 @@ import Base: convert, ==
 # import JuLIP: energy, virial, site_energies, forces
 # import JuLIP.Potentials: evaluate
 
+import JuLIP.FIO: read_dict, write_dict
 using JuLIP: JVec, JMat, chemical_symbols
 
-export OneBody, MOneBody
+export OneBody
 
 # """
 # `mutable struct OneBody{T}  <: NBodyFunction{1}`
@@ -74,14 +75,14 @@ forces(V::OneBody, at::AbstractAtoms{T}) where {T} = zeros(JVec{T}, length(at))
 
 virial(V::OneBody, at::AbstractAtoms{T}) where {T} = zero(JMat{T})
 
-Dict(V::OneBody) = Dict("__id__" => "OneBody", "E0" => V.E0)
-
-convert_str_2_symb(D::Dict{Symbol,T}) where {T} = D #already in the correct form
+write_dict(V::OneBody) =
+         Dict("__id__" => "JuLIP_OneBody",
+              "E0" => Dict([String(key) => val for (key, val) in V.E0]...))
 
 # convert the E0 Dict{String} read from JSON into a Dict{Symbol}
 OneBody(D::Dict{String}, T=Float64) =
-   Dict( Symbol(key) => T(val) for (key, val) in D ) |> OneBody
+   OneBody([Symbol(key) => T(val) for (key, val) in D]...)
 
-convert(::Val{:OneBody}, D::Dict) = OneBody(D["E0"])
+read_dict(::Val{:JuLIP_OneBody}, D::Dict) = OneBody(D["E0"])
 
 ==(V1::OneBody, V2::OneBody) = (V1.E0 == V2.E0)

@@ -1,12 +1,15 @@
 
-import JuLIP.Potentials: @pot, @D, evaluate!, evaluate_d!, PairPotential, @analytic
+import JuLIP.Potentials: @pot, @D, evaluate!, evaluate_d!, PairPotential,
+                         @analytic, SimplePairPotential
 using LinearAlgebra: norm
 using BenchmarkTools
 using JuLIP, Test
 
+##
+
 h3("generate hand-coded morse potential")
 
-mutable struct Morseold <: PairPotential
+mutable struct Morseold <: SimplePairPotential
    e0::Float64
    A::Float64
    r0::Float64
@@ -42,6 +45,8 @@ dmorseold_r = [ (@D morseold(r)) for r in rr ]
 
 println(@test norm(morse_r - morseold_r, Inf) < 1e-12)
 println(@test norm(dmorse_r - dmorseold_r, Inf) < 1e-12)
+
+##
 
 function runn(f, x, N)
    s = 0.0
