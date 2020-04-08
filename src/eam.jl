@@ -36,7 +36,7 @@ details of how the tabulated values are fitted; see
 
 TODO: implement other file formats.
 """
-struct EAM1{T1, T2, T3, T4} <: SitePotential
+struct EAM1{T1, T2, T3, T4} <: SimpleSitePotential
    ϕ::T1    # pair potential
    ρ::T2    # electron density potential
    F::T3    # embedding function
@@ -86,7 +86,7 @@ function _hess_!(hEs, tmp, V::EAM1, R::AbstractVector{JVec{T}}, fabs, stab=T(0)
    for i = 1:length(R)
       r = norm(R[i])
       tmp.r[i] = r
-      tmp.∇ρ[i] = grad(V.ρ, r, R[i])
+      tmp.∇ρ[i] = @D V.ρ(r, R[i])
    end
    # precompute some stuff
    ρ̄ = sum(V.ρ, tmp.r)

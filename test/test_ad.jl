@@ -2,7 +2,7 @@
 using JuLIP, ForwardDiff, StaticArrays, BenchmarkTools, Test, LinearAlgebra
 
 # simple EAM-like potential
-f(R) = sqrt( 1.0 + sum( exp(-norm(r)) for r in R ) )
+f(R, Z=nothing, z0=nothing) = sqrt( 1.0 + sum( exp(-norm(r)) for r in R ) )
 
 # hand-coded gradient
 function f_d(R::AbstractVector{<:JVec})
@@ -23,18 +23,18 @@ nneigs = 30
 R0 = [ @SVector rand(3) for n = 1:nneigs ]
 
 # check that all of them are the same
-println(@test V(R0) == f(R0))
-println(@test (@D V(R0)) == f_fd(R0))
+println(@test V(R0, nothing, nothing) == f(R0))
+println(@test (@D V(R0, nothing, nothing)) == f_fd(R0))
 println(@test f_d(R0) ≈ f_fd(R0))
 
 # timings
 print("Timing for      f: ")
 @btime f($R0);
 print("Timing for      V: ")
-@btime V($R0);
+@btime V($R0, nothing, nothing);
 print("Timing for    f_d: ")
 @btime f_d($R0);
 print("Timing for   f_fd: ")
 @btime f_fd($R0);
 print("Timing for   @D V: ")
-@btime (@D $V($R0));
+@btime (@D $V($R0, nothing, nothing));

@@ -53,13 +53,13 @@ function evaluate_dd end
 function evaluate! end
 function evaluate_d! end
 function evaluate_dd! end
-function grad end
-function precond end
+function precon! end
 
 
 include("potentials_base.jl")
+# * @pot, @D, @DD
+# *
 
-# * @pot, @D, @DD, @GRAD and related things
 
 """
 `SitePotential`:abstractsupertype for generic site potentials
@@ -67,21 +67,33 @@ include("potentials_base.jl")
 abstract type SitePotential <: AbstractCalculator end
 
 """
-`PairPotential`:abstractsupertype for pair potentials
+`SimpleSitePotential`:abstractsupertype for generic site potentials,
+ignoring species
+"""
+abstract type SimpleSitePotential <: SitePotential end
 
-Can also be used as a constructor for analytic pair potentials, e.g.,
-```julia
-lj = @analytic r -> r^(-12) - 2 * r^(-6)
-```
+
+"""
+`PairPotential`:abstractsupertype for pair potentials
 """
 abstract type PairPotential <: SitePotential end
 
+"""
+`SimplePairPotential`:abstractsupertype for pair potentials,
+ignoring species
+"""
+abstract type SimplePairPotential <: PairPotential end
+
+abstract type ExplicitPairPotential <: SimplePairPotential end
+
+
+
 # ---- redirect with some convenience functions ----
 
-# 1. redirect allocating -> non-allocating calls
+# redirect allocating -> non-allocating calls
 
-evaluate(V::SitePotential, args...) =
-      evaluate!(alloc_temp(V, length(R)), V, args...)
+evaluate(V::SitePotential, R, args...) =
+      evaluate!(alloc_temp(V, length(R)), V, R, args...)
 
 evaluate_d(V::SitePotential, R::AbstractVector{JVec{T}}, args...) where {T} =
       evaluate_d!(zeros(JVec{T}, length(R)),
@@ -94,39 +106,16 @@ evaluate_dd(V::SitePotential, R::AbstractVector{JVec{T}}, args...) where {T} =
                    V, R, args...)
 
 
-# 2. redirect species agnostic calls
-#    this is mostly for deprecation and should be removed as soon as possible
+# ----- interface for SimpleSitePotential
 
-evaluate!(tmp, V::SitePotential, R) =
-      evaluate!(tmp, V, R, SVector{0,Int}(), IntZ(0))
-
-evaluate_d!(dEs, tmp, V::SitePotential, R) =
-      evaluate_d!(tmp, V, R, SVector{0,Int}(), IntZ(0))
-
-evaluate_dd!(hEs, tmp, V::SitePotential, R) =
-      evaluate_dd!(tmp, V, R, SVector{0,Int}(), IntZ(0))
-
-
-# 3. redirect pair potential calls
-
-evaluate(V::PairPotential, r::Number) =
-      evaluate!(alloc_temp(V, 1), V, r)
-
-evaluate_d(V::PairPotential, r::Number) =
-      evaluate_d!(alloc_temp_d(V, 1), V, r)
-
-evaluate_dd(V::PairPotential, r::Number) =
-      evaluate_dd!(alloc_temp_dd(V, 1), V, r)
-
-evaluate(V::PairPotential, r, z1, z0) =
-      evaluate!(alloc_temp(V, 1), V, r, z1, z0)
-
-evaluate_d(V::PairPotential, r, z1, z0) =
-      evaluate_d!(alloc_temp_d(V, 1), V, r, z1, z0)
-
-evaluate_dd(V::PairPotential, r, z1, z0) =
-      evaluate_dd!(alloc_temp_dd(V, 1), V, r, z1, z0)
-
+evaluate!(tmp, V::SimpleSitePotential, R, Z, z0) =
+      evaluate!(tmp, V, R)
+evaluate_d!(dEs, tmp, V::SimpleSitePotential, R, Z, z0) =
+      evaluate_d!(dEs, tmp, V, R)
+evaluate_dd!(hEs, tmp, V::SimpleSitePotential, R) =
+      evaluate_dd!(hEs, tmp, V, R)
+precon!(hEs, tmp, V::SimpleSitePotential, R, Z, z0, innerstab) =
+      precon!(hEs, tmp, V, R, innerstab)
 
 # ------- Neighbourlist related business -------------------
 
@@ -255,54 +244,14 @@ function virial!(tmp, calc::SitePotential, at::Atoms{T};
 end
 
 
-# function energy!(tmp, V::SitePotential, at::AbstractAtoms{T};
-#                  domain=1:length(at)) where {T}
-#    E = zero(T)
-#    nlist = neighbourlist(at, cutoff(V))
-#    for i in domain
-#       _j, R = neigs!(tmp.R, nlist, i)
-#       E += evaluate!(tmp, V, R)
-#    end
-#    return E
-# end
-#
-# function forces!(frc, tmp, V::SitePotential, at::AbstractAtoms{T};
-#                  domain=1:length(at), reset=true) where {T}
-#    if reset; fill!(frc, zero(JVec{T})); end
-#    nlist = neighbourlist(at, cutoff(V))
-#    for i in domain
-#       j, R = neigs!(tmp.R, nlist, i)
-#       evaluate_d!(tmp.dV, tmp, V, R)
-#       for a = 1:length(j)
-#          frc[j[a]] -= tmp.dV[a]
-#          frc[i]    += tmp.dV[a]
-#       end
-#    end
-#    return frc
-# end
-
-# function virial!(tmp, V::SitePotential, at::AbstractAtoms{T};
-#                  domain=1:length(at)) where {T}
-#    vir = zero(JMat{T})
-#    nlist = neighbourlist(at, cutoff(V))
-#    for i in domain
-#       _j, R = neigs!(tmp.R, nlist, i)
-#       evaluate_d!(tmp.dV, tmp, V, R)
-#       vir += site_virial(tmp.dV, R)
-#    end
-#    return vir
-# end
-
-
-
 site_energies(V::SitePotential, at::AbstractAtoms{T}; kwargs...) where {T} =
-      site_energies!(zeros(T, length(at)), alloc_temp(V, at), V, at)
+      site_energies!(zeros(T, length(at)), alloc_temp(V, at), V, at; kwargs...)
 
 function site_energies!(Es, tmp, V::SitePotential, at::AbstractAtoms{T};
          domain = 1:length(at)) where {T}
    nlist = neighbourlist(at, cutoff(V))
    for i in domain
-      _j, R, Z = neigsz!(tmp.R, nlist, i)
+      _j, R, Z = neigsz!(tmp, nlist, at, i)
       Es[i] = evaluate!(tmp, V, R, Z, IntZ(at.Z[i]))
    end
    return Es
@@ -318,40 +267,25 @@ site_energy_d(V::SitePotential, at::AbstractAtoms, i0::Integer) =
 # ------------------------------------------------
 #  specialisation for Pair potentials
 
-
 include("analyticpotential.jl")
-# * AnalyticFunction
-# * F64fun, WrappedAnalyticFunction
 
 include("cutoffs.jl")
-#   * SWCutoff
-#   * ShiftCutoff
-#   * SplineCutoff
 
 include("pairpotentials.jl")
-# * PairCalculator
-# * LennardJonesPotential
-# * MorsePotential
-# * SimpleExponential
-# * WrappedPairPotential
+
+
 
 include("adsite.jl")
-# * ADPotential : Site potential using ForwardDiff
 
 include("stillingerweber.jl")
-# * type StillingerWeber
 
 include("splines.jl")
 include("eam.jl")
-# EAM, FinnisSinclair
 
 include("onebody.jl")
-# code for 1-body functions ; TODO: move into `nbody`
 
 include("hessians.jl")
-# code for hessians of site potentials
 
 # include("emt.jl")
-# a simple analytic EAM potential. (EMT -> embedded medium theory)
 
 end

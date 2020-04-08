@@ -10,7 +10,8 @@ using JuLIP: AbstractAtoms, Dofs, maxdist,
             fixedcell, projectxfree, _pos_to_dof
 
 using JuLIP.Potentials: @pot, @analytic, evaluate, evaluate_d, PairPotential, HS,
-                        SitePotential, sites, C0Shift, _precon_or_hessian_pos
+                        SitePotential, sites, C0Shift, _precon_or_hessian_pos,
+                        SimpleSitePotential
 
 using SparseArrays: SparseMatrixCSC
 
@@ -169,7 +170,7 @@ Keyword arguments:
       C. Ortner, and G. Csanyi. A universal preconditioner for simulating condensed
       phase materials. J. Chem. Phys., 144, 2016.
 """
-mutable struct Exp{T, TV}
+mutable struct Exp{T, TV} <: SimpleSitePotential
    Vexp::TV
    energyscale::T
 end

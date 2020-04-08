@@ -6,22 +6,28 @@ using LinearAlgebra: I
 using JuLIP.Chemistry: atomic_number
 using NeighbourLists
 
-export ZeroPairPotential, PairSitePotential, ZBLPotential,
+export ZeroPairPotential, ZBLPotential,
          LennardJones, lennardjones,
          Morse, morse
 
 
-evaluate!(tmp, V::PairPotential, r::Union{Number, JVec}) = V(r)
-evaluate_d!(tmp, V::PairPotential, r::Number) = @D V(r)
-evaluate_dd!(tmp, V::PairPotential, r::Number) = @DD V(r)
-evaluate_d!(tmp, V::PairPotential, R::JVec) =
-      evaluate_d!(tmp, V, norm(R), R)
-evaluate_d!(tmp, V::PairPotential, r::Number, R::JVec) = ((@D V(r))/r) * R
-evaluate_dd!(tmp, V::PairPotential, r::Number) = @DD V(r)
-evaluate_dd!(tmp, V::PairPotential, R::JVec) =
-      evaluate_dd!(tmp, V, norm(R), R)
-evaluate_dd!(tmp, V::PairPotential, r::Number, R::JVec) =
-      _hess!(tmp, V, r, R)
+
+evaluate(V::PairPotential, r, z1, z0) = evaluate!(alloc_temp(V, 1), V, r, z1, z0)
+evaluate_d(V::PairPotential, r, z1, z0) = evaluate_d!(alloc_temp_d(V, 1), V, r, z1, z0)
+evaluate_dd(V::PairPotential, r, z1, z0) = evaluate_dd!(alloc_temp_dd(V, 1), V, r, z1, z0)
+
+# evaluate!(tmp, V::PairPotential, r::Union{Number, JVec}) = V(r)
+# evaluate_d!(tmp, V::PairPotential, r::Number) = @D V(r)
+# evaluate_dd!(tmp, V::PairPotential, r::Number) = @DD V(r)
+# evaluate_d!(tmp, V::PairPotential, R::JVec) =
+#       evaluate_d!(tmp, V, norm(R), R)
+# evaluate_d!(tmp, V::PairPotential, r::Number, R::JVec) = ((@D V(r))/r) * R
+# evaluate_dd!(tmp, V::PairPotential, r::Number) = @DD V(r)
+# evaluate_dd!(tmp, V::PairPotential, R::JVec) =
+#       evaluate_dd!(tmp, V, norm(R), R)
+# evaluate_dd!(tmp, V::PairPotential, r::Number, R::JVec) =
+#       _hess!(tmp, V, r, R)
+
 
 
 function evaluate!(tmp, V::PairPotential,
@@ -82,6 +88,35 @@ function precon!(tmp, V::PairPotential, r::T, R::JVec{T}, innerstab=T(0.1)
 end
 
 
+# ------- Implementation of SimplePairPotential
+
+evaluate!(tmp, V::SimplePairPotential, r::Number, z1, z0) = evaluate!(tmp, V, r)
+evaluate_d!(tmp, V::SimplePairPotential, r::Number, z1, z0) = evaluate_d!(tmp, V, r)
+evaluate_dd!(tmp, V::SimplePairPotential, r::Number, z1, z0) = evaluate_dd!(tmp, V, r)
+evaluate!(tmp, V::SimplePairPotential, r) = evaluate(V, r)
+evaluate_d!(tmp, V::SimplePairPotential, r) = evaluate_d(V, r)
+evaluate_dd!(tmp, V::SimplePairPotential, r) = evaluate_dd(V, r)
+evaluate(V::SimplePairPotential, r::Number) = evaluate!(alloc_temp(V, 1), V, r)
+evaluate_d(V::SimplePairPotential, r::Number) = evaluate_d!(alloc_temp_d(V, 1), V, r)
+evaluate_dd(V::SimplePairPotential, r::Number) = evaluate_dd!(alloc_temp_dd(V, 1), V, r)
+
+evaluate_d(V::SimplePairPotential, r::Number, R::JVec) =
+      (evaluate_d(V, r)/r) * R
+      
+function evaluate_dd(V::SimplePairPotential, r::Number, R::JVec)
+   dV = evaluate_d(V, r) / r
+   ddV = evaluate_dd(V, r)
+   return ((ddV - dV)/r^2) * R * R'  + dV * I
+end
+
+# ------- Implementation of ExplicitPairPotential
+
+evaluate(p::ExplicitPairPotential, r::Number) = p.f(r)
+evaluate_d(p::ExplicitPairPotential, r::Number) = p.f_d(r)
+evaluate_dd(p::ExplicitPairPotential, r::Number) = p.f_dd(r)
+
+
+# ------- Some concrete potentials
 
 """
 `LennardJones(σ, e0):` constructs the 6-12 Lennard-Jones potential [wiki](https://en.wikipedia.org/wiki/Lennard-Jones_potential)
@@ -162,7 +197,7 @@ morse(;A=4.0, e0=1.0, r0=1.0, rcut=(1.9*r0, 2.7*r0)) = (
 """
 `ZeroPairPotential()`: creates a potential that just returns zero
 """
-struct ZeroPairPotential <: PairPotential end
+struct ZeroPairPotential <: SimplePairPotential end
 
 @pot ZeroPairPotential
 
@@ -176,11 +211,12 @@ cutoff(p::ZeroPairPotential) = Bool(0) # the weakest number type
 # ------------------------------------------------------------------------
 
 # TODO: write more docs + tests for ZBL
+#       -> in fact rewrite this with generic Z1, Z2!!!
 
 """
 Implementation of the ZBL potential to model close approach.
 """
-struct ZBLPotential{TV} <: PairPotential
+struct ZBLPotential{TV} <: SimplePairPotential
    Z1::Int
    Z2::Int
    V::TV   # analytic
@@ -209,18 +245,18 @@ ZBLPotential(Z::Integer) = ZBLPotential(Z, Z)
 ZBLPotential(s1::Symbol, s2::Symbol) = ZBLPotential(atomic_number(s1), atomic_number(s2))
 ZBLPotential(s::Symbol) = ZBLPotential(s, s)
 
-Dict(V::ZBLPotential) = Dict("__id__" => "JuLIP_ZBLPotential",
-                             "Z1" => V.Z1,
-                             "Z2" => Z.Z2)
+write_dict(V::ZBLPotential) = Dict("__id__" => "JuLIP_ZBLPotential",
+                                   "Z1" => V.Z1,
+                                   "Z2" => Z.Z2)
 ZBLPotential(D::Dict) = ZBLPotential(D["Z1"], D["Z2"])
-Base.convert(::Val{:JuLIP_ZBLPotential}, D::Dict) = ZBLPotential(D)
+read_dict(::Val{:JuLIP_ZBLPotential}, D::Dict) = ZBLPotential(D)
 
 
 # ====================================================================
 #   A product of two pair potentials: primarily used for cutoff mechanisms
 
 "product of two pair potentials"
-mutable struct ProdPot{P1, P2} <: PairPotential
+mutable struct ProdPot{P1, P2} <: SimplePairPotential
    p1::P1
    p2::P2
 end
@@ -248,7 +284,7 @@ required at the moment to work with multi-component systems.
 Otherwise, this is not advisable since it disables a range of
 possible compiler optimisations.
 """
-struct WrappedPairPotential <: SimplePairPotential
+struct WrappedPairPotential <: ExplicitPairPotential
    f::F64fun
    f_d::F64fun
    f_dd::F64fun

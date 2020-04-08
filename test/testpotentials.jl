@@ -85,22 +85,21 @@ if eam_W != nothing   # finnis-sinclair
    push!(calculators, (eam_W, at11))
 end
 
-
-# JuLIP's EMT implementation
-at = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )
-rattle!(at, 0.02)
-emt = EMT(at)
-push!(calculators, (EMT(at), at))
-
-
-# and a multi-species EMT
-at1 = bulk(:Cu, cubic=true)
-at1.Z[[2,4]] .= 13   # Al
-at = set_pbc!(at1 * 2, false)
-rattle!(at, 0.02)
-emt = EMT(at)
-push!(calculators, (emt, at))
-
+# # JuLIP's EMT implementation
+# at = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )
+# rattle!(at, 0.02)
+# emt = EMT(at)
+# push!(calculators, (EMT(at), at))
+#
+#
+# # and a multi-species EMT
+# at1 = bulk(:Cu, cubic=true)
+# at1.Z[[2,4]] .= 13   # Al
+# at = set_pbc!(at1 * 2, false)
+# rattle!(at, 0.02)
+# emt = EMT(at)
+# push!(calculators, (emt, at))
+#
 
 
 # ========== Run the finite-difference tests for all calculators ============
@@ -114,7 +113,7 @@ for (calc, at_) in calculators
    println("--------------------------------")
 end
 
-
+##
 # ========== Test correct implementation of site_energy ============
 #            and of partial_energy
 

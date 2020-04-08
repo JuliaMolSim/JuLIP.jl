@@ -13,7 +13,7 @@ using Test
 using JuLIP: AbstractCalculator, AbstractAtoms, energy, gradient, forces,
          calculator, set_positions!, dofs,
          mat, vecs, positions, rattle!, set_dofs!, set_calculator!
-using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, grad, @D
+using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, @D
 using Printf
 using LinearAlgebra: norm
 

@@ -43,7 +43,7 @@ by avoiding multiple evaluations.
 * `Rc` : cut-off radius
 * `Lc` : scale
 """
-struct SWCutoff{T} <: PairPotential
+struct SWCutoff{T} <: SimplePairPotential
     Rc::T
     Lc::T
     e0::T
@@ -92,7 +92,7 @@ lj = LennardJones()  # standard lennad-jones potential
 V = lj * C2Shift(2.5)
 ```
 Now `V` is a C2-continuous `PairPotential` with support (0, 2.5]."""
-struct Shift{ORD, TV, T} <: PairPotential
+struct Shift{ORD, TV, T} <: SimplePairPotential
    ord::Val{ORD}
    V::TV
    rcut::T
@@ -181,7 +181,7 @@ Parameters:
 * r0 : inner cut-off radius
 * r1 : outer cut-off radius.
 """
-mutable struct SplineCutoff <: PairPotential
+mutable struct SplineCutoff <: SimplePairPotential
    r0::Float64
    r1::Float64
 end
