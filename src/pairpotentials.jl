@@ -10,11 +10,25 @@ export ZeroPairPotential, ZBLPotential,
          LennardJones, lennardjones,
          Morse, morse
 
+# For PairPotentials we do something kind of weird - we create an intentional
+# stack overflow by redirecting
+#    evaluate -> evaluate! -> evaluate -> evaluate! -> ...
+# A concrete instance of PairPotential must overload either evaluate or
+# evaluate! to break this infinite loop. The advantage though is that either
+# can be implemented.
 
-
-evaluate(V::PairPotential, r, z1, z0) = evaluate!(alloc_temp(V, 1), V, r, z1, z0)
-evaluate_d(V::PairPotential, r, z1, z0) = evaluate_d!(alloc_temp_d(V, 1), V, r, z1, z0)
-evaluate_dd(V::PairPotential, r, z1, z0) = evaluate_dd!(alloc_temp_dd(V, 1), V, r, z1, z0)
+evaluate(V::PairPotential, r::Number, z1, z0) =
+      evaluate!(alloc_temp(V, 1), V, r, z1, z0)
+evaluate_d(V::PairPotential, r::Number, z1, z0) =
+      evaluate_d!(alloc_temp_d(V, 1), V, r, z1, z0)
+evaluate_dd(V::PairPotential, r::Number, z1, z0) =
+      evaluate_dd!(alloc_temp_dd(V, 1), V, r, z1, z0)
+evaluate!(tmp, V::PairPotential, r::Number, z1, z0) =
+      evaluate(V, r, z1, z0)
+evaluate_d!(tmp, V::PairPotential, r::Number, z1, z0) =
+      evaluate_d(V, r, z1, z0)
+evaluate_dd!(tmp, V::PairPotential, r::Number, z1, z0) =
+      evaluate_dd(V, r, z1, z0)
 
 # evaluate!(tmp, V::PairPotential, r::Union{Number, JVec}) = V(r)
 # evaluate_d!(tmp, V::PairPotential, r::Number) = @D V(r)
@@ -102,7 +116,7 @@ evaluate_dd(V::SimplePairPotential, r::Number) = evaluate_dd!(alloc_temp_dd(V, 1
 
 evaluate_d(V::SimplePairPotential, r::Number, R::JVec) =
       (evaluate_d(V, r)/r) * R
-      
+
 function evaluate_dd(V::SimplePairPotential, r::Number, R::JVec)
    dV = evaluate_d(V, r) / r
    ddV = evaluate_dd(V, r)
@@ -208,55 +222,28 @@ cutoff(p::ZeroPairPotential) = Bool(0) # the weakest number type
 
 
 
-# ------------------------------------------------------------------------
-
-# TODO: write more docs + tests for ZBL
-#       -> in fact rewrite this with generic Z1, Z2!!!
-
-"""
-Implementation of the ZBL potential to model close approach.
-"""
-struct ZBLPotential{TV} <: SimplePairPotential
-   Z1::Int
-   Z2::Int
-   V::TV   # analytic
-end
-
-@pot ZBLPotential
-
-evaluate(V::ZBLPotential, r::Number) = evaluate(V.V, r::Number)
-evaluate_d(V::ZBLPotential, r::Number) = evaluate_d(V.V, r::Number)
-cutoff(::ZBLPotential) = Inf
-
-ZBLPotential(Z1::Integer, Z2::Integer) =
-   let Z1=Z1, Z2=Z2
-      au = 0.8854 * 0.529 / (Z1^0.23 + Z2^0.23)
-      ϵ0 = 0.00552634940621
-      C = Z1*Z2/(4*π*ϵ0)
-      E1, E2, E3, E4 = 0.1818, 0.5099, 0.2802, 0.02817
-      A1, A2, A3, A4 = 3.2/au, 0.9423/au, 0.4028/au, 0.2016/au
-      V = @analytic(r -> C * (E1*exp(-A1*r) + E2*exp(-A2*r) +
-                              E3*exp(-A4*r) + E4*exp(-A4*r) ) / r)
-      ZBLPotential(Z1, Z2, V)
-   end
-
-
-ZBLPotential(Z::Integer) = ZBLPotential(Z, Z)
-ZBLPotential(s1::Symbol, s2::Symbol) = ZBLPotential(atomic_number(s1), atomic_number(s2))
-ZBLPotential(s::Symbol) = ZBLPotential(s, s)
-
-write_dict(V::ZBLPotential) = Dict("__id__" => "JuLIP_ZBLPotential",
-                                   "Z1" => V.Z1,
-                                   "Z2" => Z.Z2)
-ZBLPotential(D::Dict) = ZBLPotential(D["Z1"], D["Z2"])
-read_dict(::Val{:JuLIP_ZBLPotential}, D::Dict) = ZBLPotential(D)
-
 
 # ====================================================================
 #   A product of two pair potentials: primarily used for cutoff mechanisms
 
-"product of two pair potentials"
-mutable struct ProdPot{P1, P2} <: SimplePairPotential
+"product of two `SimplePairPotential`"
+mutable struct SimpleProdPot{P1, P2} <: SimplePairPotential
+   p1::P1
+   p2::P2
+end
+
+@pot SimpleProdPot
+
+import Base.*
+*(p1::SimplePairPotential, p2::SimplePairPotential) = SimpleProdPot(p1, p2)
+evaluate(p::SimpleProdPot, r::Number) = p.p1(r) * p.p2(r)
+evaluate_d(p::SimpleProdPot, r::Number) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
+evaluate_dd(p::SimpleProdPot, r::Number) = (p.p1(r) * (@DD p.p2(r)) +
+              2 * (@D p.p1(r)) * (@D p.p2(r)) + (@DD p.p1(r)) * p.p2(r))
+cutoff(p::SimpleProdPot) = min(cutoff(p.p1), cutoff(p.p2))
+
+"product of two `PairPotential`"
+mutable struct ProdPot{P1, P2} <: PairPotential
    p1::P1
    p2::P2
 end
@@ -265,10 +252,15 @@ end
 
 import Base.*
 *(p1::PairPotential, p2::PairPotential) = ProdPot(p1, p2)
-@inline evaluate(p::ProdPot, r::Number) = p.p1(r) * p.p2(r)
-evaluate_d(p::ProdPot, r::Number) = (p.p1(r) * (@D p.p2(r)) + (@D p.p1(r)) * p.p2(r))
-evaluate_dd(p::ProdPot, r::Number) = (p.p1(r) * (@DD p.p2(r)) +
-              2 * (@D p.p1(r)) * (@D p.p2(r)) + (@DD p.p1(r)) * p.p2(r))
+evaluate(p::ProdPot, r::Number, z1, z0) =
+      p.p1(r, z1, z0) * p.p2(r, z1, z0)
+evaluate_d(p::ProdPot, r::Number, z1, z0) =
+      (p.p1(r, z1, z0) * (@D p.p2(r, z1, z0)) + (@D p.p1(r, z1, z0)) * p.p2(r, z1, z0))
+evaluate_dd(p::ProdPot, r::Number, z1, z0) =
+      (   p.p1(r, z1, z0) * (@DD p.p2(r, z1, z0))
+        + 2 * (@D p.p1(r, z1, z0)) * (@D p.p2(r, z1, z0))
+        + (@DD p.p1(r, z1, z0)) * p.p2(r, z1, z0)
+      )
 cutoff(p::ProdPot) = min(cutoff(p.p1), cutoff(p.p2))
 
 # ====================================================================
@@ -315,3 +307,48 @@ function WrappedPairPotential(V::PairPotential)
    end
    return WrappedPairPotential(f, f_d, f_dd, cutoff(V))
 end
+
+
+
+
+# ------------------------------------------------------------------------
+
+# TODO: write more docs + tests for ZBL
+
+"""
+Implementation of the ZBL potential to model close approach.
+"""
+struct ZBLPotential{TV} <: PairPotential
+   V::TV   # analytic "inner" potential
+end
+
+@pot ZBLPotential
+
+ZBLPotential() = (
+   let
+      # au = 0.8854 * 0.529 / (Z1^0.23 + Z2^0.23)
+      ϵ0 = 0.00552634940621
+      C = 1/(4*π*ϵ0)
+      E1, E2, E3, E4 = 0.1818, 0.5099, 0.2802, 0.02817
+      A1, A2, A3, A4 = 3.2, 0.9423, 0.4028, 0.2016
+      V = @analytic(r -> C * (E1*exp(-A1*r) + E2*exp(-A2*r) +
+                              E3*exp(-A4*r) + E4*exp(-A4*r) ) / r)
+      ZBLPotential(V)
+   end)
+
+_zbl_au(Z1, Z2) = (0.8854 * 0.529) / (Z1^0.23 + Z2^0.23)
+
+function evaluate(V::ZBLPotential, r::Number, z1, z0)
+   au = _zbl_au(z1, z0)
+   return evaluate(V.V, r / au)
+end
+
+function evaluate_d(V::ZBLPotential, r::Number, z1, z0)
+   au = _zbl_au(z1, z0)
+   return evaluate_d(V.V, r / au) / au
+end
+
+cutoff(::ZBLPotential) = Inf
+
+write_dict(V::ZBLPotential) = Dict("__id__" => "JuLIP_ZBLPotential")
+read_dict(::Val{:JuLIP_ZBLPotential}, D::Dict) = ZBLPotential()

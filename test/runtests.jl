@@ -7,8 +7,6 @@ h0("   JuLIP Tests   ")
 @info("preparing the tests...")
 
 verbose=true
-
-## check whether on CI
 isCI = haskey(ENV, "CI")
 notCI = !isCI
 eam_W4 = nothing
@@ -63,7 +61,5 @@ end
 
 
 # TODO:
-# - rewrite ZBL
-# - rewrite EMT
-# - some other analytic EAM potentials 
+# - some other analytic EAM potentials
 # - fix hessians

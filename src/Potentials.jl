@@ -112,7 +112,7 @@ evaluate!(tmp, V::SimpleSitePotential, R, Z, z0) =
       evaluate!(tmp, V, R)
 evaluate_d!(dEs, tmp, V::SimpleSitePotential, R, Z, z0) =
       evaluate_d!(dEs, tmp, V, R)
-evaluate_dd!(hEs, tmp, V::SimpleSitePotential, R) =
+evaluate_dd!(hEs, tmp, V::SimpleSitePotential, R, Z, z0) =
       evaluate_dd!(hEs, tmp, V, R)
 precon!(hEs, tmp, V::SimpleSitePotential, R, Z, z0, innerstab) =
       precon!(hEs, tmp, V, R, innerstab)
@@ -286,6 +286,6 @@ include("onebody.jl")
 
 include("hessians.jl")
 
-# include("emt.jl")
+include("emt.jl")
 
 end
