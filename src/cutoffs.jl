@@ -125,8 +125,8 @@ Shift(V, p::Shift{-1}) = Shift(p.ord, V, p.rcut, 0.0, 0.0, 0.0)
 Shift(V, p::Shift{0}) = Shift(p.ord, V, p.rcut, V(p.rcut), 0.0, 0.0)
 Shift(V, p::Shift{1}) = Shift(p.ord, V, p.rcut, V(p.rcut), (@D V(p.rcut)), 0.0)
 Shift(V, p::Shift{2}) = Shift(p.ord, V, p.rcut, V(p.rcut), (@D V(p.rcut)), (@DD V(p.rcut)))
-*(V::PairPotential, p::Shift{ORD, Nothing}) where {ORD} = Shift(V, p)
-*(p::Shift{ORD, Nothing}, V::PairPotential) where {ORD} = Shift(V, p)
+*(V::SimplePairPotential, p::Shift{ORD, Nothing}) where {ORD} = Shift(V, p)
+*(p::Shift{ORD, Nothing}, V::SimplePairPotential) where {ORD} = Shift(V, p)
 
 
 @inline evaluate(p::Shift{-1}, r::Number) = r < p.rcut ? p.V(r) : 0.0

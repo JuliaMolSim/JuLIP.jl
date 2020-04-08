@@ -12,16 +12,17 @@ export EMT
 
 
 """
-`EMT`: a re-implementation of the `EMT` calculator (a variant of EAM) os ASE
+`EMT`: a re-implementation of the `EMT` calculator (a variant of EAM) of ASE
 in Julia, largely for fun and comparison with Python, but also to demonstrate
 how to implement a multi-component calculator in JuLIP
 """
-struct EMT <: MSitePotential
+struct EMT <: SitePotential
    pair::Vector{WrappedPairPotential}
    Cpair::Vector{Float64}
    rho::Vector{WrappedPairPotential}
    embed::Vector{WrappedAnalyticFunction}
    z2ind::Dict{Int, Int}
+   Z::Vector{Int}
    rc::Float64
 end
 
@@ -35,12 +36,16 @@ function _load_emt()
    return D["params"], D["acut"], D["rc"], D["beta"]
 end
 
-EMT(at::Atoms) = EMT(unique(at.Z))
-EMT(sym::Vector{Symbol}) = EMT(atomic_number.(sym))
 
-function EMT(Z::Vector{<:Integer})
+EMT(Z::AbstractVector{<: Integer}) = EMT(chemical_symbol.(Z))
+
+function EMT(symbols = nothing)
    # load all the parameters
    params, acut, rc, β = _load_emt()
+   if symbols == nothing
+      symbols = Symbol.(collect(keys(params)))
+   end
+   Z = atomic_number.(symbols)
    rcplus = rc +  0.5   # the actual cutoff
    # get unique Z numbers and use them to allocate the EMT calculator
    Z = unique(Z)
@@ -50,6 +55,7 @@ function EMT(Z::Vector{<:Integer})
              Vector{WrappedPairPotential}(undef, nZ),  # rho
              Vector{WrappedAnalyticFunction}(undef, nZ), # embed
              Dict{Int,Int}(),
+             Z,
              rc)
    # loop through unique symbols/Z and for each compute the relevant potentials
    for (i, z) in enumerate(Z)
@@ -80,7 +86,6 @@ function EMT(Z::Vector{<:Integer})
    end
    return emt
 end
-
 
 
 # ========================== Main Functionality ============================

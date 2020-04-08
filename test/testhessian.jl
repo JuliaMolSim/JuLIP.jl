@@ -3,6 +3,8 @@ using JuLIP.Potentials
 using JuLIP.Testing
 using JuLIP.Potentials: evaluate_d, evaluate_dd
 
+##
+
 h2("Testing pair potential hessian")
 
 at = bulk(:Cu, cubic=true)
@@ -13,6 +15,8 @@ rr = 0.9*rnn(:Cu) .+ 3.0*rand(100)
 ddJ = [@DD pp(r) for r in rr]
 ddJh = [((@D pp(r + 1e-4)) - (@D pp(r - 1e-4))) / 2e-4  for r in rr]
 println( @test (@show maximum(abs.(ddJ .- ddJh))) < 1e-4 )
+
+##
 
 h3("test `hess`; with two test vectors")
 for R in ( [0.0,-3.61,-3.61], [-1.805,-1.805,-3.61] )
@@ -41,12 +45,16 @@ for R in ( [0.0,-3.61,-3.61], [-1.805,-1.805,-3.61] )
    @printf("-------|--------- \n")
 end
 
+##
+
+
 h3("full finite-difference test for pairpot `hessian`")
 at = at * 2
 set_pbc!(at, false)
 set_calculator!(at, pp)
 println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
 
+##
 
 h2("Testing EAM hessian")
 # setup a geometry
@@ -61,7 +69,7 @@ r = []
 R = []
 for (idx, _j, R1) in sites(at, cutoff(eam))
    if idx == 3
-      global r = r1
+      global r = norm(R1)
       global R = R1
       break
    end
@@ -94,12 +102,16 @@ for p = 2:9
 end
 println(@test /(extrema(errs)...) < 1e-3)
 
+##
+
 h3("full finite-difference test ...")
 h3(" ... EAM forces")
 println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
-# h3(" ... EAM hessian")
-# println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
-# TODO: fix EAM hessian again
+h3(" ... EAM hessian")
+println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
+
+
+##
 
 h2("Testing Stillinger-Weber hessian")
 

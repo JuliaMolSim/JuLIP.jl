@@ -2,17 +2,15 @@
 using JuLIP
 using JuLIP.Potentials
 using JuLIP.Testing
-
 using LinearAlgebra
 
-
+##
 pairpotentials = [
    LennardJones(1.0,1.0);
    Morse(4.0,1.0,1.0);
    SWCutoff(1.0, 3.0) * LennardJones(1.0,1.0);
    SplineCutoff(2.0, 3.0) * LennardJones(1.0,1.0);
-   LennardJones(1.0, 1.0) * C2Shift(2.0);
-   ZBLPotential(5, 8)
+   LennardJones(1.0, 1.0) * C2Shift(2.0)
 ]
 
 if eam_W4 != nothing
@@ -49,7 +47,7 @@ println(@test V2.(r1) ≈ exp.(r1) .- exp(1.0) .- exp(1.0) .* (r1.-1.0) .- 0.5 .
 println(@test norm(V2.(r2)) == 0.0)
 
 
-# =============================================================
+## =============================================================
 
 calculators = Any[]
 
@@ -60,7 +58,7 @@ push!(calculators,
 
 # ZBL Calculator
 push!(calculators,
-      ( ZBLPotential(4, 7) * SplineCutoff(6.0, 8.0),
+      ( ZBLPotential() * SplineCutoff(6.0, 8.0),
         rattle!(bulk(:W, cubic=true, pbc=false) * (3,3,2), 0.1) ) )
 
 # Stillinger-Weber model
@@ -85,24 +83,23 @@ if eam_W != nothing   # finnis-sinclair
    push!(calculators, (eam_W, at11))
 end
 
-# # JuLIP's EMT implementation
-# at = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )
-# rattle!(at, 0.02)
-# emt = EMT(at)
-# push!(calculators, (EMT(at), at))
-#
-#
-# # and a multi-species EMT
-# at1 = bulk(:Cu, cubic=true)
-# at1.Z[[2,4]] .= 13   # Al
-# at = set_pbc!(at1 * 2, false)
-# rattle!(at, 0.02)
-# emt = EMT(at)
-# push!(calculators, (emt, at))
-#
+# JuLIP's EMT implementation
+at = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )
+rattle!(at, 0.02)
+emt = EMT(:Cu)
+push!(calculators, (emt, at))
+
+# and a multi-species EMT
+at1 = bulk(:Cu, cubic=true) * 2
+at1.Z[[2,4]] .= atomic_number(:Al)
+at1.Z[[8, 9, 10]] .= atomic_number(:Ni)
+at1 = set_pbc!(at1, false)
+rattle!(at1, 0.02)
+emt = EMT()
+push!(calculators, (emt, at1))
 
 
-# ========== Run the finite-difference tests for all calculators ============
+## ========== Run the finite-difference tests for all calculators ============
 
 h2("Testing calculator implementations")
 for (calc, at_) in calculators
@@ -114,6 +111,7 @@ for (calc, at_) in calculators
 end
 
 ##
+
 # ========== Test correct implementation of site_energy ============
 #            and of partial_energy
 
