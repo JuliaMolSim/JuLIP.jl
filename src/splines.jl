@@ -5,6 +5,8 @@
 
 import Dierckx
 using Dierckx: Spline1D
+using ForwardDiff
+
 # https://github.com/kbarbary/Dierckx.jl
 
 """
@@ -40,12 +42,26 @@ SplinePairPotential(spl::Spline1D) =
 
 cutoff(V::SplinePairPotential) = V.rcut
 
-evaluate(V::SplinePairPotential, r::Number) = V.spl(r)
-evaluate_d(V::SplinePairPotential, r::Number) = _deriv(V, r, 1)
-evaluate_dd(V::SplinePairPotential, r::Number) = _deriv(V, r, 2)
+evaluate(V::SplinePairPotential, r::Number) = _evalspl(V.spl, r)
+evaluate_d(V::SplinePairPotential, r::Number) = _evalspl_d(V.spl, r)
+evaluate_dd(V::SplinePairPotential, r::Number) = _evalspl_dd(V.spl, r)
 
-_deriv(V::SplinePairPotential, r, nu) =
-   Dierckx.derivative(V.spl, r, nu)
+# a few interface routines so we can define AD in a nice way.
+_evalspl(s::Spline1D, r) = s(r)
+_evalspl_d(s::Spline1D, r) = Dierckx.derivative(s, r, 1)
+_evalspl_dd(s::Spline1D, r) = Dierckx.derivative(s, r, 2)
+
+function _evalspl(s::Spline1D, d::ForwardDiff.Dual{T}) where T
+   x = ForwardDiff.value(d)
+   ForwardDiff.Dual{T}( _evalspl(s, x),
+                        _evalspl_d(s, x) * ForwardDiff.partials(d) )
+end
+
+function _evalspl_d(s::Spline1D, d::ForwardDiff.Dual{T}) where T
+   x = ForwardDiff.value(d)
+   ForwardDiff.Dual{T}( _evalspl_d(s, x),
+                        _evalspl_dd(s, x) * ForwardDiff.partials(d) )
+end
 
 
 

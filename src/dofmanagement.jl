@@ -292,7 +292,7 @@ end
 
 function hessian(calc::AbstractCalculator, at::AbstractAtoms)
    if fixedcell(at)
-      H =  _pos_to_dof(hessian_pos(calculator(at), at), at)
+      H =  _pos_to_dof(hessian_pos(calc, at), at)
       return projectxfree(at, H)
    end
    @error("`hessian` is not yet implmement for variable cells")
