@@ -74,6 +74,10 @@ gradient(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
 energy(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
       energy(calc, at)
 
+
+# TODO: hacking the hessian dispatch until we can figure out a nicer way to
+# achieve this?
+
 hessian(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
       project(cons, _pos_to_dof(hessian_pos(calculator(at), at), at))
 

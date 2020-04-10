@@ -57,6 +57,56 @@ function _precon_or_hessian_pos(V::SitePotential, at::AbstractAtoms{T}, hfun) wh
 end
 
 
+
+# ================ AD and FD Hessians =============
+
+
+_at2dofinds(i) = ((i-1) * 3) .+ (1:3)
+
+function _coo_append!(I, J, Z, atinds, A)
+   for i = 1:length(atinds), j = 1:length(atinds)
+      idof = _at2dofinds(atinds[i])
+      jdof = _at2dofinds(atinds[j])
+      iA = _at2dofinds(i)
+      jA = _at2dofinds(j)
+      for a = 1:3, b = 1:3
+         push!(I, idof[a])
+         push!(J, jdof[b])
+         push!(Z, A[iA[a], iA[b]])
+      end
+   end
+   return nothing
+end
+
+function ad_hessian(V::SimpleSitePotential, at::Atoms{T}) where {T}
+   # triplet format
+   I, J, Z = Int[], Int[], T[]
+
+   nlist = neighbourlist(at, cutoff(V))
+   maxN = maxneigs(nlist)
+
+   for (i0, neigs, Rs) in sites(nlist)
+      Hsite = ad_site_hessian(V, Rs)
+      _coo_append!(I, J, Z, [ [i0]; neigs ], Hsite)
+   end
+
+   return sparse(I, J, Z, 3*length(at), 3*length(at))
+end
+
+function _conf2env(x)
+   Xs = vecs(x)
+   return [ Xs[j] - Xs[1] for j = 2:length(Xs) ]
+end
+
+_dV2conf(dV) = mat([[- sum(dV)]; dV])[:]
+
+function ad_site_hessian(V::SimpleSitePotential, Rs)
+   dVx = x -> _dV2conf(evaluate_d(V, _conf2env(x)))
+   return ForwardDiff.jacobian(dVx, [ zeros(3); mat(Rs)[:] ])
+end
+
+
+
 # ====== TODO: revisit the FD hessians =========
 
 # """

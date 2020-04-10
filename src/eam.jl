@@ -4,6 +4,8 @@ using DelimitedFiles: readdlm
 using JuLIP: r_sum
 using LinearAlgebra: rmul!
 
+import JuLIP
+
 export EAM
 
 # =================== General Single-Species EAM Potential ====================
@@ -79,6 +81,18 @@ evaluate_dd!(hEs, tmp, V::EAM1, R) = _hess_!(hEs, tmp, V, R, identity)
 # ff preconditioner specification for EAM potentials
 #   (just replace id with abs and hess with precon in the hessian code)
 precon!(hEs, tmp, V::EAM1, R, stab=0.0) = _hess_!(hEs, tmp, V, R, abs, stab)
+
+
+
+function hessian(calc::EAM1, at::AbstractAtoms)
+   if JuLIP.fixedcell(at)
+      H =  ad_hessian(calc, at)
+      return projectxfree(at, H)
+   end
+   @error("`hessian` is not yet implemented for variable cells")
+   return nothing
+end
+
 
 
 function _hess_!(hEs, tmp, V::EAM1, R::AbstractVector{JVec{T}}, fabs, stab=T(0)

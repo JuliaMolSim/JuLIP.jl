@@ -134,3 +134,10 @@ Idom = [2,4,10]
 f(x) = JuLIP.Potentials.energy(sw, set_dofs!(at, x); domain = Idom)
 df(x) = - (JuLIP.Potentials.forces(sw, set_dofs!(at, x); domain = Idom) |> mat)[:]
 println(@test fdtest(f, df, dofs(at); verbose=true))
+
+
+##
+
+at = set_pbc!( bulk(:Fe, cubic = true), false ) * 2
+hessian(eam_Fe, at)
+println(@test fdtest(calc, at_, verbose=true))
