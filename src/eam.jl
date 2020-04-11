@@ -87,7 +87,7 @@ precon!(hEs, tmp, V::EAM1, R, stab=0.0) = _hess_!(hEs, tmp, V, R, abs, stab)
 function hessian(calc::EAM1, at::AbstractAtoms)
    if JuLIP.fixedcell(at)
       H =  ad_hessian(calc, at)
-      return projectxfree(at, H)
+      return JuLIP.projectxfree(at, H)
    end
    @error("`hessian` is not yet implemented for variable cells")
    return nothing

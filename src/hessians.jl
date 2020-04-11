@@ -72,7 +72,7 @@ function _coo_append!(I, J, Z, atinds, A)
       for a = 1:3, b = 1:3
          push!(I, idof[a])
          push!(J, jdof[b])
-         push!(Z, A[iA[a], iA[b]])
+         push!(Z, A[iA[a], jA[b]])
       end
    end
    return nothing

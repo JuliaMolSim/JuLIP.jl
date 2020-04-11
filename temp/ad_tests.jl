@@ -97,3 +97,77 @@ X = rand(5)
 J = ForwardDiff.jacobian(X_ -> S.compf(s, X_), X)
 J1 = S.J_compf(s, X)
 J1 ≈ J
+
+
+
+##
+
+using JuLIP, Test, Printf, LinearAlgebra, SparseArrays, ForwardDiff
+using JuLIP.Potentials, JuLIP.Testing
+
+data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
+eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
+
+
+##
+
+at = set_pbc!( bulk(:Fe, cubic = true), false ) * 2
+rattle!(at, 0.1)
+nlist = neighbourlist(at, cutoff(eam_Fe))
+_, Rs = neigs(nlist, 1)
+Xs = [ [zero(JVecF)]; Rs ]
+x0 = mat(Xs)[:]
+
+function _conf2env(x)
+   Xs = vecs(x)
+   return [ Xs[j] - Xs[1] for j = 2:length(Xs) ]
+end
+
+_dV2conf(dV) = mat([[- sum(dV)]; dV])[:]
+
+fsite = X -> JuLIP.evaluate(eam_Fe, _conf2env(X))
+fsite_d = X -> _dV2conf( JuLIP.evaluate_d(eam_Fe, _conf2env(X)) )
+
+@test fsite(x0) == JuLIP.evaluate(eam_Fe, Rs)
+@test JuLIP.Testing.fdtest(fsite, fsite_d, x0)
+
+# ------
+
+fsite_dd = X -> ForwardDiff.jacobian(fsite_d, X)
+JuLIP.Testing.fdtest_hessian(fsite_d, fsite_dd, x0)
+
+H = fsite_dd(x0)
+Hp = zeros(JMatF, 11, 11)
+for i = 1:11, j = 1:11
+   Hp[i, j] = JMatF( H[ i*3 .+ (1:3), j*3 .+ (1:3) ] ... )
+end
+
+H1 = JuLIP.Potentials.evaluate_dd(eam_Fe, Rs)
+H1 ≈ Hp
+
+
+##
+
+at = set_pbc!( bulk(:Fe, cubic = true), false ) * 2
+rattle!(at, 0.1)
+set_calculator!(at, eam_Fe)
+# hessian(eam_Fe, at)
+println(@test fdtest(eam_Fe, at, verbose=true))
+# println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
+# fdtest_hessian(x->gradient(at, x), x->hessian(at, x), dofs(at), verbose=true
+#       )
+
+H = hessian(eam_Fe, at)
+fdtest_hessian(x->gradient(at, x), x->hessian(at, x), dofs(at), verbose=true
+      )
+
+x = dofs(at)
+U = 0.1 * rand(JVecF, length(at))
+u = mat(U)[:]
+g1 = H * u
+h = 1e-3
+g2 = (gradient(at, x+1e-3 * u) - gradient(at, x-1e-3*u)) / (2*h)
+g1 - g2
+
+
+##

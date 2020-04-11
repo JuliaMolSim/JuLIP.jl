@@ -38,7 +38,7 @@ julip_tests = [
    ("testpotentials.jl", "Potentials"),
    ("test_ad.jl", "AD Potentials"),
    ("testvarcell.jl", "Variable Cell"),
-   # ("testhessian.jl", "Hessian"),
+   ("testhessian.jl", "Hessian"),
    ("test_onebody.jl", "One-Body"),
    ]
 
@@ -62,4 +62,7 @@ end
 
 # TODO:
 # - some other analytic EAM potentials
-# - fix hessians
+# - finish proper EAM implementation
+#   do this via ASE.jl and importing the data from ASE!!
+# - maybe simplify the hessian assembly by skipping the step via
+#   hessian_pos
