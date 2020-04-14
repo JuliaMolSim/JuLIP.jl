@@ -11,6 +11,8 @@ can be changed later. This submodule provides
 module FIO
 
 using JSON
+using SparseArrays: SparseMatrixCSC
+
 
 export load_dict, save_dict, save_json, load_json,
        decode_dict, read_dict, write_dict
@@ -84,20 +86,45 @@ save_json = save_dict
 load_json = load_dict
 
 
-## Some useful utility functions
+## De-serialization of some typical objects
+
+# Datatype
+write_dict(T::Type) = Dict("__id__" => "Type", "T" => string(T))
+read_dict(::Val{:Type}, D::Dict) = Meta.eval(Meta.parse(D["T"]))
+
+# Matrix
 
 write_dict(A::Matrix{T}) where {T <: Number} =
     Dict("__id__" => "JuLIP_Matrix",
-         "T"      => string(T),
+         "T"      => write_dict(T),
          "nrows"  => size(A, 1),
          "ncols"  => size(A, 2),
          "data"   => A[:])
 
 function read_dict(::Val{:JuLIP_Matrix}, D::Dict)
-   T = Meta.eval(Meta.parse(D["T"]))
+   T = read_dict(Val(:Type), D["T"])
    return reshape(T.(D["data"]), D["nrows"], D["ncols"])
 end
 
+
+# SparseMatrixCSC
+
+write_dict(A::SparseMatrixCSC{TF, TI}) where {TF, TI} =
+   Dict("__id__" => "SparseMatrixCSC",
+        "TF" => write_dict(TF),
+        "TI" => write_dict(TI),
+        "colptr" => A.colptr,
+        "rowval" => A.rowval,
+        "nzval" => A.nzval,
+        "m" => m,
+        "n" => n )
+
+function read_dict(::Val{:SparseMatrixCSC}, D::Dict)
+   TF = read_dict(D["TF"])
+   TI = read_dict(D["TI"])
+   return SparseMatrixCSC(Int(D["m"]), Int(D["n"]),
+                           TI.(D["colptr"]), TI.(D["rowval"]), TF.(D["nzval"]))
+end
 
 
 
