@@ -42,7 +42,7 @@ abstract type IPBasis end
 if `B::IPBasis` and `x` is some argument, then allocate storage to evaluate
 the basis when evaluated with argument `x`.
 """
-function alloc_B end
+alloc_B(basis, args...) = zeros(eltype(basis), length(basis))
 
 """
 `alloc_dB(B, x)`
@@ -50,7 +50,7 @@ function alloc_B end
 if `B::IPBasis` and `x` is some argument, then allocate storage to evaluate
 the derivative of the basis when evaluated with argument `x`.
 """
-function alloc_dB end
+alloc_dB(basis, args...) = zeros(JVec{eltype(basis)}, length(basis))
 
 evaluate(B::IPBasis, x, args...) =
    evaluate!(alloc_B(B, x), alloc_temp(B, x), B, x, args...)
