@@ -63,7 +63,7 @@ _auto_X(X::AbstractMatrix) = (@assert size(X)[1] == 3;
 _auto_M(M::AbstractVector{T}) where {T <: AbstractFloat} = Vector{T}(M)
 _auto_M(M::AbstractVector) = Vector{Float64}(M)
 
-_auto_Z(Z::AbstractVector) = Vector{Int16}(Z)
+_auto_Z(Z::AbstractVector) = Vector{AtomicNumber}(Z)
 
 const PositionArray{T} = Union{AbstractMatrix{T}, AbstractVector{JVec{T}}}
 
@@ -82,7 +82,7 @@ Atoms(X, P, M, Z, cell, pbc, calc=nothing) =
       Atoms(_auto_X(X), _auto_X(P), _auto_M(M), _auto_Z(Z),
             _auto_cell(cell), _auto_pbc(pbc), calc)
 
-Atoms(Z::Vector{Int16}, X::Vector{JVec{T}}; kwargs...) where {T} =
+Atoms(Z::Vector{AtomicNumber}, X::Vector{JVec{T}}; kwargs...) where {T} =
   Atoms{T}(; Z=Z, X=X, kwargs...)
 
 
@@ -163,7 +163,7 @@ function bulk(sym::Symbol; T=Float64, cubic = false, pbc = (true,true,true))
    return Atoms( convert(Vector{JVec{T}}, X),
                  fill(zero(JVec{T}), nat),
                  fill(T(m), nat),
-                 fill(UInt16(z), nat),
+                 fill(AtomicNumber(z), nat),
                  convert(JMat{T}, C),
                  _convert_pbc(pbc)  )
 end

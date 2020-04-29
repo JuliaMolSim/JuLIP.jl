@@ -67,7 +67,7 @@ function runn_d(f, x, N)
 end
 
 
-h2("Performance tests: @analytic vs hand-coded")
+h3("Performance tests: @analytic vs hand-coded")
 x = 1.0+rand()
 println("Evaluations of @analytic Potential")
 @btime runn($morse1, $x, 1_000)

@@ -63,7 +63,7 @@ mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
    X::Vector{JVec{T}}              # positions
    P::Vector{JVec{T}}              # momenta (or velocities?)
    M::Vector{T}                    # masses
-   Z::Vector{Int16}                # atomic numbers
+   Z::Vector{AtomicNumber}         # atomic numbers
    cell::JMat{T}                   # cell
    pbc::JVec{Bool}                 # boundary condition
    calc::Union{Nothing, AbstractCalculator}
@@ -72,7 +72,7 @@ mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
 end
 
 Atoms(X::Vector{JVec{T}}, P::Vector{JVec{T}}, M::Vector{T},
-      Z::Vector{Int16}, cell::JMat{T}, pbc::JVec{Bool},
+      Z::Vector{AtomicNumber}, cell::JMat{T}, pbc::JVec{Bool},
       calc::Union{Nothing, AbstractCalculator} = nothing) where {T} =
    Atoms(X, P, M, Z, cell, pbc, calc,
          DofManager(length(X), T), Dict{Any,JData{T}}())
@@ -125,7 +125,7 @@ function set_masses!(at::Atoms{T}, M::AbstractVector{T})  where T
 end
 function set_numbers!(at::Atoms, Z::AbstractVector{<:Integer})
    update_data!(at, Inf)
-   at.Z .= Z
+   at.Z .= AtomicNumber.(Z)
    return at
 end
 function set_cell!(at::Atoms{T}, C::AbstractMatrix) where T
@@ -274,20 +274,21 @@ end
 
 
 
-Dict(at::Atoms) =
+JuLIP.FIO.write_dict(at::Atoms) =
    Dict( "__id__" => "JuLIP_Atoms",
          "X"      => at.X,
          "P"      => at.P,
          "M"      => at.M,
-         "Z"      => at.Z,
+         "Z"      => Int.(at.Z),
          "cell"   => at.cell,
          "pbc"    => at.pbc,
          "calc"   => nothing,
          "data"   => nothing )
 
-Atoms(D::Dict) = Atoms(D["X"], D["P"], D["M"], D["Z"], D["cell"], D["pbc"])
+Atoms(D::Dict) = Atoms(D["X"], D["P"], D["M"], AtomicNumber.(D["Z"]),
+                       D["cell"], D["pbc"])
           # calc = D["calc"],
           # cons = D["cons"],
           # data = D["data"] )
 
-Base.convert(::Val{:JuLIP_Atoms}, D) = Atoms(D)
+JuLIP.FIO.read_dict(::Val{:JuLIP_Atoms}, D::Dict) = Atoms(D)

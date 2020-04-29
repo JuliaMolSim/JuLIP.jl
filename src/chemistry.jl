@@ -8,7 +8,23 @@ export atomic_number,
        atomic_mass,
        symmetry,
        lattice_constant,
-       rnn
+       rnn,
+       AtomicNumber
+
+"""
+`struct AtomicNumber` : wrapper type to encode atomic numbers. Makes it
+easier to dispatch on `AtomicNumber` and not confuse with a species index in
+a list e.g.
+"""
+struct AtomicNumber <: Unsigned
+   z::UInt16
+end
+
+AtomicNumber(z::AtomicNumber) = z
+(TI::Type{<: Integer})(z::AtomicNumber) = TI(z.z)
+Base.convert(TI::Type{<: Integer}, z::AtomicNumber) = convert(TI, z.z)
+Base.hash(z::AtomicNumber, h::UInt) = hash(z.z, h)
+Base.show(io::IO, z::AtomicNumber) = print(io, "<$(z.z)>")
 
 data = load_dict(@__DIR__()[1:end-3] * "data/asedata.json")
 
@@ -23,26 +39,26 @@ for (n, sym) in enumerate(_symbols)
    _numbers[sym] = Int16(n - 1)
 end
 
-atomic_number(sym::Symbol) = _numbers[sym]
+atomic_number(sym::Symbol) = AtomicNumber(_numbers[sym])
 
-chemical_symbol(z::Integer) = _symbols[z+1]
+chemical_symbol(z::AtomicNumber) = _symbols[z.z+1]
 
-atomic_mass(z::Integer) = _masses[z+1]
+atomic_mass(z::AtomicNumber) = _masses[z.z+1]
 atomic_mass(sym::Symbol) = atomic_mass(atomic_number(sym))
 
-element_name(z::Integer) = _names[z+1]
+element_name(z::AtomicNumber) = _names[z.z+1]
 element_name(sym::Symbol) = element_name(atomic_number(sym))
 
-rnn(z::Integer) = _rnn[z+1]       # >>> TODO: move to utils ?? bulk as well??
+rnn(z::AtomicNumber) = _rnn[z.z+1]
 rnn(sym::Symbol) = rnn(atomic_number(sym))
 
-symmetry(z::Integer) = Symbol(_refstates[z+1]["symmetry"])
+symmetry(z::AtomicNumber) = Symbol(_refstates[z.z+1]["symmetry"])
 symmetry(sym::Symbol) = symmetry(atomic_number(sym))
 
-lattice_constant(z::Integer) = Float64( _refstates[z+1]["a"] )
+lattice_constant(z::AtomicNumber) = Float64( _refstates[z.z+1]["a"] )
 lattice_constant(sym::Symbol) = lattice_constant(atomic_number(sym))
 
-refstate(z::Integer) = _refstates[z+1]
+refstate(z::AtomicNumber) = _refstates[z.z+1]
 refstate(sym::Symbol) = refstate(atomic_number(sym))
 
 end

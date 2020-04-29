@@ -39,7 +39,8 @@ import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum,
               site_energy, site_energy_d,
               energy!, forces!, virial!,
-              alloc_temp, alloc_temp_d, alloc_temp_dd
+              alloc_temp, alloc_temp_d, alloc_temp_dd,
+              read_dict, write_dict
 
 export PairPotential, SitePotential, ZeroSitePotential
 

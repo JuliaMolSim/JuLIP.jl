@@ -2,6 +2,8 @@
 import JuLIP: read_dict, write_dict
 export @D, @DD, @GRAD, @pot
 
+using JuLIP: AtomicNumber
+
 
 # ===========================================================================
 #     implement some fun little macros for easier access
@@ -119,18 +121,19 @@ Can be constructed via
 will return a `SZList{NZ}` for (possibly) faster access.
 """
 struct ZList <: AbstractZList
-   list::Vector{Int16}
+   list::Vector{AtomicNumber}
 end
 
 Base.length(zlist::AbstractZList) = length(zlist.list)
 
+
 struct SZList{N} <: AbstractZList
-   list::SVector{N, Int16}
+   list::SVector{N, AtomicNumber}
 end
 
 ZList(zlist::AbstractVector{<: Integer}; static = false) = (
-   static ? SZList(SVector( (Int16.(sort(zlist)))... ))
-          :  ZList( convert(Vector{Int16}, sort(zlist)) ))
+   static ? SZList(SVector( (AtomicNumber.(sort(zlist)))... ))
+          :  ZList( convert(Vector{AtomicNumber}, sort(zlist)) ))
 
 ZList(s::Symbol; kwargs...) =
       ZList( [ atomic_number(s) ]; kwargs... )
@@ -144,7 +147,7 @@ ZList(args...; kwargs) =
 
 i2z(Zs::AbstractZList, i::Integer) = Zs.list[i]
 
-function z2i(Zs::AbstractZList, z::Integer)
+function z2i(Zs::AbstractZList, z::AtomicNumber)
    for j = 1:length(Zs.list)
       if Zs.list[j] == z
          return j
@@ -154,15 +157,16 @@ function z2i(Zs::AbstractZList, z::Integer)
 end
 
 i2z(V, i::Integer) = i2z(V.zlist, i)
-z2i(V, z::Integer) = z2i(V.zlist, z)
+z2i(V, z::AtomicNumber ) = z2i(V.zlist, z)
+numz(V) = length(V.zlist)
 
 write_dict(zlist::ZList) = Dict("__id__" => "JuLIP_ZList",
-                                  "list" => zlist.list)
+                                  "list" => Int.(zlist.list))
 
 read_dict(::Val{:JuLIP_ZList}, D::Dict) = ZList(D)
 ZList(D::Dict) = ZList(D["list"])
 
 write_dict(zlist::SZList) = Dict("__id__" => "JuLIP_SZList",
-                                 "list" => zlist.list)
+                                 "list" => AtomicNumber.(zlist.list))
 read_dict(::Val{:JuLIP_SZList}, D::Dict) = SZList(D)
-SZList(D::Dict) = SZList(SVector(Int16.(D["list"])...))
+SZList(D::Dict) = ZList(D["list"], static = true)
