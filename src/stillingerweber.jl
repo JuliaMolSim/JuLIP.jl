@@ -23,7 +23,7 @@
 
 using ForwardDiff
 using LinearAlgebra: dot
-using JuLIP: JVecF, IntZ
+using JuLIP: JVecF
 
 export StillingerWeber
 
@@ -113,7 +113,7 @@ end
 
 alloc_temp(V::StillingerWeber, N::Integer) =
       (  R = zeros(JVecF, N),
-         Z = zeros(IntZ, N),
+         Z = zeros(AtomicNumber, N),
          S = zeros(JVecF, N),
          V3 = zeros(Float64, N)  )
 
@@ -136,7 +136,7 @@ end
 alloc_temp_d(V::StillingerWeber, N::Integer, T = Float64) =
       (  dV = zeros(JVec{T}, N),
          R = zeros(JVec{T}, N),
-         Z = zeros(IntZ, N),
+         Z = zeros(AtomicNumber, N),
          r = zeros(T, N),
          S = zeros(JVec{T}, N),
          V3 = zeros(T, N),

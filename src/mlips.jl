@@ -201,7 +201,7 @@ function energy(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    nlist = neighbourlist(at, cutoff(shipB))
    maxnR = maxneigs(nlist)
    tmp = alloc_temp(shipB, maxnR)
-   tmpRZ = (R = zeros(JVec{T}, maxnR), Z = zeros(Int16, maxnR))
+   tmpRZ = (R = zeros(JVec{T}, maxnR), Z = zeros(AtomicNumber, maxnR))
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
       evaluate!(B, tmp, shipB, R, Z, at.Z[i])
@@ -219,7 +219,7 @@ function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    F = zeros(JVec{T}, length(at), length(shipB))
    dB = alloc_dB(shipB, maxR)
    tmp = alloc_temp_d(shipB, maxR)
-   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(Int16, maxR))
+   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(AtomicNumber, maxR))
    # assemble site gradients and write into F
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
@@ -241,7 +241,7 @@ function virial(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    V = zeros(JMat{T}, length(shipB))
    dB = alloc_dB(shipB, maxR)
    tmp = alloc_temp_d(shipB, maxR)
-   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(Int16, maxR))
+   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(AtomicNumber, maxR))
    # assemble site gradients and write into F
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
@@ -257,7 +257,7 @@ end
 function _get_neigs(at::AbstractAtoms{T}, i0::Integer, rcut) where {T}
    nlist = neighbourlist(at, rcut)
    maxR = maxneigs(nlist)
-   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(Int16, maxR))
+   tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(AtomicNumber, maxR))
    j, R, Z = neigsz!(tmpRZ, nlist, at, i0)
    return j, R, Z
 end
