@@ -42,12 +42,12 @@ julip_tests = [
    ("test_onebody.jl", "One-Body"),
    ]
 
-# add solver tests if not on travis
-if !isCI
-   push!(julip_tests, ("testsolve.jl", "Solve"))
-else
-   @info("on CI : don't run solver tests")
-end
+# # add solver tests if not on travis
+# if !isCI
+#    push!(julip_tests, ("testsolve.jl", "Solve"))
+# else
+#    @info("on CI : don't run solver tests")
+# end
 
 
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
@@ -61,6 +61,7 @@ end
 
 
 # TODO:
+# - fix peformance regression in morseold / testanalyticpotential
 # - some other analytic EAM potentials
 # - finish proper EAM implementation
 #   do this via ASE.jl and importing the data from ASE!!

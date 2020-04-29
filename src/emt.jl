@@ -21,8 +21,8 @@ struct EMT <: SitePotential
    Cpair::Vector{Float64}
    rho::Vector{WrappedPairPotential}
    embed::Vector{WrappedAnalyticFunction}
-   z2ind::Dict{Int, Int}
-   Z::Vector{Int}
+   z2ind::Dict{AtomicNumber, Int}
+   Z::Vector{AtomicNumber}
    rc::Float64
 end
 
@@ -36,8 +36,8 @@ function _load_emt()
    return D["params"], D["acut"], D["rc"], D["beta"]
 end
 
-
-EMT(Z::AbstractVector{<: Integer}) = EMT(chemical_symbol.(Z))
+EMT(Z::Symbol) = EMT([Z])
+EMT(Z::AbstractVector{AtomicNumber}) = EMT(chemical_symbol.(Z))
 
 function EMT(symbols = nothing)
    # load all the parameters
@@ -54,7 +54,7 @@ function EMT(symbols = nothing)
              Vector{Float64}(undef, nZ),   # Cpair
              Vector{WrappedPairPotential}(undef, nZ),  # rho
              Vector{WrappedAnalyticFunction}(undef, nZ), # embed
-             Dict{Int,Int}(),
+             Dict{AtomicNumber,Int}(),
              Z,
              rc)
    # loop through unique symbols/Z and for each compute the relevant potentials
@@ -91,11 +91,11 @@ end
 # ========================== Main Functionality ============================
 
 
-function evaluate!(tmp, emt::EMT, 𝐑, 𝐙, z0)
+function evaluate!(tmp, emt::EMT, Rs, Zs, z0)
    ρ̄ = 0.0
    Es = 0.0
    i0 = emt.z2ind[z0]
-   for (R, Z) in zip(𝐑, 𝐙)
+   for (R, Z) in zip(Rs, Zs)
       i = emt.z2ind[Z]
       r = norm(R)
       Es += emt.Cpair[i0] * emt.pair[i](r)
@@ -105,16 +105,16 @@ function evaluate!(tmp, emt::EMT, 𝐑, 𝐙, z0)
    return Es
 end
 
-function evaluate_d!(dEs, tmp, emt::EMT, 𝐑, 𝐙, z0)
+function evaluate_d!(dEs, tmp, emt::EMT, Rs, Zs, z0)
    ρ̄ = 0.0
    i0 = emt.z2ind[z0]
-   for (R, Z) in zip(𝐑, 𝐙)
+   for (R, Z) in zip(Rs, Zs)
       i = emt.z2ind[Z]
       r = norm(R)
       ρ̄ += emt.rho[i](r)
    end
    dF = @D emt.embed[i0](ρ̄)
-   for (j, (R, Z)) in enumerate(zip(𝐑, 𝐙))
+   for (j, (R, Z)) in enumerate(zip(Rs, Zs))
       i = emt.z2ind[Z]
       r = norm(R)
       R̂ = R/r
