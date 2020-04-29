@@ -171,7 +171,7 @@ alloc_temp(V::SitePotential, at::AbstractAtoms) =
 
 alloc_temp(V::SitePotential, N::Integer) =
       ( R = zeros(JVecF, N),
-        Z = zeros(Int16, N), )
+        Z = zeros(AtomicNumber, N), )
 
 alloc_temp_d(V::SitePotential, at::AbstractAtoms) =
       alloc_temp_d(V, maxneigs(neighbourlist(at, cutoff(V))))
@@ -179,7 +179,7 @@ alloc_temp_d(V::SitePotential, at::AbstractAtoms) =
 alloc_temp_d(V::SitePotential, N::Integer) =
       (dV = zeros(JVecF, N),
         R = zeros(JVecF, N),
-        Z = zeros(Int16, N), )
+        Z = zeros(AtomicNumber, N), )
 
 alloc_temp_dd(V::SitePotential, args...) = nothing
 
@@ -203,7 +203,7 @@ function energy!(tmp, calc::SitePotential, at::Atoms{T};
    nlist = neighbourlist(at, cutoff(calc))
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
-      E += evaluate!(tmp, calc, R, Z, Int16(at.Z[i]))
+      E += evaluate!(tmp, calc, R, Z, at.Z[i])
    end
    return E
 end
@@ -215,7 +215,7 @@ function forces!(frc, tmp, calc::SitePotential, at::Atoms{T};
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
       if length(j) > 0
-         evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
+         evaluate_d!(tmp.dV, tmp, calc, R, Z, at.Z[i])
          for a = 1:length(j)
             frc[j[a]] -= tmp.dV[a]
             frc[i]    += tmp.dV[a]
@@ -237,7 +237,7 @@ function virial!(tmp, calc::SitePotential, at::Atoms{T};
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
       if length(j) > 0
-         evaluate_d!(tmp.dV, tmp, calc, R, Z, Int16(at.Z[i]))
+         evaluate_d!(tmp.dV, tmp, calc, R, Z, at.Z[i])
          vir += site_virial(tmp.dV, R)
       end
    end
@@ -253,7 +253,7 @@ function site_energies!(Es, tmp, V::SitePotential, at::AbstractAtoms{T};
    nlist = neighbourlist(at, cutoff(V))
    for i in domain
       _j, R, Z = neigsz!(tmp, nlist, at, i)
-      Es[i] = evaluate!(tmp, V, R, Z, IntZ(at.Z[i]))
+      Es[i] = evaluate!(tmp, V, R, Z, at.Z[i])
    end
    return Es
 end

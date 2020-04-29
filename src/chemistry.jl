@@ -16,15 +16,19 @@ export atomic_number,
 easier to dispatch on `AtomicNumber` and not confuse with a species index in
 a list e.g.
 """
-struct AtomicNumber <: Unsigned
+struct AtomicNumber <: Number
    z::UInt16
 end
 
 AtomicNumber(z::AtomicNumber) = z
 (TI::Type{<: Integer})(z::AtomicNumber) = TI(z.z)
+Base.convert(::Type{AtomicNumber}, z::Integer) = AtomicNumber(z)
+Base.convert(::Type{AtomicNumber}, z::AtomicNumber) = z
 Base.convert(TI::Type{<: Integer}, z::AtomicNumber) = convert(TI, z.z)
 Base.hash(z::AtomicNumber, h::UInt) = hash(z.z, h)
 Base.show(io::IO, z::AtomicNumber) = print(io, "<$(z.z)>")
+Base.promote(x::AtomicNumber, y::Number) = promote(x.z, y)
+Base.promote(x::Number, y::AtomicNumber) = promote(x, y.z)
 
 data = load_dict(@__DIR__()[1:end-3] * "data/asedata.json")
 
@@ -34,9 +38,9 @@ const _masses = [Float64(m) for m in data["masses"]]
 const _refstates = Dict{String, Any}[ d == nothing ? Dict{String, Any}() : d
                                       for d in data["refstates"]]
 
-const _numbers = Dict{Symbol, Int16}()
+const _numbers = Dict{Symbol, UInt16}()
 for (n, sym) in enumerate(_symbols)
-   _numbers[sym] = Int16(n - 1)
+   _numbers[sym] = UInt16(n - 1)
 end
 
 atomic_number(sym::Symbol) = AtomicNumber(_numbers[sym])

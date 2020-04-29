@@ -5,8 +5,6 @@ module JuLIP
 using Reexport
 @reexport using NeighbourLists
 
-const IntZ = Int16
-
 # quickly switch between Matrices and Vectors of SVectors, etc
 include("arrayconversions.jl")
 

@@ -72,7 +72,7 @@ Atoms(; kwargs...) = Atoms{Float64}(; kwargs...)
 Atoms{T}(; X = JVec{T}[],
            P = JVec{T}[],
            M = T[],
-           Z = Int16[],
+           Z = AtomicNumber[],
            cell = zero(JMat{T}),
            pbc = JVec(false, false, false),
            calc = nothing ) where {T} =
