@@ -7,10 +7,12 @@ module MLIPs
 
 using JuLIP:       AbstractCalculator, AbstractAtoms
 using JuLIP.FIO:   decode_dict
+using JuLIP:       JVec, JMat
+using JuLIP
 
 import JuLIP:      energy, forces, virial, site_energy, site_energy_d,
                    alloc_temp, alloc_temp_d, evaluate, evaluate_d,
-                   evaluate!, evaluate_d!, evaluate_ed
+                   evaluate!, evaluate_d!, evaluate_ed, JVec, JMat
 
 import Base:       Dict, convert, ==
 
