@@ -36,7 +36,8 @@ include("Potentials.jl")
 # and we want to import some more functions from `Potentials` which are really
 # central to JuLIP, so that they can be extended using just `import JuLIP: ...`
 import JuLIP.Potentials: evaluate, evaluate_d, evaluate_dd, evaluate_ed,
-                         evaluate!, evaluate_d!, evaluate_dd!, precon!
+                         evaluate!, evaluate_d!, evaluate_dd!, precon!,
+                         numz, z2i, i2z
 
 # basic preconditioning capabilities
 include("preconditioners.jl")
