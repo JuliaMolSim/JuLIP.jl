@@ -166,6 +166,10 @@ evaluate_dd!(hEs, tmp, V::ZeroSitePotential, args...) = fill!(hEs, zero(eltype(h
 # Implementation of a generic site potential
 # ================================================
 
+alloc_temp_site(N::Integer, T=Float64) =
+      ( R = zeros(JVec{T}, N),
+        Z = zeros(AtomicNumber, N), )
+
 alloc_temp(V::SitePotential, at::AbstractAtoms) =
       alloc_temp(V, maxneigs(neighbourlist(at, cutoff(V))))
 

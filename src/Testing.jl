@@ -17,7 +17,9 @@ using JuLIP.Potentials: PairPotential, evaluate, evaluate_d, @D
 using Printf
 using LinearAlgebra: norm
 
-export fdtest, fdtest_hessian, h0, h1, h2, h3, print_tf
+using JuLIP.FIO: read_dict, write_dict, save_dict, load_dict
+
+export fdtest, fdtest_hessian, h0, h1, h2, h3, print_tf, test_fio
 
 """
 first-order finite-difference test for scalar F
@@ -31,9 +33,9 @@ function fdtest(F::Function, dF::Function, x; verbose=true)
    E = F(x)
    dE = dF(x)
    # loop through finite-difference step-lengths
-   @printf("---------|----------- \n")
-   @printf("    h    | error \n")
-   @printf("---------|----------- \n")
+   verbose && @printf("---------|----------- \n")
+   verbose && @printf("    h    | error \n")
+   verbose && @printf("---------|----------- \n")
    for p = 2:11
       h = 0.1^p
       dEh = copy(dE)
@@ -43,13 +45,11 @@ function fdtest(F::Function, dF::Function, x; verbose=true)
          x[n] -= h
       end
       push!(errors, norm(dE - dEh, Inf))
-      @printf(" %1.1e | %4.2e  \n", h, errors[end])
+      verbose && @printf(" %1.1e | %4.2e  \n", h, errors[end])
    end
-   @printf("---------|----------- \n")
+   verbose && @printf("---------|----------- \n")
    if minimum(errors) <= 1e-3 * maximum(errors)
-      if verbose
-         println("passed")
-      end
+      verbose && println("passed")
       return true
    else
       @warn("""It seems the finite-difference test has failed, which indicates
@@ -68,9 +68,9 @@ function fdtest_hessian(F::Function, dF::Function, x; verbose=true)
    dFh = copy(Matrix(dF0))
    @assert size(dFh) == (length(F0), length(x))
    # loop through finite-difference step-lengths
-   @printf("---------|----------- \n")
-   @printf("    h    | error \n")
-   @printf("---------|----------- \n")
+   verbose &&  @printf("---------|----------- \n")
+   verbose &&  @printf("    h    | error \n")
+   verbose &&  @printf("---------|----------- \n")
    for p = 2:11
       h = 0.1^p
       for n = 1:length(x)
@@ -79,11 +79,11 @@ function fdtest_hessian(F::Function, dF::Function, x; verbose=true)
          x[n] -= h
       end
       push!(errors, norm(dFh - dF0, Inf))
-      @printf(" %1.1e | %4.2e  \n", h, errors[end])
+      verbose &&  @printf(" %1.1e | %4.2e  \n", h, errors[end])
    end
    @printf("---------|----------- \n")
    if minimum(errors) <= 1e-3 * maximum(errors)
-      println("passed")
+      verbose &&  println("passed")
       return true
    else
       @warn("""It seems the finite-difference test has failed, which indicates
@@ -148,7 +148,8 @@ function fdtest(calc::AbstractCalculator, at::AbstractAtoms;
    x = dofs(at)
    x += rattle * rand(length(x))
    # call the actual FD test
-   result = fdtest( x -> energy(at, x), x -> gradient(at, x), x )
+   result = fdtest( x -> energy(at, x), x -> gradient(at, x), x;
+                    verbose = verbose )
    # restore original atom positions
    set_positions!(at, X0)
    set_calculator!(at, calc0)
@@ -183,5 +184,31 @@ h3(str) = (printstyled(str, bold=true, color=:magenta); println())
 print_tf(::Test.Pass) = printstyled("+", bold=true, color=:green)
 print_tf(::Test.Fail) = printstyled("-", bold=true, color=:red)
 print_tf(::Tuple{Test.Error,Bool}) = printstyled("x", bold=true, color=:magenta)
+
+
+
+function test_dirderiv()
+
+end
+
+
+"""
+`test_fio(obj): `  performs two tests:
+
+- encodes `obj` as a Dict using `write_dict`, then decodes it using
+`read_dict` and tests whether the two objects are equivalent using `==`
+- writes `Dict` to file then reads it and decodes it and test the result is
+again equivalent to `obj`
+
+The two results are returned as Booleans.
+"""
+function test_fio(obj)
+   D = write_dict(obj)
+   test1 = (obj == read_dict(D))
+   tmpf = tempname() * ".json"
+   save_dict(tmpf, D)
+   test2 = (obj == read_dict(load_dict(tmpf)))
+   return test1, test2
+end
 
 end

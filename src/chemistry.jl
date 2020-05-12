@@ -2,6 +2,7 @@
 module Chemistry
 
 using JuLIP.FIO: load_dict
+import JuLIP.FIO: read_dict, write_dict
 
 export atomic_number,
        chemical_symbol,
@@ -17,7 +18,7 @@ easier to dispatch on `AtomicNumber` and not confuse with a species index in
 a list e.g.
 """
 struct AtomicNumber <: Number
-   z::UInt16
+   z::Int16
 end
 
 AtomicNumber(z::AtomicNumber) = z
@@ -29,6 +30,14 @@ Base.hash(z::AtomicNumber, h::UInt) = hash(z.z, h)
 Base.show(io::IO, z::AtomicNumber) = print(io, "<$(z.z)>")
 Base.promote(x::AtomicNumber, y::Number) = promote(x.z, y)
 Base.promote(x::Number, y::AtomicNumber) = promote(x, y.z)
+Base.isless(x::AtomicNumber, y::AtomicNumber) = (x.z < y.z)
+Base.isequal(x::AtomicNumber, y::AtomicNumber) = (x.z == y.z)
+
+write_dict(z::AtomicNumber) =
+      Dict("__id__" => "JuLIP_AtomicNumber", "z" => z.z)
+
+read_dict(::Val{:JuLIP_AtomicNumber}, D::Dict) =
+      AtomicNumber(D["z"])
 
 data = load_dict(@__DIR__()[1:end-3] * "data/asedata.json")
 

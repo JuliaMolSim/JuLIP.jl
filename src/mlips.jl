@@ -5,16 +5,19 @@ modules that either define basis sets or regression methods
 """
 module MLIPs
 
-using JuLIP:       AbstractCalculator, AbstractAtoms
-using JuLIP.FIO:   decode_dict
+using JuLIP:       AbstractCalculator, AbstractAtoms, JVec
 
 import JuLIP:      energy, forces, virial, site_energy, site_energy_d,
                    alloc_temp, alloc_temp_d, evaluate, evaluate_d,
-                   evaluate!, evaluate_d!, evaluate_ed
+                   evaluate!, evaluate_d!, evaluate_ed,
+                   read_dict, write_dict
 
-import Base:       Dict, convert, ==
+import Base:       ==
 
 export IPSuperBasis, IPCollection, combine
+
+abstract type AbstractBasis end
+
 
 """
 `abstract type IPBasis` : A type derived from `IPBasis` defines
@@ -34,7 +37,7 @@ of energies.
 
 * `length(basis::IPBasis)` must return the number of basis functions
 """
-abstract type IPBasis end
+abstract type IPBasis <: AbstractBasis end
 
 """
 `alloc_B(B, x)`
@@ -50,7 +53,10 @@ alloc_B(basis, args...) = zeros(eltype(basis), length(basis))
 if `B::IPBasis` and `x` is some argument, then allocate storage to evaluate
 the derivative of the basis when evaluated with argument `x`.
 """
-alloc_dB(basis, args...) = zeros(JVec{eltype(basis)}, length(basis))
+alloc_dB(basis, x::AbstractVector, args...) = alloc_dB(basis, length(x))
+alloc_dB(basis, x::Union{Number, JVec}, args...) = alloc_dB(basis)
+alloc_dB(basis) = zeros(JVec{eltype(basis)}, length(basis))
+alloc_dB(basis, N::Integer) = zeros(JVec{eltype(basis)}, (length(basis), N))
 
 evaluate(B::IPBasis, x, args...) =
    evaluate!(alloc_B(B, x), alloc_temp(B, x), B, x, args...)
@@ -92,11 +98,11 @@ site_energy(coll::IPCollection, at::AbstractAtoms, i0::Integer) =
 site_energy_d(coll::IPCollection, at::AbstractAtoms, i0::Integer) =
          [ site_energy_d(V, at, i0) for V in coll.coll ]
 
-Dict(coll::IPCollection) = Dict(
-      "__id__" => "JuLIP_IPCollection",
-      "coll" => Dict.(coll.coll) )
-IPCollection(D::Dict) = IPCollection( decode_dict.( D["coll"] ) )
-convert(::Val{:JuLIP_IPCollection}, D::Dict) = IPCollection(D)
+write_dict(coll::IPCollection) = Dict(
+            "__id__" => "JuLIP_IPCollection",
+            "coll" => Dict.(coll.coll) )
+IPCollection(D::Dict) = IPCollection( read_dict.( D["coll"] ) )
+read_dict(::Val{:JuLIP_IPCollection}, D::Dict) = IPCollection(D)
 import Base.==
 ==(B1::IPCollection, B2::IPCollection) = all(B1.coll .== B2.coll)
 
@@ -142,12 +148,11 @@ site_energy(superB::IPSuperBasis, at::AbstractAtoms, i0::Integer) =
 site_energy_d(superB::IPSuperBasis, at::AbstractAtoms, i0::Integer) =
          vcat([ site_energy_d(B, at, i0) for B in superB.BB ]...)
 
-Dict(superB::IPSuperBasis) = Dict(
+write_dict(superB::IPSuperBasis) = Dict(
       "__id__" => "JuLIP_IPSuperBasis",
       "components" => Dict.(superB.BB) )
 IPSuperBasis(D::Dict) = IPSuperBasis( decode_dict.( D["components"] ) )
-convert(::Val{:JuLIP_IPSuperBasis}, D::Dict) = IPSuperBasis(D)
-import Base.==
+read_dict(::Val{:JuLIP_IPSuperBasis}, D::Dict) = IPSuperBasis(D)
 ==(B1::IPSuperBasis, B2::IPSuperBasis) = all(B1.BB .== B2.BB)
 
 # ========== SumIP =================
@@ -171,11 +176,11 @@ site_energy_d(sumip::SumIP, at::AbstractAtoms, i0::Integer) =
          sum(site_energy_d(V, at, i0) for V in sumip.components)
 
 
-Dict(sumip::SumIP) = Dict(
+write_dict(sumip::SumIP) = Dict(
       "__id__" => "JuLIP_SumIP",
       "components" => Dict.(sumip.components) )
 SumIP(D::Dict) = SumIP( decode_dict.( D["components"] ) )
-convert(::Val{:JuLIP_SumIP}, D::Dict) = SumIP(D)
+read_dict(::Val{:JuLIP_SumIP}, D::Dict) = SumIP(D)
 
 SumIP(V::AbstractCalculator, sumip::SumIP) =
    SumIP( [ [V]; sumip.components ]  )

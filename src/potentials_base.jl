@@ -131,7 +131,7 @@ struct SZList{N} <: AbstractZList
    list::SVector{N, AtomicNumber}
 end
 
-ZList(zlist::AbstractVector{<: Integer}; static = false) = (
+ZList(zlist::AbstractVector{<: Number}; static = false) = (
    static ? SZList(SVector( (AtomicNumber.(sort(zlist)))... ))
           :  ZList( convert(Vector{AtomicNumber}, sort(zlist)) ))
 
@@ -141,7 +141,7 @@ ZList(s::Symbol; kwargs...) =
 ZList(S::AbstractVector{Symbol}; kwargs...) =
       ZList( atomic_number.(S); kwargs... )
 
-ZList(args...; kwargs) =
+ZList(args...; kwargs... ) =
       ZList( [args...]; kwargs...)
 
 
@@ -167,6 +167,6 @@ read_dict(::Val{:JuLIP_ZList}, D::Dict) = ZList(D)
 ZList(D::Dict) = ZList(D["list"])
 
 write_dict(zlist::SZList) = Dict("__id__" => "JuLIP_SZList",
-                                 "list" => AtomicNumber.(zlist.list))
+                                 "list" => Int.(zlist.list))
 read_dict(::Val{:JuLIP_SZList}, D::Dict) = SZList(D)
-SZList(D::Dict) = ZList(D["list"], static = true)
+SZList(D::Dict) = ZList([D["list"]...], static = true)
