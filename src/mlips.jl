@@ -5,12 +5,14 @@ modules that either define basis sets or regression methods
 """
 module MLIPs
 
-using JuLIP:       AbstractCalculator, AbstractAtoms, JVec
+using JuLIP:       AbstractCalculator, AbstractAtoms, JVec, AtomicNumber, JMat
 
 import JuLIP:      energy, forces, virial, site_energy, site_energy_d,
                    alloc_temp, alloc_temp_d, evaluate, evaluate_d,
                    evaluate!, evaluate_d!, evaluate_ed,
                    read_dict, write_dict
+
+import JuLIP.Potentials: site_virial
 
 import Base:       ==
 
@@ -103,7 +105,6 @@ write_dict(coll::IPCollection) = Dict(
             "coll" => Dict.(coll.coll) )
 IPCollection(D::Dict) = IPCollection( read_dict.( D["coll"] ) )
 read_dict(::Val{:JuLIP_IPCollection}, D::Dict) = IPCollection(D)
-import Base.==
 ==(B1::IPCollection, B2::IPCollection) = all(B1.coll .== B2.coll)
 
 
@@ -150,8 +151,8 @@ site_energy_d(superB::IPSuperBasis, at::AbstractAtoms, i0::Integer) =
 
 write_dict(superB::IPSuperBasis) = Dict(
       "__id__" => "JuLIP_IPSuperBasis",
-      "components" => Dict.(superB.BB) )
-IPSuperBasis(D::Dict) = IPSuperBasis( decode_dict.( D["components"] ) )
+      "components" => write_dict.(superB.BB) )
+IPSuperBasis(D::Dict) = IPSuperBasis( read_dict.( D["components"] ) )
 read_dict(::Val{:JuLIP_IPSuperBasis}, D::Dict) = IPSuperBasis(D)
 ==(B1::IPSuperBasis, B2::IPSuperBasis) = all(B1.BB .== B2.BB)
 
@@ -163,6 +164,8 @@ struct SumIP{T} <: AbstractCalculator
 end
 
 SumIP(args...) = SumIP([args...])
+
+==(V1::SumIP, V2::SumIP) = all(V1.components .== V2.components)
 
 energy(sumip::SumIP, at::AbstractAtoms; kwargs...) =
          sum(energy(calc, at; kwargs...) for calc in sumip.components)
@@ -178,8 +181,8 @@ site_energy_d(sumip::SumIP, at::AbstractAtoms, i0::Integer) =
 
 write_dict(sumip::SumIP) = Dict(
       "__id__" => "JuLIP_SumIP",
-      "components" => Dict.(sumip.components) )
-SumIP(D::Dict) = SumIP( decode_dict.( D["components"] ) )
+      "components" => write_dict.(sumip.components) )
+SumIP(D::Dict) = SumIP( read_dict.( D["components"] ) )
 read_dict(::Val{:JuLIP_SumIP}, D::Dict) = SumIP(D)
 
 SumIP(V::AbstractCalculator, sumip::SumIP) =
@@ -222,16 +225,17 @@ function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    maxR = maxneigs(nlist)
    # allocate space accordingly
    F = zeros(JVec{T}, length(at), length(shipB))
+   B = alloc_B(shipB, maxR)
    dB = alloc_dB(shipB, maxR)
    tmp = alloc_temp_d(shipB, maxR)
    tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(AtomicNumber, maxR))
    # assemble site gradients and write into F
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
-      evaluate_d!(dB, tmp, shipB, R, Z, at.Z[i])
+      evaluate_d!(B, dB, tmp, shipB, R, Z, at.Z[i])
       for a = 1:length(R)
-         F[j[a], :] .-= dB[a, :]
-         F[i, :] .+= dB[a, :]
+         F[j[a], :] .-= dB[:, a]
+         F[i, :] .+= dB[:, a]
       end
    end
    return [ F[:, iB] for iB = 1:length(shipB) ]
@@ -244,15 +248,16 @@ function virial(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    maxR = maxneigs(nlist)
    # allocate space accordingly
    V = zeros(JMat{T}, length(shipB))
+   B = alloc_B(shipB, maxR)
    dB = alloc_dB(shipB, maxR)
    tmp = alloc_temp_d(shipB, maxR)
    tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(AtomicNumber, maxR))
    # assemble site gradients and write into F
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
-      evaluate_d!(dB, tmp, shipB, R, Z, at.Z[i])
+      evaluate_d!(B, dB, tmp, shipB, R, Z, at.Z[i])
       for iB = 1:length(shipB)
-         V[iB] += JuLIP.Potentials.site_virial(dB[:, iB], R)
+         V[iB] += site_virial(dB[iB, :], R)
       end
    end
    return V
