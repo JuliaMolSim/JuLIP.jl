@@ -6,7 +6,7 @@ can be changed later. This submodule provides
 
 - load_dict
 - save_dict
-- decode_dict
+- read_dict
 """
 module FIO
 
@@ -21,7 +21,7 @@ export load_dict, save_dict, read_dict, write_dict
 
 # eventually we want to be able to serialise all JuLIP types to Dict
 # and back and those Dicts may only contain elementary data types
-# this will then allow us to load them back via decode_dict without
+# this will then allow us to load them back via read_dict without
 # having to know the type in the code
 
 """
@@ -68,19 +68,19 @@ read_dict(::Val{sym}, D::Dict) where {sym} =
 #                     JSON
 #######################################################################
 
-function load_json(fname::AbstractString)
+function load_dict(fname::AbstractString)
     return JSON.parsefile(fname)
 end
 
-function save_json(fname::AbstractString, D::Dict; indent=2)
+function save_dict(fname::AbstractString, D::Dict; indent=2)
     f = open(fname, "w")
     JSON.print(f, D, indent)
     close(f)
     return nothing
 end
 
-save_dict = save_json
-load_dict = load_json
+save_dict = save_dict
+load_dict = load_dict
 
 
 ## Some useful utility functions

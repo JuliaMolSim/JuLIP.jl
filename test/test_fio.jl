@@ -9,7 +9,7 @@ rattle!(at, 0.1)
 D = write_dict(at)
 at1 = Atoms(D)
 println(@test(at == at1))
-at2 = decode_dict(D)
+at2 = read_dict(D)
 println(@test(at == at2))
 
 h3("Test JSON fio")

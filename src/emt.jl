@@ -1,6 +1,6 @@
 
 
-using JuLIP.FIO: load_json
+using JuLIP.FIO: load_dict
 using JuLIP: chemical_symbol, atomic_number
 using JuLIP.Potentials: WrappedAnalyticFunction, F64fun, @D
 
@@ -32,7 +32,7 @@ cutoff(calc::EMT) = calc.rc + 0.5
 # ========================== Initialisation  ============================
 
 function _load_emt()
-   D = load_json( joinpath(@__DIR__(), "..", "data", "emt.json") )
+   D = load_dict( joinpath(@__DIR__(), "..", "data", "emt.json") )
    return D["params"], D["acut"], D["rc"], D["beta"]
 end
 
