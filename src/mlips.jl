@@ -204,7 +204,7 @@ using JuLIP: sites, neighbourlist, cutoff, JVec
 using JuLIP.Potentials: neigsz!
 
 function energy(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
-   E = zeros(length(shipB))
+   E = zeros(eltype(shipB), length(shipB))
    B = alloc_B(shipB)
    nlist = neighbourlist(at, cutoff(shipB))
    maxnR = maxneigs(nlist)
