@@ -22,6 +22,7 @@ struct AtomicNumber <: Number
 end
 
 AtomicNumber(z::AtomicNumber) = z
+AtomicNumber(s::Symbol) = atomic_number(s)
 (TI::Type{<: Integer})(z::AtomicNumber) = TI(z.z)
 Base.convert(::Type{AtomicNumber}, z::Integer) = AtomicNumber(z)
 Base.convert(::Type{AtomicNumber}, z::AtomicNumber) = z
