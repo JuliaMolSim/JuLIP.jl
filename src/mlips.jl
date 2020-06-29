@@ -235,7 +235,10 @@ function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
       fill!(dB, zero(JVec{T}))
       fill!(B, 0)
+      tmp = alloc_temp_d(shipB, maxR)
       evaluate_d!(B, dB, tmp, shipB, R, Z, at.Z[i])
+      # dB2 = evaluate_d(shipB, R, Z, at.Z[i])
+      # @show dB[:, 1:length(R)] ≈ dB2
       for a = 1:length(R)
          F[j[a], :] .-= dB[:, a]
          F[i, :] .+= dB[:, a]
@@ -260,6 +263,7 @@ function virial(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
       fill!(dB, zero(JVec{T}))
       fill!(B, 0)
+      tmp = alloc_temp_d(shipB, maxR)
       evaluate_d!(B, dB, tmp, shipB, R, Z, at.Z[i])
       for iB = 1:length(shipB)
          V[iB] += site_virial(dB[iB, :], R)
