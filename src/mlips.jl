@@ -212,6 +212,7 @@ function energy(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    tmpRZ = (R = zeros(JVec{T}, maxnR), Z = zeros(AtomicNumber, maxnR))
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
+      fill!(B, 0)
       evaluate!(B, tmp, shipB, R, Z, at.Z[i])
       E[:] .+= B[:]
    end
@@ -232,6 +233,8 @@ function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    # assemble site gradients and write into F
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
+      fill!(dB, zero(JVec{T}))
+      fill!(B, 0)
       evaluate_d!(B, dB, tmp, shipB, R, Z, at.Z[i])
       for a = 1:length(R)
          F[j[a], :] .-= dB[:, a]
@@ -255,6 +258,8 @@ function virial(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    # assemble site gradients and write into F
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
+      fill!(dB, zero(JVec{T}))
+      fill!(B, 0)
       evaluate_d!(B, dB, tmp, shipB, R, Z, at.Z[i])
       for iB = 1:length(shipB)
          V[iB] += site_virial(dB[iB, :], R)
