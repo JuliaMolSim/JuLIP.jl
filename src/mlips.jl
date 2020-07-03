@@ -206,7 +206,7 @@ using JuLIP.Potentials: neigsz!
 function energy(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    E = zeros(eltype(shipB), length(shipB))
    B = alloc_B(shipB)
-   nlist = neighbourlist(at, cutoff(shipB))
+   nlist = neighbourlist(at, cutoff(shipB); storelist=false)
    maxnR = maxneigs(nlist)
    tmp = alloc_temp(shipB, maxnR)
    tmpRZ = (R = zeros(JVec{T}, maxnR), Z = zeros(AtomicNumber, maxnR))
@@ -222,7 +222,7 @@ end
 
 function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    # precompute the neighbourlist to count the number of neighbours
-   nlist = neighbourlist(at, cutoff(shipB))
+   nlist = neighbourlist(at, cutoff(shipB); storelist=false)
    maxR = maxneigs(nlist)
    # allocate space accordingly
    F = zeros(JVec{T}, length(at), length(shipB))
@@ -247,7 +247,7 @@ end
 
 function virial(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    # precompute the neighbourlist to count the number of neighbours
-   nlist = neighbourlist(at, cutoff(shipB))
+   nlist = neighbourlist(at, cutoff(shipB); storelist=false)
    maxR = maxneigs(nlist)
    # allocate space accordingly
    V = zeros(JMat{T}, length(shipB))
