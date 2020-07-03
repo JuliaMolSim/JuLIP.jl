@@ -182,8 +182,8 @@ end
 
 
 function neighbourlist(at::Atoms{T}, rcut::AbstractFloat;
-            recompute=false, key="nlist:default",
-            int_type = Int32, kwargs...) where {T}
+            recompute=false, key="nlist:default", storelist=true,
+            int_type = Int, kwargs...) where {T}
    # we are allowed to use a stored list
    if !recompute
       if has_data(at, key)
@@ -197,7 +197,9 @@ function neighbourlist(at::Atoms{T}, rcut::AbstractFloat;
    # suitable for the request.
    nlist = PairList(positions(at), rcut, cell(at), pbc(at);
                     int_type=int_type, kwargs...)::PairList{T, int_type}
-   set_data!(at, key, nlist, 0.0)
+   if storelist
+      set_data!(at, key, nlist, 0.0)
+   end
    return nlist
 end
 
