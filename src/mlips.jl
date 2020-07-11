@@ -10,7 +10,7 @@ using JuLIP:       AbstractCalculator, AbstractAtoms, JVec, AtomicNumber, JMat
 import JuLIP:      energy, forces, virial, site_energy, site_energy_d,
                    alloc_temp, alloc_temp_d, evaluate, evaluate_d,
                    evaluate!, evaluate_d!, evaluate_ed,
-                   read_dict, write_dict
+                   read_dict, write_dict, fltype, rfltype 
 
 import JuLIP.Potentials: site_virial
 
@@ -47,7 +47,7 @@ abstract type IPBasis <: AbstractBasis end
 if `B::IPBasis` and `x` is some argument, then allocate storage to evaluate
 the basis when evaluated with argument `x`.
 """
-alloc_B(basis, args...) = zeros(eltype(basis), length(basis))
+alloc_B(basis, args...) = zeros(fltype(basis), length(basis))
 
 """
 `alloc_dB(B, x)`
@@ -57,8 +57,8 @@ the derivative of the basis when evaluated with argument `x`.
 """
 alloc_dB(basis, x::AbstractVector, args...) = alloc_dB(basis, length(x))
 alloc_dB(basis, x::Union{Number, JVec}, args...) = alloc_dB(basis)
-alloc_dB(basis) = zeros(JVec{eltype(basis)}, length(basis))
-alloc_dB(basis, N::Integer) = zeros(JVec{eltype(basis)}, (length(basis), N))
+alloc_dB(basis) = zeros(JVec{fltype(basis)}, length(basis))
+alloc_dB(basis, N::Integer) = zeros(JVec{fltype(basis)}, (length(basis), N))
 
 evaluate(B::IPBasis, x, args...) =
    evaluate!(alloc_B(B, x), alloc_temp(B, x), B, x, args...)
@@ -204,7 +204,7 @@ using JuLIP: sites, neighbourlist, cutoff, JVec
 using JuLIP.Potentials: neigsz!
 
 function energy(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
-   E = zeros(eltype(shipB), length(shipB))
+   E = zeros(fltype(shipB), length(shipB))
    B = alloc_B(shipB)
    nlist = neighbourlist(at, cutoff(shipB); storelist=false)
    maxnR = maxneigs(nlist)
@@ -230,6 +230,13 @@ function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    dB = alloc_dB(shipB, maxR)
    tmp = alloc_temp_d(shipB, maxR)
    tmpRZ = (R = zeros(JVec{T}, maxR), Z = zeros(AtomicNumber, maxR))
+   return forces_inner!(shipB, at, nlist, F, B, dB, tmp, tmpRZ)
+end
+
+# this is a little hack to remove a type instability. It probably makes no
+# difference in practise...
+function forces_inner!(shipB::IPBasis, at::AbstractAtoms{T},
+                       nlist, F, B, dB, tmp, tmpRZ) where {T}
    # assemble site gradients and write into F
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
@@ -243,6 +250,7 @@ function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    end
    return [ F[:, iB] for iB = 1:length(shipB) ]
 end
+
 
 
 function virial(shipB::IPBasis, at::AbstractAtoms{T}) where {T}

@@ -40,7 +40,7 @@ import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energy, site_energy_d,
               energy!, forces!, virial!,
               alloc_temp, alloc_temp_d, alloc_temp_dd,
-              read_dict, write_dict
+              read_dict, write_dict, fltype, rfltype 
 
 export PairPotential, SitePotential, ZeroSitePotential
 
@@ -266,7 +266,7 @@ site_energy(V::SitePotential, at::AbstractAtoms, i0::Integer) =
       energy(V, at; domain = (i0,))
 
 site_energy_d(V::SitePotential, at::AbstractAtoms, i0::Integer) =
-      rmul!(forces(V, at; domain = (i0,)), -one(eltype(at)))
+      rmul!(forces(V, at; domain = (i0,)), -one(fltype(at)))
 
 
 # ------------------------------------------------
