@@ -39,6 +39,23 @@ function atomic_numbers end
 function site_energy_d end
 function partial_energy_d end
 
+"""
+`function fltype end`
+
+Return the output floating point type employed by some object, typically a
+calculator or basis.
+"""
+function fltype end
+
+"""
+`function rfltype end`
+
+Return the real floating point type employed by some object,
+typically a calculator or basis, this is normally the same as fltype, but
+it can be difference e.g. `rfltype = real ∘ flype
+"""
+rfltype(args...) = real(fltype(args...))
+
 
 # -----
 

@@ -78,7 +78,7 @@ Atoms(X::Vector{JVec{T}}, P::Vector{JVec{T}}, M::Vector{T},
          DofManager(length(X), T), Dict{Any,JData{T}}())
 
 
-Base.eltype(::Atoms{T}) where {T} = T
+fltype(::Atoms{T}) where {T} = T
 
 # derived properties
 length(at::Atoms) = length(at.X)
