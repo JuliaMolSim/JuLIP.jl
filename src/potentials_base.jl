@@ -156,9 +156,10 @@ function z2i(Zs::AbstractZList, z::AtomicNumber)
    error("z = $z not found in ZList $(Zs.list)")
 end
 
-i2z(V, i::Integer) = i2z(V.zlist, i)
-z2i(V, z::AtomicNumber ) = z2i(V.zlist, z)
-numz(V) = length(V.zlist)
+zlist(V) = V.zlist
+i2z(V, i::Integer) = i2z(zlist(V), i)
+z2i(V, z::AtomicNumber ) = z2i(zlist(V), z)
+numz(V) = length(zlist(V))
 
 write_dict(zlist::ZList) = Dict("__id__" => "JuLIP_ZList",
                                   "list" => Int.(zlist.list))
