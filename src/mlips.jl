@@ -10,7 +10,7 @@ using JuLIP:       AbstractCalculator, AbstractAtoms, JVec, AtomicNumber, JMat
 import JuLIP:      energy, forces, virial, site_energy, site_energy_d,
                    alloc_temp, alloc_temp_d, evaluate, evaluate_d,
                    evaluate!, evaluate_d!, evaluate_ed,
-                   read_dict, write_dict, fltype, rfltype 
+                   read_dict, write_dict, fltype, rfltype
 
 import JuLIP.Potentials: site_virial
 
@@ -18,7 +18,7 @@ import Base:       ==
 
 export IPSuperBasis, IPCollection, combine
 
-abstract type AbstractBasis end
+abstract type AbstractBasis <: AbstractCalculator end
 
 
 """

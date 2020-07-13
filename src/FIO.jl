@@ -10,7 +10,7 @@ can be changed later. This submodule provides
 """
 module FIO
 
-using JSON
+using JSON, ZipFile
 using SparseArrays: SparseMatrixCSC
 
 export load_dict, save_dict, read_dict, write_dict
@@ -72,7 +72,7 @@ function load_dict(fname::AbstractString)
     return JSON.parsefile(fname)
 end
 
-function save_dict(fname::AbstractString, D::Dict; indent=2)
+function save_dict(fname::AbstractString, D::Dict; indent=0)
     f = open(fname, "w")
     JSON.print(f, D, indent)
     close(f)
@@ -81,6 +81,23 @@ end
 
 save_dict = save_dict
 load_dict = load_dict
+
+function zip_dict(fname::AbstractString, D::Dict; indent=0)
+   zipdir = ZipFile.Writer(fname)
+   fptr = ZipFile.addfile(zipdir)
+   write(fptr, JSON.json(D, indent))
+   close(zipdir)
+end
+
+function unzip_dict(fname::AbstractString)
+   zipdir = ZipFile.Reader(fname)
+   if length(zipdir.files) != 1
+      error("Expected exactly one file in `$(fname)`")
+   end
+   fptr = zipdir.files[1]
+   return JSON.parse(fptr)
+end
+
 
 
 ## Some useful utility functions
