@@ -13,7 +13,8 @@ module FIO
 using JSON, ZipFile
 using SparseArrays: SparseMatrixCSC
 
-export load_dict, save_dict, read_dict, write_dict
+export load_dict, save_dict, read_dict, write_dict,
+       zip_dict, unzip_dict
 
 #######################################################################
 #                     Conversions to and from Dict
@@ -84,18 +85,24 @@ load_dict = load_dict
 
 function zip_dict(fname::AbstractString, D::Dict; indent=0)
    zipdir = ZipFile.Writer(fname)
-   fptr = ZipFile.addfile(zipdir)
+   fptr = ZipFile.addfile(zipdir, "dict.json"; method=ZipFile.Deflate)
    write(fptr, JSON.json(D, indent))
+   close(fptr)
    close(zipdir)
 end
 
-function unzip_dict(fname::AbstractString)
-   zipdir = ZipFile.Reader(fname)
-   if length(zipdir.files) != 1
+function unzip_dict(fname::AbstractString; verbose=false)
+   # using global here is a weird workaround for a bug as suggest in
+   # https://github.com/fhs/ZipFile.jl/issues/14
+   global _zipdir = ZipFile.Reader(fname)
+   if length(_zipdir.files) != 1
       error("Expected exactly one file in `$(fname)`")
    end
-   fptr = zipdir.files[1]
+   fptr = _zipdir.files[1]
+   verbose && @show fptr.name
    return JSON.parse(fptr)
+   close(fptr)
+   close(_zipdir)
 end
 
 
