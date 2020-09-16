@@ -23,7 +23,7 @@ module Potentials
 
 using JuLIP: Atoms, AbstractAtoms, AbstractCalculator,
       JVec, mat, vec, JMat, SVec, vecs, SMat,
-      positions, set_positions!
+      positions, set_positions!, fltype_intersect
 
 using JuLIP.Chemistry: atomic_number
 
@@ -40,7 +40,7 @@ import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energy, site_energy_d,
               energy!, forces!, virial!,
               alloc_temp, alloc_temp_d, alloc_temp_dd,
-              read_dict, write_dict, fltype, rfltype 
+              read_dict, write_dict, fltype, rfltype
 
 export PairPotential, SitePotential, ZeroSitePotential
 
@@ -97,12 +97,12 @@ evaluate(V::SitePotential, R, args...) =
       evaluate!(alloc_temp(V, length(R)), V, R, args...)
 
 evaluate_d(V::SitePotential, R::AbstractVector{JVec{T}}, args...) where {T} =
-      evaluate_d!(zeros(JVec{T}, length(R)),
+      evaluate_d!(zeros(JVec{fltype_intersect(V, T)}, length(R)),
                   alloc_temp_d(V, length(R)),
                   V, R, args...)
 
 evaluate_dd(V::SitePotential, R::AbstractVector{JVec{T}}, args...) where {T} =
-      evaluate_dd!(zeros(JMat{T}, length(R), length(R)),
+      evaluate_dd!(zeros(JMat{fltype_intersect(V, T)}, length(R), length(R)),
                    alloc_temp_dd(V, length(R)),
                    V, R, args...)
 
@@ -181,7 +181,7 @@ alloc_temp_d(V::SitePotential, at::AbstractAtoms) =
       alloc_temp_d(V, maxneigs(neighbourlist(at, cutoff(V))))
 
 alloc_temp_d(V::SitePotential, N::Integer) =
-      (dV = zeros(JVecF, N),
+      (dV = zeros(JVec{fltype(V)}, N),
         R = zeros(JVecF, N),
         Z = zeros(AtomicNumber, N), )
 
@@ -191,19 +191,22 @@ alloc_temp_dd(V::SitePotential, args...) = nothing
 # -------------- Implementations of energy, forces, virials
 #                for a generic site potential
 
+
 energy(V::SitePotential, at::AbstractAtoms; kwargs...) =
       energy!(alloc_temp(V, at), V, at; kwargs...)
 
 virial(V::SitePotential, at::AbstractAtoms; kwargs...) =
       virial!(alloc_temp_d(V, at), V, at; kwargs...)
 
-forces(V::SitePotential, at::AbstractAtoms{T}; kwargs...) where {T} =
-      forces!(zeros(JVec{T}, length(at)), alloc_temp_d(V, at), V, at; kwargs...)
+forces(V::SitePotential, at::AbstractAtoms; kwargs...) =
+      forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
+              alloc_temp_d(V, at), V, at; kwargs...)
 
 
-function energy!(tmp, calc::SitePotential, at::Atoms{T};
-                 domain=1:length(at)) where {T}
-   E = zero(T)
+function energy!(tmp, calc::SitePotential, at::Atoms;
+                 domain=1:length(at))
+   TFL = fltype_intersect(calc, at)
+   E = zero(TFL)
    nlist = neighbourlist(at, cutoff(calc))
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
@@ -212,9 +215,10 @@ function energy!(tmp, calc::SitePotential, at::Atoms{T};
    return E
 end
 
-function forces!(frc, tmp, calc::SitePotential, at::Atoms{T};
-                 domain=1:length(at), reset=true) where {T}
-   if reset; fill!(frc, zero(JVec{T})); end
+function forces!(frc, tmp, calc::SitePotential, at::Atoms;
+                 domain=1:length(at), reset=true)
+   TFL = fltype_intersect(calc, at)
+   if reset; fill!(frc, zero(eltype(frc))); end
    nlist = neighbourlist(at, cutoff(calc))
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
@@ -230,14 +234,16 @@ function forces!(frc, tmp, calc::SitePotential, at::Atoms{T};
 end
 
 
-site_virial(dV, R::AbstractVector{JVec{T}}) where {T} =  (
+site_virial(dV::AbstractVector{JVec{T1}}, R::AbstractVector{JVec{T2}}
+            ) where {T1, T2} =  (
       length(R) > 0 ? (- sum( dVi * Ri' for (dVi, Ri) in zip(dV, R) ))
-                    : zero(JMat{T}) )
+                    : zero(JMat{fltype_intersect(T1, T2)})
+      )
 
-function virial!(tmp, calc::SitePotential, at::Atoms{T};
-                 domain=1:length(at)) where {T}
+function virial!(tmp, calc::SitePotential, at::Atoms; domain=1:length(at))
+   TFL = fltype_intersect(calc, at)
    nlist = neighbourlist(at, cutoff(calc))
-   vir = zero(JMat{T})
+   vir = zero(JMat{TFL})
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
       if length(j) > 0
@@ -249,11 +255,14 @@ function virial!(tmp, calc::SitePotential, at::Atoms{T};
 end
 
 
-site_energies(V::SitePotential, at::AbstractAtoms{T}; kwargs...) where {T} =
-      site_energies!(zeros(T, length(at)), alloc_temp(V, at), V, at; kwargs...)
+function site_energies(V::SitePotential, at::AbstractAtoms; kwargs...)
+   TFL = fltype_intersect(V, at)
+   return site_energies!(zeros(TFL, length(at)),
+                         alloc_temp(V, at), V, at; kwargs...)
+end
 
-function site_energies!(Es, tmp, V::SitePotential, at::AbstractAtoms{T};
-         domain = 1:length(at)) where {T}
+function site_energies!(Es, tmp, V::SitePotential, at::AbstractAtoms;
+                        domain = 1:length(at))
    nlist = neighbourlist(at, cutoff(V))
    for i in domain
       _j, R, Z = neigsz!(tmp, nlist, at, i)
@@ -277,7 +286,6 @@ include("analyticpotential.jl")
 include("cutoffs.jl")
 
 include("pairpotentials.jl")
-
 
 
 include("adsite.jl")

@@ -57,6 +57,16 @@ it can be difference e.g. `rfltype = real ∘ flype
 rfltype(args...) = real(fltype(args...))
 
 
+fltype(T::DataType) = T
+
+fltype_intersect(o1, o2) =
+   fltype_intersect(fltype(o1), fltype(o2))
+
+fltype_intersect(T1::DataType, T2::DataType) =
+   typeof(one(T1) * one(T2))
+
+
+
 # -----
 
 
@@ -76,6 +86,8 @@ Some Base functions that should be overloaded for atoms objects:
 """
 abstract type AbstractAtoms{T} end
 
+fltype(at::AbstractAtoms{T}) where {T} = T
+
 abstract type AbstractConstraint end
 
 """
@@ -85,7 +97,7 @@ forces, and so forth.
 """
 abstract type AbstractCalculator end
 
-
+fltype(V::AbstractCalculator) = Float64  # a sensible default!
 
 """
 `Dofs{T}`: dof vector; simply an alias for `Vector{T}`
