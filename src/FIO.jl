@@ -58,6 +58,11 @@ function read_dict(D::Dict)
     if !haskey(D, "__id__")
         error("JuLIP.FIO.read_dict: `D` has no key `__id__`")
     end
+    if haskey(D, "__v__")
+      return read_dict(Val(Symbol(D["__id__"])),
+                       Val(Symbol(D["__v__"])),
+                       D)
+    end
     return read_dict(Val(Symbol(D["__id__"])), D)
 end
 
@@ -159,8 +164,8 @@ write_dict(A::SparseMatrixCSC{TF, TI}) where {TF, TI} =
         "colptr" => A.colptr,
         "rowval" => A.rowval,
         "nzval" => A.nzval,
-        "m" => m,
-        "n" => n )
+        "m" => A.m,
+        "n" => A.n )
 
 function read_dict(::Val{:SparseMatrixCSC}, D::Dict)
    TF = read_dict(D["TF"])
