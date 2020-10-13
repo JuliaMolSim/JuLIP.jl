@@ -136,7 +136,7 @@ ZList(zlist::AbstractVector{<: Number}; static = false) = (
           :  ZList( convert(Vector{AtomicNumber}, sort(zlist)) ))
 
 ZList(s::Symbol; kwargs...) =
-      ZList( [ atomic_number(s) ]; kwargs... )
+      s == :Any ? ZListAny() : ZList( [ atomic_number(s) ]; kwargs... )
 
 ZList(S::AbstractVector{Symbol}; kwargs...) =
       ZList( atomic_number.(S); kwargs... )
@@ -171,3 +171,16 @@ write_dict(zlist::SZList) = Dict("__id__" => "JuLIP_SZList",
                                  "list" => Int.(zlist.list))
 read_dict(::Val{:JuLIP_SZList}, D::Dict) = SZList(D)
 SZList(D::Dict) = ZList([D["list"]...], static = true)
+
+
+"""
+`ZListAny` : an `AbstractZList` where every species maps to index 1.
+This is used to implement calculators that are species-agnostic.
+"""
+struct ZListAny <: AbstractZList
+end
+Base.length(zlist::ZListAny) = 1
+i2z(Zs::ZListAny, i::Integer) = AtomicNumber(0)
+z2i(Zs::ZListAny, z::AtomicNumber) = 1
+write_dict(zlist::ZListAny) = Dict("__id__" => "JuLIP_ZListAny")
+read_dict(::Val{:JuLIP_ZListAny}, D::Dict) = ZListAny()
