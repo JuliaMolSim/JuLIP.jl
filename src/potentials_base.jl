@@ -148,6 +148,9 @@ ZList(args...; kwargs... ) =
 i2z(Zs::AbstractZList, i::Integer) = Zs.list[i]
 
 function z2i(Zs::AbstractZList, z::AtomicNumber)
+   if Zs.list[1] == JuLIP.Chemistry.__zAny__
+      return 1
+   end 
    for j = 1:length(Zs.list)
       if Zs.list[j] == z
          return j
