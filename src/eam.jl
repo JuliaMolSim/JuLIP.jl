@@ -3,11 +3,22 @@ using NeighbourLists
 using DelimitedFiles: readdlm
 using JuLIP: r_sum
 using LinearAlgebra: rmul!
+using Requires
 
-import ASE
 import JuLIP
 
 export EAM
+
+# Use Requires.jl to provide the ASE EAM constructor.
+function __init__()
+   @require ASE="51974c44-a7ed-5088-b8be-3e78c8ba416c" @eval EAM(
+         filename::AbstractString; kwargs...) = 
+         (
+            eam = ASE.Models.EAM(filename).po; # Use ASE to create calculator
+            EAM(eam.r, eam.rho, eam.Z, eam.density_data,
+                eam.embedded_data, eam.rphi_data, eam.cutoff)
+         )
+end
 
 """
    EAM{T<:Real, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
@@ -23,32 +34,28 @@ struct EAM{T<:Real, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
 end
 
 """
-   EAM(filename::AbstractString; kwargs...)
+   EAM(r::Vector, rho::Vector, Z::Vector{<:Integer}, density::Matrix,
+       embedded::Matrix, rphi::Array{T,3}, cutoff::T; kwargs...) where {T}
 
-Constructs `EAM` from `filename`.
-
-Should work for `.eam`, `.eam.alloy`, `.fs`.
-Will likely error with the `.adp` format as ASE seems to treat this differently.
+Constructor for the EAM using the data extracted from the parameters file by ASE.
 """
-function generic_EAM(filename::AbstractString; kwargs...) # Change this to `EAM` eventually
-   eam = ASE.Models.EAM(filename).po # Use ASE to create calculator
+function EAM(r::Vector, rho::Vector, Z::Vector{<:Integer}, density::Matrix,
+             embedded::Matrix, rphi::Array{T,3}, cutoff::T; kwargs...) where {T}
 
-   zlist = ZList(eam.Z)
+   zlist = ZList(Z)
    ρ = Vector{SplinePairPotential}(undef, length(zlist))
    F = Vector{SplinePairPotential}(undef, length(zlist))
    ϕ = Matrix{SplinePairPotential}(undef, length(zlist), length(zlist))
 
-   # Fit the data extracted from the files by ASE
    for i=1:length(zlist)
-      ρ[i] = SplinePairPotential(eam.r, eam.density_data[i,:]; kwargs...)
-      F[i] = SplinePairPotential(eam.rho, eam.embedded_data[i,:];
-                                 fixcutoff=false, kwargs...)
+      ρ[i] = SplinePairPotential(r, density[i,:]; kwargs...)
+      F[i] = SplinePairPotential(rho, embedded[i,:]; fixcutoff=false, kwargs...)
       for j=1:length(zlist) # Skip first value as r*phi format goes through 0.0.
-         ϕ[j,i] = SplinePairPotential(eam.r[2:end],
-                                      eam.rphi_data[j,i,2:end]./eam.r[2:end]; kwargs...)
+         ϕ[j,i] = SplinePairPotential(r[2:end],
+                                      rphi[j,i,2:end]./r[2:end]; kwargs...)
       end
    end
-   EAM(ρ, F, ϕ, zlist, eam.cutoff)
+   EAM(ρ, F, ϕ, zlist, cutoff)
 end
 
 @pot EAM
