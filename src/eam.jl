@@ -182,7 +182,7 @@ end
 
 # implementation of EAM models using data files
 
-function EAM(fpair::AbstractString, feden::AbstractString,
+function EAM1(fpair::AbstractString, feden::AbstractString,
              fembed::AbstractString; kwargs...)
    pair = SplinePairPotential(fpair; kwargs...)
    eden = SplinePairPotential(feden; kwargs...)
@@ -193,7 +193,7 @@ end
 #
 # Load EAM file from .fs file format
 #
-function EAM(fname::AbstractString; kwargs...)
+function EAM1(fname::AbstractString; kwargs...)
 
    if fname[end-3:end] == ".eam"
       error(".eam is not yet implemented, please file an issue")
