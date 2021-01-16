@@ -18,7 +18,7 @@ struct EAM{T<:Real, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
    ρ::Vector{P}
    F::Vector{P}
    ϕ::Matrix{P}
-   Z::Z
+   zlist::Z
    cutoff::T
 end
 
@@ -33,22 +33,22 @@ Will likely error with the `.adp` format as ASE seems to treat this differently.
 function generic_EAM(filename::AbstractString; kwargs...) # Change this to `EAM` eventually
    eam = ASE.Models.EAM(filename).po # Use ASE to create calculator
 
-   z = ZList(eam.Z)
-   ρ = Vector{SplinePairPotential}(undef, length(z))
-   F = Vector{SplinePairPotential}(undef, length(z))
-   ϕ = Matrix{SplinePairPotential}(undef, length(z), length(z))
+   zlist = ZList(eam.Z)
+   ρ = Vector{SplinePairPotential}(undef, length(zlist))
+   F = Vector{SplinePairPotential}(undef, length(zlist))
+   ϕ = Matrix{SplinePairPotential}(undef, length(zlist), length(zlist))
 
    # Fit the data extracted from the files by ASE
-   for i=1:length(z)
+   for i=1:length(zlist)
       ρ[i] = SplinePairPotential(eam.r, eam.density_data[i,:]; kwargs...)
       F[i] = SplinePairPotential(eam.rho, eam.embedded_data[i,:];
                                  fixcutoff=false, kwargs...)
-      for j=1:length(z) # Skip first value as r*phi format goes through 0.0.
+      for j=1:length(zlist) # Skip first value as r*phi format goes through 0.0.
          ϕ[j,i] = SplinePairPotential(eam.r[2:end],
                                       eam.rphi_data[j,i,2:end]./eam.r[2:end]; kwargs...)
       end
    end
-   EAM(ρ, F, ϕ, z, eam.cutoff)
+   EAM(ρ, F, ϕ, zlist, eam.cutoff)
 end
 
 @pot EAM
