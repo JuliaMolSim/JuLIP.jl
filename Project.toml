@@ -3,6 +3,7 @@ uuid = "945c410c-986d-556a-acb1-167a618e0462"
 version = "0.10.2"
 
 [deps]
+ASE = "51974c44-a7ed-5088-b8be-3e78c8ba416c"
 AlgebraicMultigrid = "2169fc97-5a83-5252-b627-83903c6c433c"
 Calculus = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 CommonSubexpressions = "bbf7d656-a473-5ed7-a52c-81e309532950"

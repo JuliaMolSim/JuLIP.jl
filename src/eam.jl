@@ -4,9 +4,56 @@ using DelimitedFiles: readdlm
 using JuLIP: r_sum
 using LinearAlgebra: rmul!
 
+import ASE
 import JuLIP
 
 export EAM
+
+"""
+   EAM{T<:Real, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
+
+EAM potential for multiple species.
+"""
+struct EAM{T<:Real, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
+   ρ::Vector{P}
+   F::Vector{P}
+   ϕ::Matrix{P}
+   Z::Z
+   cutoff::T
+end
+
+"""
+   EAM(filename::AbstractString; kwargs...)
+
+Constructs `EAM` from `filename`.
+
+Should work for `.eam`, `.eam.alloy`, `.fs`.
+Will likely error with the `.adp` format as ASE seems to treat this differently.
+"""
+function generic_EAM(filename::AbstractString; kwargs...) # Change this to `EAM` eventually
+   eam = ASE.Models.EAM(filename).po # Use ASE to create calculator
+
+   z = ZList(eam.Z)
+   ρ = Vector{SplinePairPotential}(undef, length(z))
+   F = Vector{SplinePairPotential}(undef, length(z))
+   ϕ = Matrix{SplinePairPotential}(undef, length(z), length(z))
+
+   # Fit the data extracted from the files by ASE
+   for i=1:length(z)
+      ρ[i] = SplinePairPotential(eam.r, eam.density_data[i,:]; kwargs...)
+      F[i] = SplinePairPotential(eam.rho, eam.embedded_data[i,:];
+                                 fixcutoff=false, kwargs...)
+      for j=1:length(z) # Skip first value as r*phi format goes through 0.0.
+         ϕ[j,i] = SplinePairPotential(eam.r[2:end],
+                                      eam.rphi_data[j,i,2:end]./eam.r[2:end]; kwargs...)
+      end
+   end
+   EAM(ρ, F, ϕ, z, eam.cutoff)
+end
+
+@pot EAM
+
+cutoff(V::EAM) = V.cutoff
 
 # =================== General Single-Species EAM Potential ====================
 
