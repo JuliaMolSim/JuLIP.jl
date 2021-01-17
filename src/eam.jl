@@ -24,9 +24,12 @@ end
    EAM{T<:Real, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
 
 EAM potential for multiple species.
+
+`ρ` can be a `Vector`  or a `Matrix`, depending on the symmetry of the density function.
+`.fs` files can provide an assymmetric density.
 """
-struct EAM{T<:Real, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
-   ρ::Vector{P}
+struct EAM{T<:Real, N, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
+   ρ::Array{P, N}
    F::Vector{P}
    ϕ::Matrix{P}
    zlist::Z
@@ -39,23 +42,39 @@ end
 
 Constructor for the EAM using the data extracted from the parameters file by ASE.
 """
-function EAM(r::Vector, rho::Vector, Z::Vector{<:Integer}, density::Matrix,
+function EAM(r::Vector, rho::Vector, Z::Vector{<:Integer}, density::AbstractArray,
              embedded::Matrix, rphi::Array{T,3}, cutoff::T; kwargs...) where {T}
 
    zlist = ZList(Z)
-   ρ = Vector{SplinePairPotential}(undef, length(zlist))
-   F = Vector{SplinePairPotential}(undef, length(zlist))
-   ϕ = Matrix{SplinePairPotential}(undef, length(zlist), length(zlist))
+   ρ = allocate_array(density)
+   F = allocate_array(embedded)
+   ϕ = allocate_array(rphi)
 
-   for i=1:length(zlist)
-      ρ[i] = SplinePairPotential(r, density[i,:]; kwargs...)
-      F[i] = SplinePairPotential(rho, embedded[i,:]; fixcutoff=false, kwargs...)
-      for j=1:length(zlist) # Skip first value as r*phi format goes through 0.0.
-         ϕ[j,i] = SplinePairPotential(r[2:end],
-                                      rphi[j,i,2:end]./r[2:end]; kwargs...)
+   for I in CartesianIndices(ϕ) # Convert r*phi to phi prior to fitting
+      rphi[Tuple(I)...,:] ./= r
       end
-   end
+   fit_splines!(ϕ, r[2:end], rphi[:,:,2:end]; kwargs...) # Skip first entry as it's 0
+   fit_splines!(ρ, r, density; kwargs...) 
+   fit_splines!(F, rho, embedded; fixcutoff=false, kwargs...) # Nonzero cutoff
+
    EAM(ρ, F, ϕ, zlist, cutoff)
+   end
+
+"""
+Allocate array for storing spline potentials
+"""
+allocate_array(data::AbstractArray) = Array{SplinePairPotential}(undef, size(data)[1:end-1])
+
+"""
+   fit_splines!(out, x, y; kwargs...)
+
+Fit the data along the final dimension of `y` and store in `out`.
+"""
+function fit_splines!(out, x, y; kwargs...)
+   for I in CartesianIndices(out)
+      out[I] = SplinePairPotential(x, y[Tuple(I)...,:]; kwargs...)
+   end
+end
 end
 
 @pot EAM
