@@ -75,6 +75,21 @@ function fit_splines!(out, x, y; kwargs...)
       out[I] = SplinePairPotential(x, y[Tuple(I)...,:]; kwargs...)
    end
 end
+
+"""
+   EAM(fpair::AbstractString, feden::AbstractString,
+       fembed::AbstractString; kwargs...)
+
+Constructor for single species from multiple files.
+
+Provides same energies and forces as existing EAM1.
+"""
+function EAM(fpair::AbstractString, feden::AbstractString,
+             fembed::AbstractString; kwargs...)
+   ρ = SplinePairPotential(feden; kwargs...)
+   ϕ = SplinePairPotential(fpair; kwargs...)
+   F = SplinePairPotential(fembed; fixcutoff = false, kwargs...)
+   EAM([ρ], [F], hcat(ϕ), ZList([JuLIP.Chemistry.__zAny__]), max(cutoff(ϕ), cutoff(ρ)))
 end
 
 @pot EAM
