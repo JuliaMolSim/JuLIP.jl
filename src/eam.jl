@@ -81,6 +81,48 @@ end
 
 cutoff(V::EAM) = V.cutoff
 
+function evaluate!(tmp, V::EAM, Rs, Zs, z0)
+   ρ = 0.0
+   Es = 0.0
+   i0 = z2i(V, z0)
+   for (R, Z) in zip(Rs, Zs)
+      i = z2i(V, Z)
+      r = norm(R)
+      Es += V.ϕ[i0,i](r)/2
+      density_function = select_density_function(V.ρ, i0, i)
+      ρ += density_function(r)
+   end
+   Es += V.F[i0](ρ)
+   Es
+end
+
+function evaluate_d!(dEs, tmp, V::EAM, Rs, Zs, z0)
+   ρ = 0.0
+   i0 = z2i(V, z0)
+   for (R, Z) in zip(Rs, Zs)
+      i = z2i(V, Z)
+      r = norm(R)
+      density_function = select_density_function(V.ρ, i0, i)
+      ρ += density_function(r)
+   end
+   dF = @D V.F[i0](ρ)
+   for (j, (R, Z)) in enumerate(zip(Rs, Zs))
+      i = z2i(V, Z)
+      r = norm(R)
+      dϕ = @D V.ϕ[i0, i](r)
+      density_function = select_density_function(V.ρ, i0, i)
+      dρ = @D density_function(r)
+      R̂ = R/r
+      dEs[j] = (dϕ/2 + dF * dρ) * R̂
+   end
+end
+
+"""
+Choose the density function, this allows for assymmetric densities.
+"""
+select_density_function(ρ::Matrix, i0::Integer, i::Integer) = ρ[i, i0]
+select_density_function(ρ::Vector, ::Integer, i::Integer) = ρ[i]
+
 # =================== General Single-Species EAM Potential ====================
 
 """
