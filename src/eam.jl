@@ -52,13 +52,13 @@ function EAM(r::Vector, rho::Vector, Z::Vector{<:Integer}, density::AbstractArra
 
    for I in CartesianIndices(ϕ) # Convert r*phi to phi prior to fitting
       rphi[Tuple(I)...,:] ./= r
-      end
+   end
    fit_splines!(ϕ, r[2:end], rphi[:,:,2:end]; kwargs...) # Skip first entry as it's 0
    fit_splines!(ρ, r, density; kwargs...) 
    fit_splines!(F, rho, embedded; fixcutoff=false, kwargs...) # Nonzero cutoff
 
    EAM(ρ, F, ϕ, zlist, cutoff)
-   end
+end
 
 """
 Allocate array for storing spline potentials
@@ -276,16 +276,16 @@ function EAM(fname::AbstractString; kwargs...)
    catch
       @info "ASE.jl is not loaded, using native constructors instead"
 
-   if fname[end-3:end] == ".eam"
+      if fname[end-3:end] == ".eam"
          error(".eam is not yet implemented, please load ASE.jl")
-   elseif fname[end-6:end] == ".eam.fs"
+      elseif fname[end-6:end] == ".eam.fs"
          error(".eam.fs is not yet implemented, please load ASE.jl")
-   elseif fname[end-2:end] == ".fs"
-      return eam_from_fs(fname; kwargs...)
-   end
+      elseif fname[end-2:end] == ".fs"
+         return eam_from_fs(fname; kwargs...)
+      end
 
    error("unknwon EAM file format, please file an issue")
-end
+   end
 end
 
 # ================= Finnis-Sinclair Potential =======================
