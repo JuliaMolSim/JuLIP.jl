@@ -11,7 +11,7 @@ export EAM
 
 # Use Requires.jl to provide the ASE EAM constructor.
 function __init__()
-   @require ASE="51974c44-a7ed-5088-b8be-3e78c8ba416c" @eval EAM(
+   @require ASE="51974c44-a7ed-5088-b8be-3e78c8ba416c" @eval ase_EAM(
          filename::AbstractString; kwargs...) = 
          (
             eam = ASE.Models.EAM(filename).po; # Use ASE to create calculator
@@ -193,19 +193,24 @@ end
 #
 # Load EAM file from .fs file format
 #
-function EAM1(fname::AbstractString; kwargs...)
+function EAM(fname::AbstractString; kwargs...)
+
+   try
+      return ase_EAM(fname; kwargs...)
+   catch
+      @info "ASE.jl is not loaded, using native constructors instead"
 
    if fname[end-3:end] == ".eam"
-      error(".eam is not yet implemented, please file an issue")
+         error(".eam is not yet implemented, please load ASE.jl")
    elseif fname[end-6:end] == ".eam.fs"
-      error(".eam.fs is not yet implemented, please file an issue")
+         error(".eam.fs is not yet implemented, please load ASE.jl")
    elseif fname[end-2:end] == ".fs"
       return eam_from_fs(fname; kwargs...)
    end
 
    error("unknwon EAM file format, please file an issue")
 end
-
+end
 
 # ================= Finnis-Sinclair Potential =======================
 
