@@ -186,7 +186,7 @@ function EAM1(fpair::AbstractString, feden::AbstractString,
              fembed::AbstractString; kwargs...)
    pair = SplinePairPotential(fpair; kwargs...)
    eden = SplinePairPotential(feden; kwargs...)
-   embed = SplinePairPotential(feden; fixcutoff = false, kwargs...)
+   embed = SplinePairPotential(fembed; fixcutoff = false, kwargs...)
    return EAM1(pair, eden, embed)
 end
 
