@@ -15,13 +15,13 @@ eam_W4 = nothing
 ## ===== some prototype potentials ======
 @info("Loading some interatomic potentials . .")
 data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
-eam_Fe = JuLIP.Potentials.EAM1(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
+eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
 print(" .")
 eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
 print(" .")
 global eam_W4
 try
-   global eam_W4 = JuLIP.Potentials.EAM1(data * "w_eam4.fs")
+   global eam_W4 = JuLIP.Potentials.EAM(data * "w_eam4.fs")
 catch
    global eam_W4 = nothing
 end
