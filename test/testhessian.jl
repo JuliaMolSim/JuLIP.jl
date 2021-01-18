@@ -56,11 +56,11 @@ println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(
 
 ##
 
-h2("Testing EAM hessian")
+h2("Testing EAM1 hessian")
 # setup a geometry
 at = bulk(:Fe, cubic=true) * 2
 set_pbc!(at, false)
-eam = eam_Fe
+eam = EAM1(eam_Fe)
 set_calculator!(at, eam)
 rattle!(at, 0.1)
 
@@ -101,6 +101,60 @@ for p = 2:9
    @printf("%1.1e | %4.2e \n", h, errs[end])
 end
 println(@test /(extrema(errs)...) < 1e-3)
+
+h2("Testing EAM hessian")
+# setup a geometry
+at = bulk(:Fe, cubic=true) * 2
+set_pbc!(at, false)
+eam = eam_Fe
+set_calculator!(at, eam)
+rattle!(at, 0.0)
+
+h3("test a single stencil")
+r = []
+R = []
+for (idx, _j, R1) in sites(at, cutoff(eam))
+   if idx == 3
+      global r = norm(R1)
+      global R = R1
+      break
+   end
+end
+
+# evaluate site gradient and hessian
+dVs = evaluate_d(eam, R, at.Z, Potentials.i2z(eam, 1))
+hVs = evaluate_dd(eam, R, at.Z, Potentials.i2z(eam, 1))
+# and convert them to vector form
+dV = mat(dVs)[:]
+hV = zeros(3*size(hVs,1), 3*size(hVs,2))
+for i = 1:size(hVs,1), j = 1:size(hVs,2)
+   hV[3*(i-1).+(1:3), 3*(j-1).+(1:3)] = hVs[i,j]
+end
+matR = mat(R)
+
+errs = []
+for p = 2:9
+   h = 0.1^p
+   hVh = fill(0.0, size(hV))
+   for n = 1:length(matR)
+      matR[n] += h
+      r = norm.(R)
+      dVh = mat(evaluate_d(eam, R, at.Z, Potentials.i2z(eam, 1)))[:]
+      hVh[:, n] = (dVh - dV) / h
+      matR[n] -= h
+   end
+   push!(errs, norm(hVh - hV, Inf))
+   @printf("%1.1e | %4.2e \n", h, errs[end])
+end
+println(@test /(extrema(errs)...) < 1e-3)
+
+##
+
+h3("full finite-difference test ...")
+h3(" ... EAM forces")
+println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
+h3(" ... EAM hessian")
+println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
 
 ##
 
