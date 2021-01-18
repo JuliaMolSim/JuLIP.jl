@@ -8,10 +8,11 @@ using Requires
 import JuLIP
 
 export EAM
+export EAM1
 
 # Use Requires.jl to provide the ASE EAM constructor.
 function __init__()
-   @require ASE="51974c44-a7ed-5088-b8be-3e78c8ba416c" @eval ase_EAM(
+   @require ASE="51974c44-a7ed-5088-b8be-3e78c8ba416c" @eval eam_from_ase(
          filename::AbstractString; kwargs...) = 
          (
             eam = ASE.Models.EAM(filename).po; # Use ASE to create calculator
@@ -28,12 +29,37 @@ EAM potential for multiple species.
 `ρ` can be a `Vector`  or a `Matrix`, depending on the symmetry of the density function.
 `.fs` files can provide an assymmetric density.
 """
-struct EAM{T<:Real, N, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
-   ρ::Array{P, N}
-   F::Vector{P}
-   ϕ::Matrix{P}
+struct EAM{T<:Real, N,
+           P1<:SimplePairPotential, P2<:SimplePairPotential, P3<:SimplePairPotential,
+           Z<:AbstractZList} <: SitePotential
+   ρ::Array{P1, N}
+   F::Vector{P2}
+   ϕ::Matrix{P3}
    zlist::Z
    cutoff::T
+end
+
+"""
+   EAM(fname::AbstractString; kwargs...)
+
+Load EAM from a single parameter file.
+
+If `ASE.jl` is loaded, it will use ASE to parse the file. This should work for `eam.alloy`,
+`eam.fs` and `.fs`. Still needs compatibility for `.adp`.
+
+Otherwise, it will attempt to read from a single species `.fs` file.
+"""
+function EAM(fname::AbstractString; kwargs...)
+
+   try
+      return eam_from_ase(fname; kwargs...) # Provided if `ASE.jl` is loaded
+   catch
+      if fname[end-2:end] == ".fs" && fname[end-6:end] != ".eam.fs"
+         return eam_from_fs(fname; kwargs...)
+      else
+         error("Not an `.fs` file, if using a different EAM format, try `using ASE.jl`.")
+      end
+   end
 end
 
 """
@@ -42,7 +68,7 @@ end
 
 Constructor for the EAM using the data extracted from the parameters file by ASE.
 """
-function EAM(r::Vector, rho::Vector, Z::Vector{<:Integer}, density::AbstractArray,
+function EAM(r::AbstractVector, rho::AbstractVector, Z::Vector{<:Integer}, density::AbstractArray,
              embedded::Matrix, rphi::Array{T,3}, cutoff::T; kwargs...) where {T}
 
    zlist = ZList(Z)
@@ -175,6 +201,19 @@ struct EAM1{T1, T2, T3, T4} <: SimpleSitePotential
    info::T4
 end
 
+function EAM1(eam::EAM)
+   @assert length(eam.zlist) == 1 "This EAM is defined for more than 1 species"
+   EAM1(eam.ϕ[1], eam.ρ[1], eam.F[1])
+end
+
+function EAM1(fpair::AbstractString, feden::AbstractString,
+             fembed::AbstractString; kwargs...)
+   pair = SplinePairPotential(fpair; kwargs...)
+   eden = SplinePairPotential(feden; kwargs...)
+   embed = SplinePairPotential(fembed; fixcutoff = false, kwargs...)
+   return EAM1(pair, eden, embed)
+end
+
 @pot EAM1
 
 
@@ -256,38 +295,6 @@ function _hess_!(hEs, tmp, V::EAM1, R::AbstractVector{JVec{T}}, fabs, stab=T(0)
 end
 
 
-# implementation of EAM models using data files
-
-function EAM1(fpair::AbstractString, feden::AbstractString,
-             fembed::AbstractString; kwargs...)
-   pair = SplinePairPotential(fpair; kwargs...)
-   eden = SplinePairPotential(feden; kwargs...)
-   embed = SplinePairPotential(fembed; fixcutoff = false, kwargs...)
-   return EAM1(pair, eden, embed)
-end
-
-#
-# Load EAM file from .fs file format
-#
-function EAM(fname::AbstractString; kwargs...)
-
-   try
-      return ase_EAM(fname; kwargs...)
-   catch
-      @info "ASE.jl is not loaded, using native constructors instead"
-
-      if fname[end-3:end] == ".eam"
-         error(".eam is not yet implemented, please load ASE.jl")
-      elseif fname[end-6:end] == ".eam.fs"
-         error(".eam.fs is not yet implemented, please load ASE.jl")
-      elseif fname[end-2:end] == ".fs"
-         return eam_from_fs(fname; kwargs...)
-      end
-
-   error("unknwon EAM file format, please file an issue")
-   end
-end
-
 # ================= Finnis-Sinclair Potential =======================
 
 
@@ -318,7 +325,7 @@ end
 
 Read a `.fs` file specifying and EAM / Finnis-Sinclair potential.
 """
-function eam_from_fs(fname; kwargs...)
+function eam1_from_fs(fname; kwargs...)
    F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
    return EAM1( SplinePairPotential(r, ϕfun; kwargs...) * (@analytic r -> 1/r),
                SplinePairPotential(r, ρfun; kwargs...),
@@ -326,6 +333,14 @@ function eam_from_fs(fname; kwargs...)
                info )
 end
 
+function eam_from_fs(fname; kwargs...)
+   F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
+   return EAM( [SplinePairPotential(r, ρfun; kwargs...)],
+               [SplinePairPotential(ρ, F; fixcutoff=false, kwargs...)],
+               hcat(SplinePairPotential(r, ϕfun; kwargs...) * (@analytic r -> 1/r)),
+               ZList(Symbol.(info[:species])),
+               info[:cutoff])
+end
 
 """
 `read_fs(fname)` -> F, ρfun, ϕfun, ρ, r, info
