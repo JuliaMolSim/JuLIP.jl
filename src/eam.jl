@@ -122,6 +122,12 @@ end
 
 cutoff(V::EAM) = V.cutoff
 
+"""
+Choose the density function, this allows for assymmetric densities.
+"""
+select_density_function(ρ::Matrix, i0::Integer, i::Integer) = ρ[i, i0]
+select_density_function(ρ::Vector, ::Integer, i::Integer) = ρ[i]
+
 function evaluate!(tmp, V::EAM, Rs, Zs, z0)
    ρ = 0.0
    Es = 0.0
@@ -156,13 +162,57 @@ function evaluate_d!(dEs, tmp, V::EAM, Rs, Zs, z0)
       R̂ = R/r
       dEs[j] = (dϕ/2 + dF * dρ) * R̂
    end
+   dEs
 end
 
-"""
-Choose the density function, this allows for assymmetric densities.
-"""
-select_density_function(ρ::Matrix, i0::Integer, i::Integer) = ρ[i, i0]
-select_density_function(ρ::Vector, ::Integer, i::Integer) = ρ[i]
+evaluate_dd!(hEs, tmp, V::EAM, R, Z, z0) = _hess_!(hEs, tmp, V, R, Z, z0, identity)
+precon!(hEs, tmp, V::EAM, R, Z, z0, stab=0.0) = _hess_!(hEs, tmp, V, R, Z, z0, abs, stab)
+alloc_temp_dd(::EAM, N::Integer) = (∇ρ = zeros(JVecF, N), r = zeros(Float64, N))
+
+function hessian(calc::EAM, at::AbstractAtoms)
+   if JuLIP.fixedcell(at)
+      H =  ad_hessian(calc, at)
+      return JuLIP.projectxfree(at, H)
+   end
+   @error("`hessian` is not yet implemented for variable cells")
+   return nothing
+end
+
+function _hess_!(hEs, tmp, V::EAM, Rs::AbstractVector{JVec{T}}, Zs, z0, fabs, stab=T(0)
+                 ) where {T}
+   ρ = 0.0
+   i0 = z2i(V, z0)
+   for (j, (R, Z)) in enumerate(zip(Rs, Zs))
+      i = z2i(V, Z)
+      r = norm(R)
+      tmp.r[j] = r
+      density_function = select_density_function(V.ρ, i0, i)
+      tmp.∇ρ[j] = @D density_function(r, R)
+      ρ += density_function(r)
+   end
+   # precompute some stuff
+   dF = @D V.F[i0](ρ)
+   ddF = @DD V.F[i0](ρ)
+   # assemble
+   for (j, (R, Z)) in enumerate(zip(Rs, Zs))
+      i = z2i(V, Z)
+      r = tmp.r[j]
+      for k = 1:length(Rs)
+         hEs[j,k] = (1-stab) * fabs(ddF) * tmp.∇ρ[j] * tmp.∇ρ[k]'
+      end
+      S = R / r
+      density_function = select_density_function(V.ρ, i0, i)
+      dϕ = @D V.ϕ[i0,i](r)
+      dρ = @D density_function(r)
+      ddϕ = @DD V.ϕ[i0,i](r)
+      ddρ = @DD density_function(r)
+      a = fabs(0.5 * ddϕ + dF * ddρ)
+      b = fabs((0.5 * dϕ + dF *  dρ) / r)
+      hEs[j,j] += ( (1-stab) * ( (a-b) * S * S' + b * I )
+                   + stab  * ( (a+b) * I ) )
+   end
+   hEs
+end
 
 # =================== General Single-Species EAM Potential ====================
 
