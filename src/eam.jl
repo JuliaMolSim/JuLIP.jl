@@ -53,10 +53,11 @@ function EAM(fname::AbstractString; kwargs...)
 
    try
       return eam_from_ase(fname; kwargs...) # Provided if `ASE.jl` is loaded
-   catch
+   catch e
       if fname[end-2:end] == ".fs" && fname[end-6:end] != ".eam.fs"
          return eam_from_fs(fname; kwargs...)
       else
+         print(e)
          error("Not an `.fs` file, if using a different EAM format, try `using ASE.jl`.")
       end
    end
@@ -83,14 +84,13 @@ function EAM(r::AbstractVector, rho::AbstractVector, Z::Vector{<:Integer}, densi
    zlist = ZList(Z)
    ρ = allocate_array(density)
    F = allocate_array(embedded)
-   ϕ = allocate_array(rphi)
+   rϕ = allocate_array(rphi)
 
-   for I in CartesianIndices(ϕ) # Convert r*phi to phi prior to fitting
-      rphi[Tuple(I)...,:] ./= r
-   end
-   fit_splines!(ϕ, r[2:end], rphi[:,:,2:end]; kwargs...) # Skip first entry as it's 0
+   fit_splines!(rϕ, r, rphi; kwargs...)
    fit_splines!(ρ, r, density; kwargs...) 
    fit_splines!(F, rho, embedded; fixcutoff=false, kwargs...) # Nonzero cutoff
+
+   ϕ = rϕ .* Ref(@analytic r -> 1/r)
 
    EAM(ρ, F, ϕ, zlist, cutoff)
 end
