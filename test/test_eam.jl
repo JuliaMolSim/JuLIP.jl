@@ -53,10 +53,21 @@ end
 
 @testset "EAM with ASE" begin
     using ASE
+
     alloy = "data/PdAgH_HybridPd3Ag.eam.alloy"
     eam_fs = "data/Fe-P.eam.fs"
-    fs = "data/Au.fs"
+    Ni = "data/Ni.eam.fs"
+
     @test EAM(alloy) isa EAM{T, 1} where {T}
     @test EAM(eam_fs) isa EAM{T, 2} where {T}
-    @test EAM(fs) isa EAM{T, 2} where {T}
+
+    eam = pyimport("ase.calculators.eam")
+    ase_calc = ASECalculator(eam.EAM(potential=Ni))
+    julip_calc = EAM(Ni)
+
+    atoms = bulk(:Ni)
+    @test energy(julip_calc, atoms) ≈ energy(ase_calc, atoms)
+    # Currently failing this 
+    # Evaluated: -4.389698818833442 ≈ -4.385493043162676
+
 end
