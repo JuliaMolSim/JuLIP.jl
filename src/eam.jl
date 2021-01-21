@@ -71,6 +71,15 @@ Constructor for the EAM using the data extracted from the parameters file by ASE
 function EAM(r::AbstractVector, rho::AbstractVector, Z::Vector{<:Integer}, density::AbstractArray,
              embedded::Matrix, rphi::Array{T,3}, cutoff::T; kwargs...) where {T}
 
+   # Copy data to ensure symmetry in the pair potential
+   if size(rphi)[1] > 1
+      for i=1:size(rphi)[1]
+         for j=i+1:size(rphi)[2]
+            rphi[j,i,:] .= rphi[i,j,:]
+         end
+      end
+   end
+
    zlist = ZList(Z)
    ρ = allocate_array(density)
    F = allocate_array(embedded)
