@@ -8,7 +8,6 @@ using Requires
 import JuLIP
 
 export EAM
-export EAM1
 
 # Use Requires.jl to provide the ASE EAM constructor.
 function __init__()
@@ -263,136 +262,6 @@ function _hess_!(hEs, tmp, V::EAM, Rs::AbstractVector{JVec{T}}, Zs, z0, fabs, st
    hEs
 end
 
-# =================== General Single-Species EAM Potential ====================
-
-"""
-`struct EAM1`
-
-Generic Single-species EAM potential, to specify it, one needs to
-specify the pair potential ϕ, the electron density ρ and the embedding
-function F.
-
-The most convenient constructor is likely via tabulated values,
-more below.
-
-# Constructors:
-```
-EAM(pair::PairPotential, eden::PairPotential, embed)
-EAM(fpair::AbstractString, feden::AbstractString, fembed::AbstractString; kwargs...)
-```
-
-## Constructing an EAM potential from tabulated values
-
-At the moment only the .plt format is implemented. Files can e.g. be
-obtained from
-* [NIST](https://www.ctcms.nist.gov/potentials/)
-
-Use the `EAM(fpair, feden, fembed)` constructure. The keyword arguments specify
-details of how the tabulated values are fitted; see
-`?SplinePairPotential` for more details.
-
-TODO: implement other file formats.
-"""
-struct EAM1{T1, T2, T3, T4} <: SimpleSitePotential
-   ϕ::T1    # pair potential
-   ρ::T2    # electron density potential
-   F::T3    # embedding function
-   info::T4
-end
-
-function EAM1(eam::EAM)
-   @assert length(eam.zlist) == 1 "This EAM is defined for more than 1 species"
-   EAM1(eam.ϕ[1], eam.ρ[1], eam.F[1])
-end
-
-function EAM1(fpair::AbstractString, feden::AbstractString,
-             fembed::AbstractString; kwargs...)
-   pair = SplinePairPotential(fpair; kwargs...)
-   eden = SplinePairPotential(feden; kwargs...)
-   embed = SplinePairPotential(fembed; fixcutoff = false, kwargs...)
-   return EAM1(pair, eden, embed)
-end
-
-@pot EAM1
-
-
-EAM1(ϕ, ρ, F) = EAM1(ϕ, ρ, F, nothing)
-
-cutoff(V::EAM1) = max(cutoff(V.ϕ), cutoff(V.ρ))
-
-function evaluate!(tmp, V::EAM1, R::AbstractVector{JVec{T}}) where {T}
-   if  length(R) == 0
-      return V.F(T(0.0))
-   else
-      return V.F(sum(V.ρ ∘ norm, R)) + T(0.5) * sum(V.ϕ ∘ norm, R)
-   end
-end
-
-function evaluate_d!(dEs::AbstractVector{JVec{T}}, tmp, V::EAM1, Rs) where {T}
-   if length(Rs) == 0; return dEs; end
-   ρ̄ = sum(V.ρ ∘ norm, Rs)
-   dF = @D V.F(ρ̄)
-   for (i, R) in enumerate(Rs)
-      r = norm(R)
-      dEs[i] = ((T(0.5) * (@D V.ϕ(r)) + dF * (@D V.ρ(r))) / r) * R
-   end
-   return dEs
-end
-
-
-alloc_temp_dd(V::EAM1, N::Integer) =
-      ( ∇ρ = zeros(JVecF, N),
-         r = zeros(Float64, N) )
-
-evaluate_dd!(hEs, tmp, V::EAM1, R) = _hess_!(hEs, tmp, V, R, identity)
-
-# ff preconditioner specification for EAM potentials
-#   (just replace id with abs and hess with precon in the hessian code)
-precon!(hEs, tmp, V::EAM1, R, stab=0.0) = _hess_!(hEs, tmp, V, R, abs, stab)
-
-
-
-function hessian(calc::EAM1, at::AbstractAtoms)
-   if JuLIP.fixedcell(at)
-      H =  ad_hessian(calc, at)
-      return JuLIP.projectxfree(at, H)
-   end
-   @error("`hessian` is not yet implemented for variable cells")
-   return nothing
-end
-
-
-
-function _hess_!(hEs, tmp, V::EAM1, R::AbstractVector{JVec{T}}, fabs, stab=T(0)
-                 ) where {T}
-   for i = 1:length(R)
-      r = norm(R[i])
-      tmp.r[i] = r
-      tmp.∇ρ[i] = @D V.ρ(r, R[i])
-   end
-   # precompute some stuff
-   ρ̄ = sum(V.ρ, tmp.r)
-   dF = @D V.F(ρ̄)
-   ddF = @DD V.F(ρ̄)
-   # assemble
-   for i = 1:length(R)
-      for j = 1:length(R)
-         hEs[i,j] = (1-stab) * fabs(ddF) * tmp.∇ρ[i] * tmp.∇ρ[j]'
-      end
-      r = tmp.r[i]
-      S = R[i] / r
-      dϕ = @D V.ϕ(r)
-      dρ = @D V.ρ(r)
-      ddϕ = @DD V.ϕ(r)
-      ddρ = @DD V.ρ(r)
-      a = fabs(0.5 * ddϕ + dF * ddρ)
-      b = fabs((0.5 * dϕ + dF *  dρ) / r)
-      hEs[i,i] += ( (1-stab) * ( (a-b) * S * S' + b * I )
-                   + stab  * ( (a+b) * I ) )
-   end
-   return hEs
-end
-
 
 # ================= Finnis-Sinclair Potential =======================
 
@@ -417,19 +286,6 @@ end
 
 
 # ================= Various File Loaders =======================
-
-"""
-`eam_from_fs(fname; kwargs...) -> EAM`
-
-Read a `.fs` file specifying and EAM / Finnis-Sinclair potential.
-"""
-function eam1_from_fs(fname; kwargs...)
-   F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
-   return EAM1( SplinePairPotential(r, ϕfun; kwargs...) * (@analytic r -> 1/r),
-               SplinePairPotential(r, ρfun; kwargs...),
-               SplinePairPotential(ρ, F; fixcutoff= false, kwargs...),
-               info )
-end
 
 function eam_from_fs(fname; kwargs...)
    F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
