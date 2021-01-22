@@ -40,6 +40,7 @@ julip_tests = [
    ("testvarcell.jl", "Variable Cell"),
    ("testhessian.jl", "Hessian"),
    ("test_onebody.jl", "One-Body"),
+   ("test_eam.jl", "EAM"),
    ]
 
 # add solver tests if not on travis
