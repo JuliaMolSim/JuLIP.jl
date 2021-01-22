@@ -131,9 +131,15 @@ struct SZList{N} <: AbstractZList
    list::SVector{N, AtomicNumber}
 end
 
-ZList(zlist::AbstractVector{<: Number}; static = false) = (
-   static ? SZList(SVector( (AtomicNumber.(sort(zlist)))... ))
-          :  ZList( convert(Vector{AtomicNumber}, sort(zlist)) ))
+function ZList(zlist::AbstractVector{<: Number}; static = false, order=true)
+   if order
+      (static ? SZList(SVector( (AtomicNumber.(sort(zlist)))... ))
+            :  ZList( convert(Vector{AtomicNumber}, sort(zlist)) ))
+   else
+      (static ? SZList(SVector( (AtomicNumber.(zlist))... ))
+            :  ZList( convert(Vector{AtomicNumber}, zlist) ))
+   end
+end
 
 ZList(s::Symbol; kwargs...) =
       ZList( [ atomic_number(s) ]; kwargs... )
