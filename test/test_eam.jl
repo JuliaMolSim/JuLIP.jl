@@ -63,11 +63,14 @@ end
 
     eam = pyimport("ase.calculators.eam")
     ase_calc = ASECalculator(eam.EAM(potential=Ni))
-    julip_calc = EAM(Ni)
+    # make sure we get a perfect fit ...
+    julip_calc = EAM(Ni; s = 0.0)
 
-    atoms = bulk(:Ni)
-    @test energy(julip_calc, atoms) ≈ energy(ase_calc, atoms)
-    # Currently failing this 
-    # Evaluated: -4.389698818833442 ≈ -4.385493043162676
-
+    atoms = bulk(:Ni) * 3
+    rattle!(atoms, 0.1)
+    E_jl = energy(julip_calc, atoms)
+    E_py = energy(ase_calc, atoms)
+    # ... but even then we the evaluation codes aren't the
+    #     same so we only get ca 1e-6 to 1e-7 match.
+    @test abs(E_jl - E_py) < 1e-5
 end
