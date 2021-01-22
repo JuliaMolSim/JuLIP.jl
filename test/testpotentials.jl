@@ -83,6 +83,14 @@ if eam_W != nothing   # finnis-sinclair
    push!(calculators, (eam_W, at11))
 end
 
+if eam_PdAgH != nothing
+    at = bulk(:Pd) * 3
+    at.Z[1:3:end] .= AtomicNumber(:Ag)
+    at.Z[1:5:end] .= AtomicNumber(:H)
+    rattle!(at, 0.1)
+    push!(calculators, (eam_PdAgH, at))
+end
+
 # JuLIP's EMT implementation
 at = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )
 rattle!(at, 0.02)

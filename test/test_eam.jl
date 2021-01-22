@@ -5,6 +5,7 @@ data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
 
 @testset "EAM with ASE" begin
     using ASE
+    import Random
 
     alloy = data * "PdAgH_HybridPd3Ag.eam.alloy"
     eam_fs = data * "Fe-P.eam.fs"
@@ -19,6 +20,7 @@ data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
     julip_calc = EAM(Ni)
 
     atoms = bulk(:Ni) * 3
+    Random.seed!(0)
     rattle!(atoms, 0.1)
     E_jl = energy(julip_calc, atoms)
     E_py = energy(ase_calc, atoms)
@@ -31,8 +33,10 @@ data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
     julip_calc = EAM(alloy)
 
     atoms = bulk(:Pd) * 3
+    atoms.Z[1:3:end] .= AtomicNumber(:Ag)
+    atoms.Z[1:5:end] .= AtomicNumber(:H)
     rattle!(atoms, 0.1)
     E_jl = energy(julip_calc, atoms)
     E_py = energy(ase_calc, atoms)
-    @test E_jl ≈ E_py rtol=1e-3
+    @test E_jl ≈ E_py rtol=1e-6
 end

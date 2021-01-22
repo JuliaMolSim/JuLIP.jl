@@ -12,7 +12,7 @@ export EAM
 # Use Requires.jl to provide the ASE EAM constructor.
 function __init__()
    @require ASE="51974c44-a7ed-5088-b8be-3e78c8ba416c" @eval eam_from_ase(
-         filename::AbstractString; kwargs...) = 
+         filename::AbstractString; kwargs...) =
          (
             eam = ASE.Models.EAM(filename).po; # Use ASE to create calculator
             EAM(eam.nr, eam.dr, eam.nrho, eam.drho, eam.cutoff, eam.Z, eam.density_data,
@@ -121,7 +121,7 @@ function EAM(nr::Integer, dr::Real, nrho::Integer, drho::Real, cutoff::Real,
    rϕ = allocate_array(rphi)
 
    fit_splines!(rϕ, r, rphi; kwargs...)
-   fit_splines!(ρ, r, density; kwargs...) 
+   fit_splines!(ρ, r, density; kwargs...)
    fit_splines!(F, rho, embedded; fixcutoff=false, kwargs...) # Nonzero cutoff
 
    ϕ = rϕ .* Ref(@analytic r -> 1/r)
