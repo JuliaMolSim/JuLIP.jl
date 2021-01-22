@@ -86,8 +86,7 @@ function ad_hessian(V::SitePotential, at::Atoms{T}) where {T}
    maxN = maxneigs(nlist)
 
    for (i0, neigs, Rs) in sites(nlist)
-      # Temporarily uses at.Z[1]
-      Hsite = ad_site_hessian(V, Rs, at.Z, at.Z[1])
+      Hsite = ad_site_hessian(V, Rs, at.Z, at.Z[i0])
       _coo_append!(I, J, Z, [ [i0]; neigs ], Hsite)
    end
 
