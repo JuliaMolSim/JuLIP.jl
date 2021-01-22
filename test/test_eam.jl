@@ -2,8 +2,10 @@ using Test
 using JuLIP
 using BenchmarkTools
 
+data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
+
 @testset "Compare EAM and EAM1 (No ASE)" begin
-    fs = "data/Au.fs"
+    fs = data * "Au.fs"
     @testset "Convert from EAM to EAM1" begin
         fs_model = EAM(fs)
         at = rattle!(bulk(:Au) * (5, 5, 4), 0.5)
@@ -22,8 +24,8 @@ using BenchmarkTools
     end
 
     @testset "Old and new constructor" begin # Can remove this EAM1 constructor
-        eam1_Fe = EAM1("data/pfe.plt", "data/ffe.plt", "data/F_fe.plt")
-        eam_Fe = EAM("data/pfe.plt", "data/ffe.plt", "data/F_fe.plt")
+        eam1_Fe = EAM1(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
+        eam_Fe = EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
         at = rattle!(bulk(:Fe) * 4, 0.5)
         @test energy(eam1_Fe, at) ≈ energy(eam_Fe, at)
         @test forces(eam1_Fe, at) ≈ forces(eam_Fe, at)
@@ -54,9 +56,9 @@ end
 @testset "EAM with ASE" begin
     using ASE
 
-    alloy = "data/PdAgH_HybridPd3Ag.eam.alloy"
-    eam_fs = "data/Fe-P.eam.fs"
-    Ni = "data/Ni.eam.fs"
+    alloy = data * "PdAgH_HybridPd3Ag.eam.alloy"
+    eam_fs = data * "Fe-P.eam.fs"
+    Ni = data * "Ni.eam.fs"
 
     @test EAM(alloy) isa EAM{T, 1} where {T}
     @test EAM(eam_fs) isa EAM{T, 2} where {T}
@@ -64,7 +66,7 @@ end
     eam = pyimport("ase.calculators.eam")
     ase_calc = ASECalculator(eam.EAM(potential=Ni))
     # make sure we get a perfect fit ...
-    julip_calc = EAM(Ni; s = 0.0)
+    julip_calc = EAM(Ni)
 
     atoms = bulk(:Ni) * 3
     rattle!(atoms, 0.1)
@@ -76,7 +78,7 @@ end
 
     # Test again with unordered species in parameter file
     ase_calc = ASECalculator(eam.EAM(potential=alloy))
-    julip_calc = EAM(alloy; s = 0.0)
+    julip_calc = EAM(alloy)
 
     atoms = bulk(:Pd) * 3
     rattle!(atoms, 0.1)
