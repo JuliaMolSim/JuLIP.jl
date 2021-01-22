@@ -82,7 +82,7 @@ function EAM(r::AbstractVector, rho::AbstractVector, Z::Vector{<:Integer}, densi
       end
    end
 
-   zlist = ZList(Z)
+   zlist = ZList(Z, order=false)
    ρ = allocate_array(density)
    F = allocate_array(embedded)
    rϕ = allocate_array(rphi)

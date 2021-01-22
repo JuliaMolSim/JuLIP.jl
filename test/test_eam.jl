@@ -73,4 +73,14 @@ end
     # ... but even then we the evaluation codes aren't the
     #     same so we only get ca 1e-6 to 1e-7 match.
     @test abs(E_jl - E_py) < 1e-5
+
+    # Test again with unordered species in parameter file
+    ase_calc = ASECalculator(eam.EAM(potential=alloy))
+    julip_calc = EAM(alloy; s = 0.0)
+
+    atoms = bulk(:Pd) * 3
+    rattle!(atoms, 0.1)
+    E_jl = energy(julip_calc, atoms)
+    E_py = energy(ase_calc, atoms)
+    @test E_jl ≈ E_py rtol=1e-3
 end
