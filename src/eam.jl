@@ -16,17 +16,46 @@ function __init__()
          filename::AbstractString; kwargs...) = 
          (
             eam = ASE.Models.EAM(filename).po; # Use ASE to create calculator
-            EAM(eam.r, eam.rho, eam.Z, eam.density_data,
-                eam.embedded_data, eam.rphi_data, eam.cutoff;
+            EAM(eam.nr, eam.dr, eam.nrho, eam.drho, eam.cutoff, eam.Z, eam.density_data,
+                eam.embedded_data, eam.rphi_data;
                 kwargs...)
          )
 end
 
 """
-   EAM{T<:Real, P<:SimplePairPotential, Z<:AbstractZList} <: SitePotential
+   EAM{T, N, P1, P2, P3, Z} <: SitePotential
 
-EAM potential for multiple species.
+Generic N-species EAM potential.
 
+To create the potential, one must provide three sets of functions,
+the electron densities `ρ`, the embedding functions `F`, and the pair potentials `ϕ`.
+
+Typically, the `EAM` will be created from files that provide the tabulated
+functions to be interpolated.
+
+# Constructors:
+```
+EAM(fname::AbstractString; kwargs...)
+EAM(ϕ_file::AbstractString, ρ_file::AbstractString, F_file::AbstractString; kwargs...)
+EAM(ρ::PairPotential, F::PairPotential, ϕ::PairPotential)
+```
+
+## Constructing an EAM potential from tabulated values
+
+When using tabulated values, a few options are available.
+The most flexible requires `ASE.jl` be loaded in the current session.
+This provides a constructor that uses ase to read the files and provide the data.
+This is the recommended option for `.fs` and `.alloy`.
+`.adp` is available within ase but is not implemented here.
+By default, the fits match ASE and use
+
+Without using `ASE.jl`, a single species EAM is available which uses either a `.fs`
+or three `.plt` files.
+
+Files can e.g. be obtained from
+* [NIST](https://www.ctcms.nist.gov/potentials/)
+
+# Implementation
 `ρ` can be a `Vector`  or a `Matrix`, depending on the symmetry of the density function.
 `.fs` files can provide an assymmetric density.
 """
@@ -65,13 +94,18 @@ function EAM(fname::AbstractString; kwargs...)
 end
 
 """
-   EAM(r::Vector, rho::Vector, Z::Vector{<:Integer}, density::Matrix,
-       embedded::Matrix, rphi::Array{T,3}, cutoff::T; kwargs...) where {T}
+   EAM(nr::Integer, dr::Real, nrho::Integer, drho::Real, cutoff::Real,
+             Z::Vector{<:Integer}, density::AbstractArray,
+             embedded::AbstractMatrix, rphi::AbstractArray{<:Real,3}; kwargs...)
 
 Constructor for the EAM using the data extracted from the parameters file by ASE.
 """
-function EAM(r::AbstractVector, rho::AbstractVector, Z::Vector{<:Integer}, density::AbstractArray,
-             embedded::Matrix, rphi::Array{T,3}, cutoff::T; kwargs...) where {T}
+function EAM(nr::Integer, dr::Real, nrho::Integer, drho::Real, cutoff::Real,
+             Z::Vector{<:Integer}, density::AbstractArray,
+             embedded::AbstractMatrix, rphi::AbstractArray{<:Real,3}; kwargs...)
+
+   r = range(0, step=dr, length=nr)
+   rho = range(0, step=drho, length=nrho)
 
    # Copy data to ensure symmetry in the pair potential
    if size(rphi)[1] > 1
@@ -113,18 +147,23 @@ function fit_splines!(out, x, y; kwargs...)
 end
 
 """
-   EAM(fpair::AbstractString, feden::AbstractString,
-       fembed::AbstractString; kwargs...)
+   EAM(ϕ_file::AbstractString, ρ_file::AbstractString,
+             F_file::AbstractString; kwargs...)
 
-Constructor for single species from multiple files.
-
-Provides same energies and forces as existing EAM1.
+Constructor for single species EAM from multiple files.
 """
-function EAM(fpair::AbstractString, feden::AbstractString,
-             fembed::AbstractString; kwargs...)
-   ρ = SplinePairPotential(feden; kwargs...)
-   ϕ = SplinePairPotential(fpair; kwargs...)
-   F = SplinePairPotential(fembed; fixcutoff = false, kwargs...)
+function EAM(ϕ_file::AbstractString, ρ_file::AbstractString,
+             F_file::AbstractString; kwargs...)
+   ρ = SplinePairPotential(ρ_file; kwargs...)
+   ϕ = SplinePairPotential(ϕ_file; kwargs...)
+   F = SplinePairPotential(F_file; kwargs...)
+   EAM(ρ, F, ϕ)
+end
+
+"""
+Constructor for single species EAM.
+"""
+function EAM(ρ::PairPotential, F::PairPotential, ϕ::PairPotential)
    EAM([ρ], [F], hcat(ϕ), ZList([JuLIP.Chemistry.__zAny__]), max(cutoff(ϕ), cutoff(ρ)))
 end
 
@@ -358,18 +397,17 @@ end
 # ================= Finnis-Sinclair Potential =======================
 
 
-mutable struct FSEmbed end
+mutable struct FSEmbed <: SimplePairPotential end
 @pot FSEmbed
-evaluate(V::FSEmbed, ρ̄) = - sqrt(ρ̄)
-evaluate_d(V::FSEmbed, ρ̄::T) where {T} = - T(0.5) / sqrt(ρ̄)
-evaluate_dd(V::FSEmbed, ρ̄::T) where {T} = T(0.25) * ρ̄^(T(-3/2))
+evaluate(::FSEmbed, ρ̄::Real) = - sqrt(ρ̄)
+evaluate_d(::FSEmbed, ρ̄::T) where {T<:Real} = - T(0.5) / sqrt(ρ̄)
+evaluate_dd(::FSEmbed, ρ̄::T) where {T<:Real} = T(0.25) * ρ̄^(T(-3/2))
 
 """
 `FinnisSinclair`: constructs an EAM potential with embedding function
 -√ρ̄.
 """
-FinnisSinclair(pair::PairPotential, eden::PairPotential) =
-   EAM1(pair, eden, FSEmbed())
+FinnisSinclair(pair::PairPotential, eden::PairPotential) = EAM(eden, FSEmbed(), pair)
 
 function FinnisSinclair(fpair::AbstractString, feden::AbstractString; kwargs...)
    pair = SplinePairPotential(fpair; kwargs...)
