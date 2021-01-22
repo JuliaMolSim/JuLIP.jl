@@ -17,7 +17,8 @@ function __init__()
          (
             eam = ASE.Models.EAM(filename).po; # Use ASE to create calculator
             EAM(eam.r, eam.rho, eam.Z, eam.density_data,
-                eam.embedded_data, eam.rphi_data, eam.cutoff)
+                eam.embedded_data, eam.rphi_data, eam.cutoff;
+                kwargs...)
          )
 end
 
