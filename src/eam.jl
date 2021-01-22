@@ -115,7 +115,7 @@ function EAM(nr::Integer, dr::Real, nrho::Integer, drho::Real, cutoff::Real,
       end
    end
 
-   zlist = ZList(Z, order=false)
+   zlist = ZList(Z, sorted=false)
    ρ = allocate_array(density)
    F = allocate_array(embedded)
    rϕ = allocate_array(rphi)

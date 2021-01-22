@@ -62,7 +62,7 @@ at = bulk(:Fe, cubic=true) * 2
 set_pbc!(at, false)
 eam = eam_Fe
 set_calculator!(at, eam)
-rattle!(at, 0.0)
+rattle!(at, 0.1)   # tests pass with 0.0!!
 
 h3("test a single stencil")
 r = []

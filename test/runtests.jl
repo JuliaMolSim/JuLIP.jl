@@ -1,5 +1,5 @@
 
-using JuLIP, Test, Printf, ASE 
+using ASE, JuLIP, Test, Printf
 using JuLIP.Testing
 
 h0("   JuLIP Tests   ")
@@ -19,7 +19,7 @@ eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.p
 print(" .")
 eam_W = JuLIP.Potentials.FinnisSinclair(data*"W-pair-Wang-2014.plt", data*"W-e-dens-Wang-2014.plt")
 print(" .")
-eam_PdAgH = JuLIP.Potentials.EAM(data * "PdAgH_HybridPd3Ag.eam.alloy")
+eam_PdAgH = JuLIP.Potentials.eam_from_ase(data * "PdAgH_HybridPd3Ag.eam.alloy")
 print(".")
 global eam_W4
 try

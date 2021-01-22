@@ -131,14 +131,11 @@ struct SZList{N} <: AbstractZList
    list::SVector{N, AtomicNumber}
 end
 
-function ZList(zlist::AbstractVector{<: Number}; static = false, order=true)
-   if order
-      (static ? SZList(SVector( (AtomicNumber.(sort(zlist)))... ))
-            :  ZList( convert(Vector{AtomicNumber}, sort(zlist)) ))
-   else
-      (static ? SZList(SVector( (AtomicNumber.(zlist))... ))
-            :  ZList( convert(Vector{AtomicNumber}, zlist) ))
-   end
+function ZList(zlist::AbstractVector{<: Number};
+               static = false, sorted=true)
+   sortfun = sorted ? sort : identity
+   return (static ? SZList(SVector( (AtomicNumber.(sortfun(zlist)))... ))
+                  :  ZList( convert(Vector{AtomicNumber}, sortfun(zlist)) ))
 end
 
 ZList(s::Symbol; kwargs...) =
@@ -156,7 +153,7 @@ i2z(Zs::AbstractZList, i::Integer) = Zs.list[i]
 function z2i(Zs::AbstractZList, z::AtomicNumber)
    if Zs.list[1] == JuLIP.Chemistry.__zAny__
       return 1
-   end 
+   end
    for j = 1:length(Zs.list)
       if Zs.list[j] == z
          return j
