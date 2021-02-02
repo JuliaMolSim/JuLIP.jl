@@ -20,7 +20,7 @@ println( @test (@show maximum(abs.(ddJ .- ddJh))) < 1e-4 )
 
 h3("test `hess`; with two test vectors")
 for R in ( [0.0,-3.61,-3.61], [-1.805,-1.805,-3.61] )
-   r = norm(R)
+   local r = norm(R)
    @show r, R
    E0 = pp(r)
    # f0 = grad(pp, r, JVecF(R))
@@ -62,7 +62,7 @@ at = bulk(:Fe, cubic=true) * 2
 set_pbc!(at, false)
 eam = eam_Fe
 set_calculator!(at, eam)
-rattle!(at, 0.1)
+rattle!(at, 0.1)   # tests pass with 0.0!!
 
 h3("test a single stencil")
 r = []
@@ -76,8 +76,8 @@ for (idx, _j, R1) in sites(at, cutoff(eam))
 end
 
 # evaluate site gradient and hessian
-dVs = evaluate_d(eam, R)
-hVs = evaluate_dd(eam, R)
+dVs = evaluate_d(eam, R, at.Z, Potentials.i2z(eam, 1))
+hVs = evaluate_dd(eam, R, at.Z, Potentials.i2z(eam, 1))
 # and convert them to vector form
 dV = mat(dVs)[:]
 hV = zeros(3*size(hVs,1), 3*size(hVs,2))
@@ -92,8 +92,8 @@ for p = 2:9
    hVh = fill(0.0, size(hV))
    for n = 1:length(matR)
       matR[n] += h
-      r = norm.(R)
-      dVh = mat(evaluate_d(eam, R))[:]
+      local r = norm.(R)
+      dVh = mat(evaluate_d(eam, R, at.Z, Potentials.i2z(eam, 1)))[:]
       hVh[:, n] = (dVh - dV) / h
       matR[n] -= h
    end
@@ -109,7 +109,6 @@ h3(" ... EAM forces")
 println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
 h3(" ... EAM hessian")
 println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
-
 
 ##
 

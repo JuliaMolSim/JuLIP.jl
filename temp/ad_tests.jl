@@ -105,8 +105,8 @@ J1 ≈ J
 using JuLIP, Test, Printf, LinearAlgebra, SparseArrays, ForwardDiff
 using JuLIP.Potentials, JuLIP.Testing
 
-data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
-eam_Fe = JuLIP.Potentials.EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt")
+test_pots = joinpath(datadep"JuLIP_testpots", "JuLIP_data") * "/"
+eam_Fe = JuLIP.Potentials.EAM(test_pots * "pfe.plt", test_pots * "ffe.plt", test_pots * "F_fe.plt")
 
 
 ##

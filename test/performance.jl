@@ -34,10 +34,10 @@ perfbm("LENNARD-JONES",
          bulk(:Al, cubic=true) * (10,10,8),
          lennardjones(r0=rnn(:Al)) )
 
-data = joinpath(dirname(@__FILE__), "..", "data") * "/"
+test_pots = joinpath(datadep"JuLIP_testpots", "JuLIP_data") * "/"
 perfbm("EAM (Splines)",
          bulk(:Fe, cubic=true) * (12,12,8),
-         EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt") )
+         EAM(test_pots * "pfe.plt", test_pots * "ffe.plt", test_pots * "F_fe.plt") )
 
 perfbm("STILLINGER-WEBER",
          bulk(:Si, cubic=true) * (12,15,12),
@@ -74,3 +74,24 @@ JuLIP.energy!(tmp, calc, at)
 # Energy Assembly (with nlist):      86.708 ms (410401 allocations: 69.01 MiB)
 # Force Assembly (without nlist):    87.153 ms (411005 allocations: 67.34 MiB)
 # Force Assembly (with nlist):       91.166 ms (410672 allocations: 69.42 MiB)
+
+#= Performance after EAM changes.
+--------------------------------------------------------------------------
+LENNARD-JONES
+Energy Assembly (without nlist):   3.146 ms (6 allocations: 2.28 KiB)
+Energy Assembly (with nlist):      48.740 ms (57127 allocations: 36.55 MiB)
+Force Assembly (without nlist):    5.892 ms (7 allocations: 79.31 KiB)
+Force Assembly (with nlist):       51.531 ms (57139 allocations: 36.63 MiB)
+--------------------------------------------------------------------------
+EAM (Splines)
+Energy Assembly (without nlist):   217.549 ms (4 allocations: 1.69 KiB)
+Energy Assembly (with nlist):      238.427 ms (40496 allocations: 17.47 MiB)
+Force Assembly (without nlist):    1.357 s (7 allocations: 57.22 KiB)
+Force Assembly (with nlist):       1.398 s (40528 allocations: 18.23 MiB)
+--------------------------------------------------------------------------
+STILLINGER-WEBER
+Energy Assembly (without nlist):   2.526 ms (6 allocations: 592 bytes)
+Energy Assembly (with nlist):      36.546 ms (304948 allocations: 32.84 MiB)
+Force Assembly (without nlist):    7.245 ms (14 allocations: 406.56 KiB)
+Force Assembly (with nlist):       41.252 ms (304844 allocations: 33.23 MiB
+=#

@@ -78,7 +78,7 @@ function _coo_append!(I, J, Z, atinds, A)
    return nothing
 end
 
-function ad_hessian(V::SimpleSitePotential, at::Atoms{T}) where {T}
+function ad_hessian(V::SitePotential, at::Atoms{T}) where {T}
    # triplet format
    I, J, Z = Int[], Int[], T[]
 
@@ -86,7 +86,7 @@ function ad_hessian(V::SimpleSitePotential, at::Atoms{T}) where {T}
    maxN = maxneigs(nlist)
 
    for (i0, neigs, Rs) in sites(nlist)
-      Hsite = ad_site_hessian(V, Rs)
+      Hsite = ad_site_hessian(V, Rs, at.Z, at.Z[i0])
       _coo_append!(I, J, Z, [ [i0]; neigs ], Hsite)
    end
 
@@ -100,11 +100,16 @@ end
 
 _dV2conf(dV) = mat([[- sum(dV)]; dV])[:]
 
-function ad_site_hessian(V::SimpleSitePotential, Rs)
-   dVx = x -> _dV2conf(evaluate_d(V, _conf2env(x)))
+# function ad_site_hessian(V::SimpleSitePotential, Rs, Zs, z0)
+#    dVx = x -> _dV2conf(evaluate_d(V, _conf2env(x)))
+#    return ForwardDiff.jacobian(dVx, [ zeros(3); mat(Rs)[:] ])
+# end
+
+# I think this form of evaluate_d automatically forwards to the above with SimpleSitePotential
+function ad_site_hessian(V::SitePotential, Rs, Zs, z0)
+   dVx = x -> _dV2conf(evaluate_d(V, _conf2env(x), Zs, z0))
    return ForwardDiff.jacobian(dVx, [ zeros(3); mat(Rs)[:] ])
 end
-
 
 
 # ====== TODO: revisit the FD hessians =========

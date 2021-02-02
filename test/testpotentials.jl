@@ -6,22 +6,19 @@ using LinearAlgebra
 
 ##
 pairpotentials = [
-   LennardJones(1.0,1.0);
-   Morse(4.0,1.0,1.0);
-   SWCutoff(1.0, 3.0) * LennardJones(1.0,1.0);
-   SplineCutoff(2.0, 3.0) * LennardJones(1.0,1.0);
-   LennardJones(1.0, 1.0) * C2Shift(2.0)
+   ("LennardJones", LennardJones(1.0,1.0)),
+   ("Morse", Morse(4.0,1.0,1.0)),
+   ("SWCutoff * LennardJones", SWCutoff(1.0, 3.0) * LennardJones(1.0,1.0)),
+   ("SplineCutoff * LennardJones", SplineCutoff(2.0, 3.0) * LennardJones(1.0,1.0)),
+   ("LennardJones * C2Shift", LennardJones(1.0, 1.0) * C2Shift(2.0)),
+   ("EAM.phi", eam_W4.ϕ[1])
 ]
-
-if eam_W4 != nothing
-   push!(pairpotentials, eam_W4.ϕ)
-end
 
 h2("Testing pair potential implementations")
 r = range(0.8, stop=4.0, length=100) |> collect
 push!(r, 2.0-1e-12)
-for pp in pairpotentials
-   h3(pp)
+for (name, pp) in pairpotentials
+   h3(name)
    println(@test fdtest(pp, r, verbose=verbose))
 end
 
@@ -72,16 +69,18 @@ at9 = set_pbc!( bulk(:Fe, cubic = true), false ) * 2
 eam = eam_Fe
 push!(calculators, (eam, at9))
 
-if eam_W4 != nothing
-   # Another EAM Potential
-   at10 = set_pbc!( bulk(:W, cubic = true), false ) * 2
-   push!(calculators, (eam_W4, at10))
-end
+# Another EAM Potential
+at10 = set_pbc!( bulk(:W, cubic = true), false ) * 2
+push!(calculators, (eam_W4, at10))
 
-if eam_W != nothing   # finnis-sinclair
-   at11 = set_pbc!( bulk(:W, cubic = true), false ) * 2
-   push!(calculators, (eam_W, at11))
-end
+at11 = set_pbc!( bulk(:W, cubic = true), false ) * 2
+push!(calculators, (eam_W, at11))
+
+at = bulk(:Pd) * 3
+at.Z[1:3:end] .= AtomicNumber(:Ag)
+at.Z[1:5:end] .= AtomicNumber(:H)
+rattle!(at, 0.1)
+push!(calculators, (eam_PdAgH, at))
 
 # JuLIP's EMT implementation
 at = set_pbc!( bulk(:Cu, cubic=true) * (2,2,2), (true,false,false) )

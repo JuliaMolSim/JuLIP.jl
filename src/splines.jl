@@ -22,7 +22,7 @@ SplinePairPotential(xdat, ydat; kwargs...)   # fit spline  from data points
 SplinePairPotential(fname; kwargs...)        # load data points from file
 ```
 Keyword arguments:
-* `s = 1e-2`: balances smoothness versus fit; basically an error bound, see Dierckx website for more info
+* `s = 0`: balances smoothness versus fit; by default this matches the fits obtained from ASE and LAMMPS
 * `fixcutoff = true`: if true, then the fit will be artificially modified at the cut-off to ensure that the transition to zero is smooth
 * `order = 3`: can use lower or higher order splines (0 <= order <= 5) but only 3 is tested
 * `w = (1.0 + ydat).^(-2)`: this gives relative weights to datapoints to ensure a good in the important regions; the intuition behind the default choice is that is prevents overfitting at very high energies which are not physical anyhow, but ensure that sufficient data points are used in the low energy region.
@@ -65,7 +65,7 @@ end
 
 
 
-function SplinePairPotential(xdat, ydat; s = 1e-2, fixcutoff=true, order=3,
+function SplinePairPotential(xdat, ydat; s = 0, fixcutoff=true, order=3,
                              w = (1.0 .+ abs.(ydat)).^(-2))
    # this creates a "fit" with s determining the balance between smoothness
    # and fitting the data (basically an error bound)

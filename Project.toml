@@ -6,6 +6,7 @@ version = "0.10.2"
 AlgebraicMultigrid = "2169fc97-5a83-5252-b627-83903c6c433c"
 Calculus = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 CommonSubexpressions = "bbf7d656-a473-5ed7-a52c-81e309532950"
+DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Dierckx = "39dd38d3-220a-591b-8e3c-4c3a8c710a94"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
@@ -18,6 +19,7 @@ NeighbourLists = "2fcf5ba9-9ed4-57cf-b73f-ff513e316b9c"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
@@ -25,11 +27,14 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
+DataDeps = "0.7"
 NeighbourLists = "≥ 0.5.0"
 julia = "1"
 
 [extras]
+ASE = "51974c44-a7ed-5088-b8be-3e78c8ba416c"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [targets]
-test = ["BenchmarkTools"]
+test = ["ASE", "BenchmarkTools", "Random"]
