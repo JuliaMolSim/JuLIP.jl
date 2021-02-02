@@ -34,10 +34,10 @@ perfbm("LENNARD-JONES",
          bulk(:Al, cubic=true) * (10,10,8),
          lennardjones(r0=rnn(:Al)) )
 
-data = joinpath(dirname(@__FILE__), "..", "data") * "/"
+test_pots = joinpath(datadep"JuLIP_testpots", "JuLIP_data") * "/"
 perfbm("EAM (Splines)",
          bulk(:Fe, cubic=true) * (12,12,8),
-         EAM(data * "pfe.plt", data * "ffe.plt", data * "F_fe.plt") )
+         EAM(test_pots * "pfe.plt", test_pots * "ffe.plt", test_pots * "F_fe.plt") )
 
 perfbm("STILLINGER-WEBER",
          bulk(:Si, cubic=true) * (12,15,12),

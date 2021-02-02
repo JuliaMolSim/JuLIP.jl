@@ -20,7 +20,7 @@ println( @test (@show maximum(abs.(ddJ .- ddJh))) < 1e-4 )
 
 h3("test `hess`; with two test vectors")
 for R in ( [0.0,-3.61,-3.61], [-1.805,-1.805,-3.61] )
-   r = norm(R)
+   local r = norm(R)
    @show r, R
    E0 = pp(r)
    # f0 = grad(pp, r, JVecF(R))
@@ -92,7 +92,7 @@ for p = 2:9
    hVh = fill(0.0, size(hV))
    for n = 1:length(matR)
       matR[n] += h
-      r = norm.(R)
+      local r = norm.(R)
       dVh = mat(evaluate_d(eam, R, at.Z, Potentials.i2z(eam, 1)))[:]
       hVh[:, n] = (dVh - dV) / h
       matR[n] -= h
