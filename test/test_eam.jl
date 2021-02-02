@@ -7,9 +7,10 @@ data = joinpath(dirname(pathof(JuLIP)), "..", "data") * "/"
     using ASE
     import Random
 
-    alloy = data * "PdAgH_HybridPd3Ag.eam.alloy"
-    eam_fs = data * "Fe-P.eam.fs"
-    Ni = data * "Ni.eam.fs"
+    test_pots = joinpath(datadep"JuLIP_testpots", "JuLIP_data") * "/"
+    alloy = test_pots * "PdAgH_HybridPd3Ag.eam.alloy"
+    eam_fs = test_pots * "Fe-P.eam.fs"
+    Ni = test_pots * "Ni.eam.fs"
 
     @test EAM(alloy) isa EAM{T, 1} where {T}
     @test EAM(eam_fs) isa EAM{T, 2} where {T}
