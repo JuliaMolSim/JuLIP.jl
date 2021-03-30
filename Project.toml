@@ -30,6 +30,7 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 [compat]
 DataDeps = "0.7"
 NeighbourLists = "≥ 0.5.0"
+ACEbase = "0.1.1"
 julia = "1"
 
 [extras]
