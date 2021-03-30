@@ -1,6 +1,7 @@
 
 using JuLIP, Test
 using JuLIP.Testing
+using JuLIP.FIO
 
 h3("Testing single `Atoms` <-> `Dict`")
 at = bulk(:Cu, cubic=true) * 3

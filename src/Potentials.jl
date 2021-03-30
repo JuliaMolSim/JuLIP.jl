@@ -40,21 +40,14 @@ import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energy, site_energy_d,
               energy!, forces!, virial!,
               alloc_temp, alloc_temp_d, alloc_temp_dd,
-              read_dict, write_dict, fltype, rfltype
+              read_dict, write_dict, fltype, rfltype,
+              evaluate, evaluate_d, evaluate_dd, evaluate_ed,
+              evaluate!, evaluate_d!, evaluate_dd!, evaluate_ed!,
+              precon!
 
 export PairPotential, SitePotential, ZeroSitePotential
 
-# the following are prototypes for internal functions around which IPs are
-# defined
 
-function evaluate end
-function evaluate_d end
-function evaluate_ed end
-function evaluate_dd end
-function evaluate! end
-function evaluate_d! end
-function evaluate_dd! end
-function precon! end
 
 
 include("potentials_base.jl")

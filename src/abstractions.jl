@@ -5,6 +5,13 @@ import Base: length, getindex, setindex!, deleteat!
 
 import NeighbourLists: cutoff
 
+import ACEbase: fltype, fltype_intersect, rfltype,
+                alloc_temp, alloc_temp_d, alloc_temp_dd,
+                evaluate, evaluate_d, evaluate_dd, evaluate_ed,
+                evaluate!, evaluate_d!, evaluate_dd!, evaluate_ed!,
+                precon!
+
+
 # function defined primarily on AbstractAtoms
 export positions, get_positions, set_positions!,
        momenta, get_momenta, set_momenta!,
@@ -39,31 +46,8 @@ function atomic_numbers end
 function site_energy_d end
 function partial_energy_d end
 
-"""
-`function fltype end`
-
-Return the output floating point type employed by some object, typically a
-calculator or basis.
-"""
-function fltype end
-
-"""
-`function rfltype end`
-
-Return the real floating point type employed by some object,
-typically a calculator or basis, this is normally the same as fltype, but
-it can be difference e.g. `rfltype = real ∘ flype
-"""
-rfltype(args...) = real(fltype(args...))
 
 
-fltype(T::DataType) = T
-
-fltype_intersect(o1, o2) =
-   fltype_intersect(fltype(o1), fltype(o2))
-
-fltype_intersect(T1::DataType, T2::DataType) =
-   typeof(one(T1) * one(T2))
 
 
 
@@ -515,19 +499,6 @@ preconditioner(at::AbstractAtoms, calc::AbstractCalculator) = I
 ## Experimental Prototypes for in-place versions
 #######################################################################
 
-"""
-`alloc_temp(args...)` : allocate temporary arrays for the evaluation of
-some calculator or potential; see developer docs for more information
-"""
-alloc_temp(args...) = nothing
-
-"""
-`alloc_temp_d(args...)` : allocate temporary arrays for the evaluation of
-some calculator or potential; see developer docs for more information
-"""
-alloc_temp_d(args...) = nothing
-
-alloc_temp_dd(args...) = nothing
 
 """
 `energy!`: non-allocating version of `energy`
