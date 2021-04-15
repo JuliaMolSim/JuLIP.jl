@@ -14,9 +14,11 @@ import JuLIP:      energy, forces, virial, site_energy, site_energy_d,
 
 import JuLIP.Potentials: site_virial
 
+import ACEbase: combine
+
 import Base:       ==
 
-export IPSuperBasis, IPCollection, combine
+export IPSuperBasis, IPCollection, combine 
 
 abstract type AbstractBasis <: AbstractCalculator end
 
