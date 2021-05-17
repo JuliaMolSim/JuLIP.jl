@@ -151,7 +151,6 @@ end
 
 cutoff(::ZeroSitePotential) = Bool(0)
 energy(V::ZeroSitePotential, at::AbstractAtoms{T}; kwargs...) where T = zero(T)
-energy_t(V::ZeroSitePotential, at::AbstractAtoms{T}; kwargs...) where T = zero(T)
 forces(V::ZeroSitePotential, at::AbstractAtoms{T}; kwargs...) where T = zeros(JVec{T}, length(at))
 evaluate!(tmp, p::ZeroSitePotential, args...) = Bool(0)
 evaluate_d!(dEs, tmp, V::ZeroSitePotential, args...) = fill!(dEs, zero(eltype(dEs)))
@@ -188,8 +187,13 @@ alloc_temp_dd(V::SitePotential, args...) = nothing
 #                for a generic site potential
 
 
-energy(V::SitePotential, at::AbstractAtoms; kwargs...) =
-      energy!(alloc_temp(V, at), V, at; kwargs...)
+# energy(V::SitePotential, at::AbstractAtoms; kwargs...) =
+#       energy!(alloc_temp(V, at), V, at; kwargs...)
+
+function energy(V::SitePotential, at::AbstractAtoms; kwargs...) 
+      tmp = [alloc_temp(V, at) for i in 1:nthreads()]
+      return energy!(tmp, V, at; kwargs...)
+end
 
 virial(V::SitePotential, at::AbstractAtoms; kwargs...) =
       virial!(alloc_temp_d(V, at), V, at; kwargs...)
@@ -198,34 +202,40 @@ forces(V::SitePotential, at::AbstractAtoms; kwargs...) =
       forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
               alloc_temp_d(V, at), V, at; kwargs...)
 
-energy_t(V::SitePotential, at::AbstractAtoms; kwargs...) =
-      energy_t!(alloc_temp(V, at), V, at; kwargs...)
-
 virial_t(V::SitePotential, at::AbstractAtoms; kwargs...) =
       virial_t!(alloc_temp_d(V, at), V, at; kwargs...)
-
-forces_t(V::SitePotential, at::AbstractAtoms; kwargs...) =
-      forces_t!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
-      alloc_temp_d(V, at), V, at; kwargs...)
 
 
 function energy!(tmp, calc::SitePotential, at::Atoms;
                  domain=1:length(at))
    TFL = fltype_intersect(calc, at)
-   E = zero(TFL)
    nlist = neighbourlist(at, cutoff(calc))
-   for i in domain
-      j, R, Z = neigsz!(tmp, nlist, at, i)
-      E += evaluate!(tmp, calc, R, Z, at.Z[i])
+   num_threads = nthreads()
+   if num_threads == 1
+      Etot = zero(TFL)
+      for i in domain
+            j, R, Z = neigsz!(tmp[1], nlist, at, i)
+            Etot += evaluate!(tmp[1], calc, R, Z, at.Z[i])
+      end
+   else
+      E = zeros(TFL, num_threads)
+      @threads for i in domain
+         j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
+         @inbounds E[threadid()] += evaluate!(tmp[threadid()], calc, R, Z, at.Z[i])
+      end
+      Etot = zero(TFL)
+      for i in eachindex(E)
+         @inbounds Etot += E[i]
+      end
    end
-   return E
+   return Etot
 end
 
 function energy_t!(tmp, calc::SitePotential, at::Atoms;
                    domain=1:length(at))
-   nthreads = nthreads()
+   num_threads = nthreads()      #parse(Int, ENV["JULIA_PARALLEL_THREADS"])
    TFL = fltype_intersect(calc, at)
-   E = zeros(TFL, nthreads())
+   E = zeros(TFL, num_threads)
    nlist = neighbourlist(at, cutoff(calc))
    @threads for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)

@@ -37,7 +37,6 @@ function site_energies(V::OneBody, at::AbstractAtoms{T}) where {T}
 end
 
 energy(V::OneBody, at::AbstractAtoms) = sum(site_energies(V, at))
-energy_t(V::OneBody, at::AbstractAtoms) = sum(site_energies(V, at))
 
 forces(V::OneBody, at::AbstractAtoms{T}) where {T} = zeros(JVec{T}, length(at))
 

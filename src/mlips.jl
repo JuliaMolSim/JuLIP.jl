@@ -7,7 +7,7 @@ module MLIPs
 
 using JuLIP:       AbstractCalculator, AbstractAtoms, JVec, AtomicNumber, JMat
 
-import JuLIP:      energy, energy_t, forces, virial, site_energy, site_energy_d,
+import JuLIP:      energy, forces, virial, site_energy, site_energy_d,
                    alloc_temp, alloc_temp_d, evaluate, evaluate_d,
                    evaluate!, evaluate_d!, evaluate_ed,
                    read_dict, write_dict, fltype, rfltype
@@ -93,8 +93,6 @@ combine(basis::IPCollection, coeffs::AbstractVector{<:Number}) =
 
 energy(coll::IPCollection, at::AbstractAtoms) =
          [ energy(B, at) for B in coll.coll ]
-energy_t(coll::IPCollection, at::AbstractAtoms) =
-         [ energy_t(B, at) for B in coll.coll ]   ## MAYBE need to thread parallelise this
 forces(coll::IPCollection, at::AbstractAtoms) =
          [ forces(B, at) for B in coll.coll ]
 virial(coll::IPCollection, at::AbstractAtoms) =
@@ -144,8 +142,6 @@ end
 
 energy(superB::IPSuperBasis, at::AbstractAtoms) =
          vcat([ energy(B, at) for B in superB.BB ]...)
-energy_t(superB::IPSuperBasis, at::AbstractAtoms) =
-         vcat([ energy_t(B, at) for B in superB.BB ]...)  ## MAYBE need to thread parallelisle this? 
 forces(superB::IPSuperBasis, at::AbstractAtoms) =
          vcat([ forces(B, at) for B in superB.BB ]...)
 virial(superB::IPSuperBasis, at::AbstractAtoms) =
@@ -175,8 +171,6 @@ SumIP(args...) = SumIP([args...])
 
 energy(sumip::SumIP, at::AbstractAtoms; kwargs...) =
          sum(energy(calc, at; kwargs...) for calc in sumip.components)
-energy_t(sumip::SumIP, at::AbstractAtoms; kwargs...) =
-         sum(energy_t(calc, at; kwargs...) for calc in sumip.components)
 forces(sumip::SumIP, at::AbstractAtoms; kwargs...) =
          sum(forces(calc, at; kwargs...) for calc in sumip.components)
 virial(sumip::SumIP, at::AbstractAtoms; kwargs...) =
@@ -226,9 +220,6 @@ function energy(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    end
    return E
 end
-
-energy_t(shipB::IPBasis, at::AbstractAtoms{T}) where {T} =
-   energy(shipB::IPBasis, at::AbstractAtoms{T}) 
 
 
 function forces(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
