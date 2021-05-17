@@ -35,6 +35,8 @@ using LinearAlgebra: norm
 
 using SparseArrays: sparse
 
+using .Threads
+
 import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum,
               site_energy, site_energy_d,
@@ -149,6 +151,7 @@ end
 
 cutoff(::ZeroSitePotential) = Bool(0)
 energy(V::ZeroSitePotential, at::AbstractAtoms{T}; kwargs...) where T = zero(T)
+energy_t(V::ZeroSitePotential, at::AbstractAtoms{T}; kwargs...) where T = zero(T)
 forces(V::ZeroSitePotential, at::AbstractAtoms{T}; kwargs...) where T = zeros(JVec{T}, length(at))
 evaluate!(tmp, p::ZeroSitePotential, args...) = Bool(0)
 evaluate_d!(dEs, tmp, V::ZeroSitePotential, args...) = fill!(dEs, zero(eltype(dEs)))
@@ -220,18 +223,19 @@ end
 
 function energy_t!(tmp, calc::SitePotential, at::Atoms;
                    domain=1:length(at))
-   #nthreads = Threads.nthreads()
+   nthreads = nthreads()
    TFL = fltype_intersect(calc, at)
    E = zeros(TFL, nthreads())
-   Threads.@threads for i in eachindex(domain)
-      @inbounds E[Threads.threadid()] += domain[i]
-   end
    nlist = neighbourlist(at, cutoff(calc))
-   for i in domain
+   @threads for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
-      E += evaluate!(tmp, calc, R, Z, at.Z[i])
+      @inbounds E[threadid()] += evaluate!(tmp, calc, R, Z, at.Z[i])
    end
-   return E
+   Etot = zero(TFL)
+   for i in eachindex(E)
+      @inbounds Etot += E[i]
+   end
+   return Etot
 end
 
 function forces!(frc, tmp, calc::SitePotential, at::Atoms;
