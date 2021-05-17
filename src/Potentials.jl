@@ -198,9 +198,15 @@ end
 virial(V::SitePotential, at::AbstractAtoms; kwargs...) =
       virial!(alloc_temp_d(V, at), V, at; kwargs...)
 
-forces(V::SitePotential, at::AbstractAtoms; kwargs...) =
-      forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
-              alloc_temp_d(V, at), V, at; kwargs...)
+# forces(V::SitePotential, at::AbstractAtoms; kwargs...) =
+#       forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
+#               alloc_temp_d(V, at), V, at; kwargs...)
+
+function forces(V::SitePotential, at::AbstractAtoms; kwargs...) 
+      tmp = [alloc_temp_d(V, at) for i in 1:nthreads()]
+      return forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
+              tmp, V, at; kwargs...)
+end
 
 virial_t(V::SitePotential, at::AbstractAtoms; kwargs...) =
       virial_t!(alloc_temp_d(V, at), V, at; kwargs...)
@@ -231,36 +237,33 @@ function energy!(tmp, calc::SitePotential, at::Atoms;
    return Etot
 end
 
-function energy_t!(tmp, calc::SitePotential, at::Atoms;
-                   domain=1:length(at))
-   num_threads = nthreads()      #parse(Int, ENV["JULIA_PARALLEL_THREADS"])
-   TFL = fltype_intersect(calc, at)
-   E = zeros(TFL, num_threads)
-   nlist = neighbourlist(at, cutoff(calc))
-   @threads for i in domain
-      j, R, Z = neigsz!(tmp, nlist, at, i)
-      @inbounds E[threadid()] += evaluate!(tmp, calc, R, Z, at.Z[i])
-   end
-   Etot = zero(TFL)
-   for i in eachindex(E)
-      @inbounds Etot += E[i]
-   end
-   return Etot
-end
-
 function forces!(frc, tmp, calc::SitePotential, at::Atoms;
                  domain=1:length(at), reset=true)
-   TFL = fltype_intersect(calc, at)
    if reset; fill!(frc, zero(eltype(frc))); end
    nlist = neighbourlist(at, cutoff(calc))
-   for i in domain
-      j, R, Z = neigsz!(tmp, nlist, at, i)
-      if length(j) > 0
-         evaluate_d!(tmp.dV, tmp, calc, R, Z, at.Z[i])
-         for a = 1:length(j)
-            frc[j[a]] -= tmp.dV[a]
-            frc[i]    += tmp.dV[a]
-         end
+   TFL = fltype_intersect(calc, at)
+   num_threads = nthreads()
+   if num_threads ==1
+      for i in domain
+            j, R, Z = neigsz!(tmp[1], nlist, at, i)
+            if length(j) > 0
+               evaluate_d!(tmp[1].dV, tmp[1], calc, R, Z, at.Z[i])
+               for a = 1:length(j)
+                  frc[j[a]] -= tmp[1].dV[a]
+                  frc[i]    += tmp[1].dV[a]
+               end
+            end
+      end
+   else
+      @threads for i in domain
+            j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
+            if length(j) > 0
+               evaluate_d!(tmp[threadid()].dV, tmp[threadid()], calc, R, Z, at.Z[i])
+               for a = 1:length(j)
+                  frc[j[a]] -= tmp[threadid()].dV[a]
+                  frc[i]    += tmp[threadid()].dV[a]
+               end
+            end
       end
    end
    return frc
