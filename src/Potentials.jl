@@ -195,11 +195,37 @@ forces(V::SitePotential, at::AbstractAtoms; kwargs...) =
       forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
               alloc_temp_d(V, at), V, at; kwargs...)
 
+energy_t(V::SitePotential, at::AbstractAtoms; kwargs...) =
+      energy_t!(alloc_temp(V, at), V, at; kwargs...)
+
+virial_t(V::SitePotential, at::AbstractAtoms; kwargs...) =
+      virial_t!(alloc_temp_d(V, at), V, at; kwargs...)
+
+forces_t(V::SitePotential, at::AbstractAtoms; kwargs...) =
+      forces_t!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
+      alloc_temp_d(V, at), V, at; kwargs...)
+
 
 function energy!(tmp, calc::SitePotential, at::Atoms;
                  domain=1:length(at))
    TFL = fltype_intersect(calc, at)
    E = zero(TFL)
+   nlist = neighbourlist(at, cutoff(calc))
+   for i in domain
+      j, R, Z = neigsz!(tmp, nlist, at, i)
+      E += evaluate!(tmp, calc, R, Z, at.Z[i])
+   end
+   return E
+end
+
+function energy_t!(tmp, calc::SitePotential, at::Atoms;
+                   domain=1:length(at))
+   #nthreads = Threads.nthreads()
+   TFL = fltype_intersect(calc, at)
+   E = zeros(TFL, nthreads())
+   Threads.@threads for i in eachindex(domain)
+      @inbounds E[Threads.threadid()] += domain[i]
+   end
    nlist = neighbourlist(at, cutoff(calc))
    for i in domain
       j, R, Z = neigsz!(tmp, nlist, at, i)
