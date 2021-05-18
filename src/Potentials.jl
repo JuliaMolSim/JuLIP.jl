@@ -191,20 +191,25 @@ alloc_temp_dd(V::SitePotential, args...) = nothing
 #       energy!(alloc_temp(V, at), V, at; kwargs...)
 
 function energy(V::SitePotential, at::AbstractAtoms; kwargs...) 
-      tmp = [alloc_temp(V, at) for i in 1:nthreads()]
-      return energy!(tmp, V, at; kwargs...)
+   tmp = [alloc_temp(V, at) for i in 1:nthreads()]
+   return energy!(tmp, V, at; kwargs...)
 end
 
-virial(V::SitePotential, at::AbstractAtoms; kwargs...) =
-      virial!(alloc_temp_d(V, at), V, at; kwargs...)
+# virial(V::SitePotential, at::AbstractAtoms; kwargs...) =
+#       virial!(alloc_temp_d(V, at), V, at; kwargs...)
+
+function virial(V::SitePotential, at::AbstractAtoms; kwargs...) 
+   tmp = [alloc_temp_d(V, at) for i in 1:nthreads()]
+   return virial!(tmp, V, at; kwargs...)
+end
 
 # forces(V::SitePotential, at::AbstractAtoms; kwargs...) =
 #       forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
 #               alloc_temp_d(V, at), V, at; kwargs...)
 
 function forces(V::SitePotential, at::AbstractAtoms; kwargs...) 
-      tmp = [alloc_temp_d(V, at) for i in 1:nthreads()]
-      return forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
+   tmp = [alloc_temp_d(V, at) for i in 1:nthreads()]
+   return forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
               tmp, V, at; kwargs...)
 end
 
@@ -279,15 +284,31 @@ site_virial(dV::AbstractVector{JVec{T1}}, R::AbstractVector{JVec{T2}}
 function virial!(tmp, calc::SitePotential, at::Atoms; domain=1:length(at))
    TFL = fltype_intersect(calc, at)
    nlist = neighbourlist(at, cutoff(calc))
-   vir = zero(JMat{TFL})
-   for i in domain
-      j, R, Z = neigsz!(tmp, nlist, at, i)
-      if length(j) > 0
-         evaluate_d!(tmp.dV, tmp, calc, R, Z, at.Z[i])
-         vir += site_virial(tmp.dV, R)
+   num_threads = nthreads()
+   if num_threads ==1
+      vir_tot = zero(JMat{TFL})
+      for i in domain
+            j, R, Z = neigsz!(tmp[1], nlist, at, i)
+            if length(j) > 0
+               evaluate_d!(tmp[1].dV, tmp[1], calc, R, Z, at.Z[i])
+               vir_tot += site_virial(tmp[1].dV, R)
+            end
+         end  
+   else
+      vir = zeros(JMat{TFL}, num_threads)
+      @threads for i in domain
+            j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
+            if length(j) > 0
+            evaluate_d!(tmp[threadid()].dV, tmp[threadid()], calc, R, Z, at.Z[i])
+            vir[threadid()] += site_virial(tmp[threadid()].dV, R)
+            end
       end
-   end
-   return vir
+      vir_tot = zero(JMat{TFL})
+            for i in eachindex(vir)
+            @inbounds vir_tot += vir[i]
+            end
+      end
+   return vir_tot
 end
 
 
