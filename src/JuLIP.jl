@@ -5,6 +5,12 @@ module JuLIP
 using Reexport
 @reexport using NeighbourLists
 
+const _usethreads = Ref(true)
+function usethreads!(tf::Bool)
+   JuLIP._usethreads[] = tf
+end
+nthreads() = JuLIP._usethreads[] ? Threads.nthreads() : 1
+
 # quickly switch between Matrices and Vectors of SVectors, etc
 include("arrayconversions.jl")
 
