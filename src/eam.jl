@@ -9,6 +9,23 @@ import JuLIP
 
 export EAM
 
+# ----------- An auxiliary pair potential   ϕ(r) / r
+
+struct EAMrep{P1} <: SimplePairPotential
+   f::P1 
+end
+
+evaluate!(tmp, V::EAMrep, r) = 
+      evaluate!(tmp, V.f, r) / r
+evaluate_d!(tmp, V::EAMrep, r) = 
+      evaluate_d!(tmp, V.f, r) / r - evaluate!(tmp, V.f, r) / r^2
+evaluate_dd!(tmp, V::EAMrep, r) = (
+      evaluate_dd!(tmp, V.f, r) / r 
+      - 2*evaluate_d!(tmp, V.f, r) / r^2
+      + 2*evaluate!(tmp, V.f, r) / r^3 )
+
+# ----------------------------------------
+
 # Use Requires.jl to provide the ASE EAM constructor.
 function __init__()
    @require ASE="51974c44-a7ed-5088-b8be-3e78c8ba416c" @eval eam_from_ase(
@@ -124,7 +141,8 @@ function EAM(nr::Integer, dr::Real, nrho::Integer, drho::Real, cutoff::Real,
    fit_splines!(ρ, r, density; kwargs...)
    fit_splines!(F, rho, embedded; fixcutoff=false, kwargs...) # Nonzero cutoff
 
-   ϕ = rϕ .* Ref(@analytic r -> 1/r)
+   # ϕ = rϕ .* Ref(@analytic r -> 1/r)
+   ϕ = EAMrep.(rϕ)
 
    EAM(ρ, F, ϕ, zlist, cutoff)
 end
@@ -176,6 +194,26 @@ Choose the density function, this allows for assymmetric densities.
 select_density_function(ρ::Matrix, i0::Integer, i::Integer) = ρ[i, i0]
 select_density_function(ρ::Vector, ::Integer, i::Integer) = ρ[i]
 
+
+function _alloc_wrk(V::EAM)
+   max_wrk = 0 
+   for spls in [V.ρ, V.ϕ, V.F]
+      if eltype(spls) <: SplinePairPotential
+         max_wrk = max(max_wrk, maximum(length(spl.spl.t) for spl in spls))
+      end
+   end
+   return Vector{Float64}(undef, max_wrk)
+end
+
+
+alloc_temp(V::EAM, N::Integer, T = Float64) = 
+      (  
+         R = zeros(JVec{T}, N),
+         Z = zeros(AtomicNumber, N),
+         wrk = _alloc_wrk(V)
+      )
+
+
 function evaluate!(tmp, V::EAM, Rs, Zs, z0)
    ρ = 0.0
    Es = 0.0
@@ -183,13 +221,22 @@ function evaluate!(tmp, V::EAM, Rs, Zs, z0)
    for (R, Z) in zip(Rs, Zs)
       i = z2i(V, Z)
       r = norm(R)
-      Es += V.ϕ[i0,i](r)/2
+      Es += evaluate!(tmp.wrk, V.ϕ[i0,i], r) / 2
       density_function = select_density_function(V.ρ, i0, i)
-      ρ += density_function(r)
+      ρ += evaluate!(tmp.wrk, density_function, r)
    end
-   Es += V.F[i0](ρ)
-   Es
+   Es += evaluate!(tmp.wrk, V.F[i0], ρ)
+   return Es
 end
+
+
+alloc_temp_d(V::EAM, N::Integer, T = Float64) = 
+      (  
+         dV = zeros(JVec{T}, N),
+         R = zeros(JVec{T}, N),
+         Z = zeros(AtomicNumber, N),
+         wrk = _alloc_wrk(V)
+      )
 
 function evaluate_d!(dEs, tmp, V::EAM, Rs, Zs, z0)
    ρ = 0.0
@@ -200,22 +247,30 @@ function evaluate_d!(dEs, tmp, V::EAM, Rs, Zs, z0)
       density_function = select_density_function(V.ρ, i0, i)
       ρ += density_function(r)
    end
-   dF = @D V.F[i0](ρ)
+   # dF = @D V.F[i0](ρ)
+   dF = evaluate_d!(tmp.wrk, V.F[i0], ρ)
    for (j, (R, Z)) in enumerate(zip(Rs, Zs))
       i = z2i(V, Z)
       r = norm(R)
-      dϕ = @D V.ϕ[i0, i](r)
+      # dϕ = @D V.ϕ[i0, i](r)
+      dϕ = evaluate_d!(tmp.wrk, V.ϕ[i0, i], r)
       density_function = select_density_function(V.ρ, i0, i)
-      dρ = @D density_function(r)
+      # dρ = @D density_function(r)
+      dρ = evaluate_d!(tmp.wrk, density_function, r)
       R̂ = R/r
       dEs[j] = (dϕ/2 + dF * dρ) * R̂
    end
-   dEs
+   return dEs
 end
 
 evaluate_dd!(hEs, tmp, V::EAM, R, Z, z0) = _hess_!(hEs, tmp, V, R, Z, z0, identity)
 precon!(hEs, tmp, V::EAM, R, Z, z0, stab=0.0) = _hess_!(hEs, tmp, V, R, Z, z0, abs, stab)
-alloc_temp_dd(::EAM, N::Integer) = (∇ρ = zeros(JVecF, N), r = zeros(Float64, N))
+
+alloc_temp_dd(V::EAM, N::Integer) = 
+         ( ∇ρ = zeros(JVecF, N), 
+            r = zeros(Float64, N), 
+            wrk = _alloc_wrk(V)
+         )
 
 function hessian(calc::EAM, at::AbstractAtoms)
    if JuLIP.fixedcell(at)
@@ -235,12 +290,15 @@ function _hess_!(hEs, tmp, V::EAM, Rs::AbstractVector{JVec{T}}, Zs, z0, fabs, st
       r = norm(R)
       tmp.r[j] = r
       density_function = select_density_function(V.ρ, i0, i)
-      tmp.∇ρ[j] = @D density_function(r, R)
+      # tmp.∇ρ[j] = @D density_function(r, R)
+      tmp.∇ρ[j] = evaluate_d!(tmp.wrk, density_function, r) * (R/r)
       ρ += density_function(r)
    end
    # precompute some stuff
-   dF = @D V.F[i0](ρ)
-   ddF = @DD V.F[i0](ρ)
+   # dF = @D V.F[i0](ρ)
+   dF = evaluate_d!(tmp.wrk, V.F[i0], ρ)
+   # ddF = @DD V.F[i0](ρ)
+   ddF = evaluate_dd!(tmp.wrk, V.F[i0], ρ)
    # assemble
    for (j, (R, Z)) in enumerate(zip(Rs, Zs))
       i = z2i(V, Z)
@@ -250,10 +308,14 @@ function _hess_!(hEs, tmp, V::EAM, Rs::AbstractVector{JVec{T}}, Zs, z0, fabs, st
       end
       S = R / r
       density_function = select_density_function(V.ρ, i0, i)
-      dϕ = @D V.ϕ[i0,i](r)
-      dρ = @D density_function(r)
-      ddϕ = @DD V.ϕ[i0,i](r)
-      ddρ = @DD density_function(r)
+      # dϕ = @D V.ϕ[i0,i](r)
+      dϕ = evaluate_d!(tmp.wrk, V.ϕ[i0,i], r)
+      # dρ = @D density_function(r)
+      dρ = evaluate_d!(tmp.wrk, density_function, r)
+      # ddϕ = @DD V.ϕ[i0,i](r)
+      ddϕ = evaluate_dd!(tmp.wrk, V.ϕ[i0,i], r)
+      # ddρ = @DD density_function(r)
+      ddρ = evaluate_dd!(tmp.wrk, density_function, r)
       a = fabs(0.5 * ddϕ + dF * ddρ)
       b = fabs((0.5 * dϕ + dF *  dρ) / r)
       hEs[j,j] += ( (1-stab) * ( (a-b) * S * S' + b * I )
@@ -291,7 +353,8 @@ function eam_from_fs(fname; kwargs...)
    F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
    return EAM( [SplinePairPotential(r, ρfun; kwargs...)],
                [SplinePairPotential(ρ, F; fixcutoff=false, kwargs...)],
-               hcat(SplinePairPotential(r, ϕfun; kwargs...) * (@analytic r -> 1/r)),
+               [EAMrep(SplinePairPotential(r, ϕfun; kwargs...))], 
+               # hcat(SplinePairPotential(r, ϕfun; kwargs...) * (@analytic r -> 1/r)),
                ZList(Symbol.(info[:species])),
                info[:cutoff])
 end

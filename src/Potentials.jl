@@ -35,6 +35,8 @@ using LinearAlgebra: norm
 
 using SparseArrays: sparse
 
+using .Threads: @threads, threadid
+
 import JuLIP: energy, forces, cutoff, virial, hessian_pos, hessian,
               site_energies, r_sum,
               site_energy, site_energy_d,
@@ -185,41 +187,84 @@ alloc_temp_dd(V::SitePotential, args...) = nothing
 #                for a generic site potential
 
 
-energy(V::SitePotential, at::AbstractAtoms; kwargs...) =
-      energy!(alloc_temp(V, at), V, at; kwargs...)
+# energy(V::SitePotential, at::AbstractAtoms; kwargs...) =
+#       energy!(alloc_temp(V, at), V, at; kwargs...)
 
-virial(V::SitePotential, at::AbstractAtoms; kwargs...) =
-      virial!(alloc_temp_d(V, at), V, at; kwargs...)
+function energy(V::SitePotential, at::AbstractAtoms; kwargs...) 
+   tmp = [alloc_temp(V, at) for i in 1:JuLIP.nthreads()]
+   return energy!(tmp, V, at; kwargs...)
+end
 
-forces(V::SitePotential, at::AbstractAtoms; kwargs...) =
-      forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
-              alloc_temp_d(V, at), V, at; kwargs...)
+# virial(V::SitePotential, at::AbstractAtoms; kwargs...) =
+#       virial!(alloc_temp_d(V, at), V, at; kwargs...)
+
+function virial(V::SitePotential, at::AbstractAtoms; kwargs...) 
+   tmp = [alloc_temp_d(V, at) for i in 1:JuLIP.nthreads()]
+   return virial!(tmp, V, at; kwargs...)
+end
+
+# forces(V::SitePotential, at::AbstractAtoms; kwargs...) =
+#       forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
+#               alloc_temp_d(V, at), V, at; kwargs...)
+
+function forces(V::SitePotential, at::AbstractAtoms; kwargs...) 
+   tmp = [alloc_temp_d(V, at) for i in 1:JuLIP.nthreads()]
+   return forces!(zeros(JVec{fltype_intersect(V, at)}, length(at)),
+              tmp, V, at; kwargs...)
+end
 
 
 function energy!(tmp, calc::SitePotential, at::Atoms;
                  domain=1:length(at))
    TFL = fltype_intersect(calc, at)
-   E = zero(TFL)
    nlist = neighbourlist(at, cutoff(calc))
-   for i in domain
-      j, R, Z = neigsz!(tmp, nlist, at, i)
-      E += evaluate!(tmp, calc, R, Z, at.Z[i])
+   num_threads = JuLIP.nthreads()
+   if num_threads == 1
+      Etot = zero(TFL)
+      for i in domain
+            j, R, Z = neigsz!(tmp[1], nlist, at, i)
+            Etot += evaluate!(tmp[1], calc, R, Z, at.Z[i])
+      end
+   else
+      E = zeros(TFL, num_threads)
+      @threads for i in domain
+         j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
+         E[threadid()] += evaluate!(tmp[threadid()], calc, R, Z, at.Z[i])
+      end
+      Etot = sum(E)
    end
-   return E
+   return Etot
 end
 
 function forces!(frc, tmp, calc::SitePotential, at::Atoms;
                  domain=1:length(at), reset=true)
-   TFL = fltype_intersect(calc, at)
    if reset; fill!(frc, zero(eltype(frc))); end
    nlist = neighbourlist(at, cutoff(calc))
-   for i in domain
-      j, R, Z = neigsz!(tmp, nlist, at, i)
-      if length(j) > 0
-         evaluate_d!(tmp.dV, tmp, calc, R, Z, at.Z[i])
-         for a = 1:length(j)
-            frc[j[a]] -= tmp.dV[a]
-            frc[i]    += tmp.dV[a]
+   TFL = fltype_intersect(calc, at)
+   num_threads = JuLIP.nthreads()
+   if num_threads ==1
+      for i in domain
+            j, R, Z = neigsz!(tmp[1], nlist, at, i)
+            if length(j) > 0
+               evaluate_d!(tmp[1].dV, tmp[1], calc, R, Z, at.Z[i])
+               for a = 1:length(j)
+                  frc[j[a]] -= tmp[1].dV[a]
+                  frc[i]    += tmp[1].dV[a]
+               end
+            end
+      end
+   else
+      lk = ReentrantLock()
+      @threads for i in domain
+         j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
+         if length(j) > 0
+            evaluate_d!(tmp[threadid()].dV, tmp[threadid()], calc, R, Z, at.Z[i])
+            lock(lk) do
+               for a = 1:length(j)
+                  frc[j[a]] -= tmp[threadid()].dV[a]
+                  frc[i]    += tmp[threadid()].dV[a]
+               end
+            end
          end
       end
    end
@@ -236,15 +281,28 @@ site_virial(dV::AbstractVector{JVec{T1}}, R::AbstractVector{JVec{T2}}
 function virial!(tmp, calc::SitePotential, at::Atoms; domain=1:length(at))
    TFL = fltype_intersect(calc, at)
    nlist = neighbourlist(at, cutoff(calc))
-   vir = zero(JMat{TFL})
-   for i in domain
-      j, R, Z = neigsz!(tmp, nlist, at, i)
-      if length(j) > 0
-         evaluate_d!(tmp.dV, tmp, calc, R, Z, at.Z[i])
-         vir += site_virial(tmp.dV, R)
+   num_threads = JuLIP.nthreads()
+   if num_threads == 1
+      vir_tot = zero(JMat{TFL})
+      for i in domain
+         j, R, Z = neigsz!(tmp[1], nlist, at, i)
+         if length(j) > 0
+            evaluate_d!(tmp[1].dV, tmp[1], calc, R, Z, at.Z[i])
+            vir_tot += site_virial(tmp[1].dV, R)
+         end
+      end  
+   else
+      vir = zeros(JMat{TFL}, num_threads)
+      @threads for i in domain
+         j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
+         if length(j) > 0
+         evaluate_d!(tmp[threadid()].dV, tmp[threadid()], calc, R, Z, at.Z[i])
+         vir[threadid()] += site_virial(tmp[threadid()].dV, R)
+         end
       end
+      vir_tot = sum(vir)
    end
-   return vir
+   return vir_tot
 end
 
 

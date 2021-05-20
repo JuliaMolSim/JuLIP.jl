@@ -11,7 +11,7 @@ pairpotentials = [
    ("SWCutoff * LennardJones", SWCutoff(1.0, 3.0) * LennardJones(1.0,1.0)),
    ("SplineCutoff * LennardJones", SplineCutoff(2.0, 3.0) * LennardJones(1.0,1.0)),
    ("LennardJones * C2Shift", LennardJones(1.0, 1.0) * C2Shift(2.0)),
-   ("EAM.phi", eam_W4.ϕ[1])
+   ("EAM.rho", eam_W4.ρ[1])
 ]
 
 h2("Testing pair potential implementations")
