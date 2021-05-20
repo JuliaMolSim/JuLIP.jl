@@ -63,6 +63,7 @@ function _evalspl_d(s::Spline1D, d::ForwardDiff.Dual{T}) where T
                         _evalspl_dd(s, x) * ForwardDiff.partials(d) )
 end
 
+evaluate!(wrk, V::SplinePairPotential, r::Number) = V(r)
 
 evaluate_d!(wrk, V::SplinePairPotential, r::Number) = 
       Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 1, V.spl.bc, wrk)
@@ -70,6 +71,19 @@ evaluate_d!(wrk, V::SplinePairPotential, r::Number) =
 evaluate_dd!(wrk, V::SplinePairPotential, r::Number) = 
       Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 2, V.spl.bc, wrk)
 
+function evaluate!(wrk, V::SplinePairPotential, d::ForwardDiff.Dual{T}) where T
+   x = ForwardDiff.value(d)
+   val = evaluate!(wrk, V::SplinePairPotential, x)
+   dval = evaluate_d!(wrk, V::SplinePairPotential, x)
+   ForwardDiff.Dual{T}(val, dval * ForwardDiff.partials(d))
+end
+
+function evaluate_d!(wrk, V::SplinePairPotential, d::ForwardDiff.Dual{T}) where T
+   x = ForwardDiff.value(d)
+   val = evaluate_d!(wrk, V::SplinePairPotential, x)
+   dval = evaluate_dd!(wrk, V::SplinePairPotential, x)
+   ForwardDiff.Dual{T}(val, dval * ForwardDiff.partials(d))
+end
 
 
 function SplinePairPotential(xdat, ydat; s = 0, fixcutoff=true, order=3,

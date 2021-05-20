@@ -9,6 +9,23 @@ import JuLIP
 
 export EAM
 
+# ----------- An auxiliary pair potential   ϕ(r) / r
+
+struct EAMrep{P1} <: SimplePairPotential
+   f::P1 
+end
+
+evaluate!(tmp, V::EAMrep, r) = 
+      evaluate!(tmp, V.f, r) / r
+evaluate_d!(tmp, V::EAMrep, r) = 
+      evaluate_d!(tmp, V.f, r) / r - evaluate!(tmp, V.f, r) / r^2
+evaluate_dd!(tmp, V::EAMrep, r) = (
+      evaluate_dd!(tmp, V.f, r) / r 
+      - 2*evaluate_d!(tmp, V.f, r) / r^2
+      + 2*evaluate!(tmp, V.f, r) / r^3 )
+
+# ----------------------------------------
+
 # Use Requires.jl to provide the ASE EAM constructor.
 function __init__()
    @require ASE="51974c44-a7ed-5088-b8be-3e78c8ba416c" @eval eam_from_ase(
@@ -124,7 +141,8 @@ function EAM(nr::Integer, dr::Real, nrho::Integer, drho::Real, cutoff::Real,
    fit_splines!(ρ, r, density; kwargs...)
    fit_splines!(F, rho, embedded; fixcutoff=false, kwargs...) # Nonzero cutoff
 
-   ϕ = rϕ .* Ref(@analytic r -> 1/r)
+   # ϕ = rϕ .* Ref(@analytic r -> 1/r)
+   ϕ = EAMrep.(rϕ)
 
    EAM(ρ, F, ϕ, zlist, cutoff)
 end
@@ -176,20 +194,6 @@ Choose the density function, this allows for assymmetric densities.
 select_density_function(ρ::Matrix, i0::Integer, i::Integer) = ρ[i, i0]
 select_density_function(ρ::Vector, ::Integer, i::Integer) = ρ[i]
 
-function evaluate!(tmp, V::EAM, Rs, Zs, z0)
-   ρ = 0.0
-   Es = 0.0
-   i0 = z2i(V, z0)
-   for (R, Z) in zip(Rs, Zs)
-      i = z2i(V, Z)
-      r = norm(R)
-      Es += V.ϕ[i0,i](r)/2
-      density_function = select_density_function(V.ρ, i0, i)
-      ρ += density_function(r)
-   end
-   Es += V.F[i0](ρ)
-   return Es
-end
 
 function _alloc_wrk(V::EAM)
    max_wrk = 0 
@@ -200,6 +204,31 @@ function _alloc_wrk(V::EAM)
    end
    return Vector{Float64}(undef, max_wrk)
 end
+
+
+alloc_temp(V::EAM, N::Integer, T = Float64) = 
+      (  
+         R = zeros(JVec{T}, N),
+         Z = zeros(AtomicNumber, N),
+         wrk = _alloc_wrk(V)
+      )
+
+
+function evaluate!(tmp, V::EAM, Rs, Zs, z0)
+   ρ = 0.0
+   Es = 0.0
+   i0 = z2i(V, z0)
+   for (R, Z) in zip(Rs, Zs)
+      i = z2i(V, Z)
+      r = norm(R)
+      Es += evaluate!(tmp.wrk, V.ϕ[i0,i], r) / 2
+      density_function = select_density_function(V.ρ, i0, i)
+      ρ += evaluate!(tmp.wrk, density_function, r)
+   end
+   Es += evaluate!(tmp.wrk, V.F[i0], ρ)
+   return Es
+end
+
 
 alloc_temp_d(V::EAM, N::Integer, T = Float64) = 
       (  
@@ -324,7 +353,8 @@ function eam_from_fs(fname; kwargs...)
    F, ρfun, ϕfun, ρ, r, info = read_fs(fname)
    return EAM( [SplinePairPotential(r, ρfun; kwargs...)],
                [SplinePairPotential(ρ, F; fixcutoff=false, kwargs...)],
-               hcat(SplinePairPotential(r, ϕfun; kwargs...) * (@analytic r -> 1/r)),
+               [EAMrep(SplinePairPotential(r, ϕfun; kwargs...))], 
+               # hcat(SplinePairPotential(r, ϕfun; kwargs...) * (@analytic r -> 1/r)),
                ZList(Symbol.(info[:species])),
                info[:cutoff])
 end
