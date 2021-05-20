@@ -64,6 +64,13 @@ function _evalspl_d(s::Spline1D, d::ForwardDiff.Dual{T}) where T
 end
 
 
+evaluate_d!(wrk, V::SplinePairPotential, r::Number) = 
+      Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 1, V.spl.bc, wrk)
+
+evaluate_dd!(wrk, V::SplinePairPotential, r::Number) = 
+      Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 2, V.spl.bc, wrk)
+
+
 
 function SplinePairPotential(xdat, ydat; s = 0, fixcutoff=true, order=3,
                              w = (1.0 .+ abs.(ydat)).^(-2))
