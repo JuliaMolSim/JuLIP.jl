@@ -244,7 +244,7 @@ function forces_inner!(shipB::IPBasis, at::AbstractAtoms{T},
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
       fill!(dB, zero(JVec{T}))
       fill!(B, 0)
-      evaluate_d!(B, dB, tmp, shipB, R, Z, at.Z[i])
+      evaluate_d!(dB, tmp, shipB, R, Z, at.Z[i])
       for a = 1:length(R)
          F[j[a], :] .-= dB[:, a]
          F[i, :] .+= dB[:, a]
@@ -269,8 +269,7 @@ function virial(shipB::IPBasis, at::AbstractAtoms{T}) where {T}
    for i = 1:length(at)
       j, R, Z = neigsz!(tmpRZ, nlist, at, i)
       fill!(dB, zero(JVec{T}))
-      fill!(B, 0)
-      evaluate_d!(B, dB, tmp, shipB, R, Z, at.Z[i])
+      evaluate_d!(dB, tmp, shipB, R, Z, at.Z[i])
       for iB = 1:length(shipB)
          V[iB] += site_virial(dB[iB, :], R)
       end
