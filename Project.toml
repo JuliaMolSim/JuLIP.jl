@@ -1,6 +1,6 @@
 name = "JuLIP"
 uuid = "945c410c-986d-556a-acb1-167a618e0462"
-version = "0.12.1"
+version = "0.12.2"
 
 [deps]
 ACEbase = "14bae519-eb20-449c-a949-9c58ed33163e"
@@ -30,7 +30,7 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 [compat]
 DataDeps = "0.7"
 NeighbourLists = "≥ 0.5.0"
-ACEbase = "0.1.1"
+ACEbase = "0.1.5"
 julia = "1"
 
 [extras]
