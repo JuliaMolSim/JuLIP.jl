@@ -23,6 +23,7 @@ export positions, get_positions, set_positions!,
        neighbourlist, cutoff,
        apply_defm!,
        energy, potential_energy, forces, gradient, hessian,
+       dipole, 
        site_energies,
        site_energy, partial_energy,
        site_energy_d, partial_energy_d,
@@ -47,8 +48,11 @@ function site_energy_d end
 function partial_energy_d end
 
 
-
-
+"""
+`function dipole end ` : prototype for a global dipole function, 
+not currently implemented in JuLIP.
+"""
+function dipole end 
 
 
 # -----
@@ -170,7 +174,6 @@ function apply_defm!(at::AbstractAtoms{T}, F::AbstractMatrix,
    set_positions!(at, X)
    return at
 end
-
 
 "`set_pbc!(at, p) -> at` : set periodic boundary conditions"
 function set_pbc! end
