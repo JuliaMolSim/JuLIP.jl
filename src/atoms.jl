@@ -294,3 +294,61 @@ Atoms(D::Dict) = Atoms(D["X"], D["P"], D["M"], AtomicNumber.(D["Z"]),
           # data = D["data"] )
 
 JuLIP.FIO.read_dict(::Val{:JuLIP_Atoms}, D::Dict) = Atoms(D)
+
+import ExtXYZ
+
+"""
+Read from an extended XYZ file using ExtXYZ.jl. Returns an array of `Atoms` structs
+"""
+function read_extxyz(file, args...; kwargs...)
+   dicts = Dict{String,Any}[]
+   for dict in ExtXYZ.read_frames(file, args...; kwargs...)
+      dict["__id__"] = "JuLIP_Atoms"
+
+      nat = pop!(dict, "N_atoms")
+      info = pop!(dict, "info")
+      arrays = pop!(dict, "arrays")
+
+      "pos" in keys(arrays) || error("arrays dictionary missing 'pos' entry containing positions")
+      dict["X"] = vecs(pop!(arrays, "pos"))
+      @assert length(dict["X"]) == nat
+
+      # atomic numbers and symbols
+      dict["Z"] = "Z" in keys(arrays) ? pop!(arrays, "Z") : nothing
+      if "species" in keys(arrays)
+         species = pop!(arrays, "species")
+         Zsp = atomic_number.([Symbol(sp) for sp in species])
+         if dict["Z"] !== nothing
+            all(dict["Z"] .== Zsp) || error("inconsistent 'Z' and 'species' properties")
+         else
+            dict["Z"] = Zsp
+         end
+      end
+      dict["Z"] === nothing && error("atomic numbers not defined - either 'Z' or 'species' must be present")
+
+      # mass - lookup from atomic number if not present
+      if "masses" in keys(arrays)
+         dict["M"] = pop!(arrays, "masses")
+      elseif "mass" in keys(arrays)
+         dict["M"] = pop!(arrays, "mass") # FIXME convert units?
+      else
+         dict["M"] = [atomic_mass(z) for z in AtomicNumber.(dict["Z"])]
+      end
+
+      # momenta / velocities
+      if "momenta" in keys(arrays)
+         dict["P"] = vecs(pop!(arrays, "momenta"))
+      elseif "velo" in keys(arrays)
+         dict["P"] = vecs(pop!(arrays, "velo") .* dict["M"]) # FIXME convert units?
+      else
+         dict["P"] = zeros((3, nat))
+      end
+
+      # everything else goes in data
+      dict["data"] = merge(info, arrays)
+      push!(dicts, dict)
+   end
+   return read_dict.(dicts)
+end
+
+export read_extxyz
