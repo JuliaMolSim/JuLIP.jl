@@ -214,8 +214,7 @@ function forces(V::SitePotential, at::AbstractAtoms; kwargs...)
 end
 
 
-function energy!(tmp, calc::SitePotential, at::Atoms;
-                 domain=1:length(at))
+function energy!(tmp, calc::SitePotential, at::Atoms; domain=1:length(at))
    TFL = fltype_intersect(calc, at)
    nlist = neighbourlist(at, cutoff(calc))
    num_threads = JuLIP.nthreads()

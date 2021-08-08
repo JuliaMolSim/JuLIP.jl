@@ -73,13 +73,13 @@ function _get_wrk(s::SplinePairPotential)
    return s.wrk[tid]
 end
 
-# evaluate!(wrk, V::SplinePairPotential, r::Number) = V(r)
+evaluate!(wrk, V::SplinePairPotential, r::Number) = V(r)
 
-# evaluate_d!(wrk, V::SplinePairPotential, r::Number) = 
-#       Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 1, V.spl.bc, wrk)
+evaluate_d!(wrk, V::SplinePairPotential, r::Number) = 
+      Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 1, V.spl.bc, wrk)
 
-# evaluate_dd!(wrk, V::SplinePairPotential, r::Number) = 
-#       Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 2, V.spl.bc, wrk)
+evaluate_dd!(wrk, V::SplinePairPotential, r::Number) = 
+      Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 2, V.spl.bc, wrk)
 
 function evaluate!(wrk, V::SplinePairPotential, d::ForwardDiff.Dual{T}) where T
    x = ForwardDiff.value(d)
