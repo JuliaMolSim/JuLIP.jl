@@ -30,21 +30,23 @@ Keyword arguments:
 mutable struct SplinePairPotential <: SimplePairPotential
    spl::Spline1D          # The actual spline object
    rcut::Float64          # cutoff radius (??? could just use spl.t[end] ???)
-   wrk::Vector{Float64}   # a work array for faster evaluation of derivatives
+   wrk::Vector{Vector{Float64}}  # work array for faster evaluation of derivatives
 end
 
 @pot SplinePairPotential
 
 SplinePairPotential(spl::Spline1D) =
-   SplinePairPotential(spl, maximum(spl.t), Vector{Float64}(undef, length(spl.t)))
-
+   SplinePairPotential(spl, maximum(spl.t), 
+                 [ Vector{Float64}(undef, length(spl.t)) for _=1:JuLIP.nthreads() ] )
 
 
 cutoff(V::SplinePairPotential) = V.rcut
 
-evaluate(V::SplinePairPotential, r::Number) = _evalspl(V.spl, r)
-evaluate_d(V::SplinePairPotential, r::Number) = _evalspl_d(V.spl, r)
-evaluate_dd(V::SplinePairPotential, r::Number) = _evalspl_dd(V.spl, r)
+evaluate(V::SplinePairPotential, r::Number) = V.spl(r)
+evaluate_d(V::SplinePairPotential, r::Number) = 
+         Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 1, V.spl.bc, _get_wrk(V))
+evaluate_dd(V::SplinePairPotential, r::Number) = 
+         Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 2, V.spl.bc, _get_wrk(V))
 
 # a few interface routines so we can define AD in a nice way.
 _evalspl(s::Spline1D, r) = s(r)
@@ -63,13 +65,21 @@ function _evalspl_d(s::Spline1D, d::ForwardDiff.Dual{T}) where T
                         _evalspl_dd(s, x) * ForwardDiff.partials(d) )
 end
 
-evaluate!(wrk, V::SplinePairPotential, r::Number) = V(r)
+function _get_wrk(s::SplinePairPotential)
+   tid = threadid() 
+   while tid < length(s.wrk)
+      push!(s.wrk, Vector{Float64}(undef, length(spl.t)))
+   end 
+   return s.wrk[tid]
+end
 
-evaluate_d!(wrk, V::SplinePairPotential, r::Number) = 
-      Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 1, V.spl.bc, wrk)
+# evaluate!(wrk, V::SplinePairPotential, r::Number) = V(r)
 
-evaluate_dd!(wrk, V::SplinePairPotential, r::Number) = 
-      Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 2, V.spl.bc, wrk)
+# evaluate_d!(wrk, V::SplinePairPotential, r::Number) = 
+#       Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 1, V.spl.bc, wrk)
+
+# evaluate_dd!(wrk, V::SplinePairPotential, r::Number) = 
+#       Dierckx._derivative(V.spl.t, V.spl.c, V.spl.k, r, 2, V.spl.bc, wrk)
 
 function evaluate!(wrk, V::SplinePairPotential, d::ForwardDiff.Dual{T}) where T
    x = ForwardDiff.value(d)
