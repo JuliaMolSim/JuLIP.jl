@@ -25,7 +25,7 @@ energy(at)
 forces(at)
 gradient(at)
 virial(at)
-println(@test stress(at) == - virial(at) / volume(at))
+println(@test stress(at) ≈ - virial(at) / volume(at))
 
 h3("Check that setting and getting dofs is consistent ... ")
 x = dofs(at)
