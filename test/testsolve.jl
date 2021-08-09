@@ -69,22 +69,22 @@ at = set_pbc!(at, true)
 at = rattle!(at, 0.02)
 X0 = positions(at)
 set_positions!(at, X0)
-set_calculator!(at, eam_W)
-P = FF(at, eam_W)
+set_calculator!(at, eam_W4)
+P = FF(at, eam_W4)
 minimise!(at, precond = P, method = :lbfgs, robust_energy_difference = true, verbose=2)
 
 ## steepest descent
 set_positions!(at, X0)
-set_calculator!(at, eam_W)
-P = FF(at, eam_W)
+set_calculator!(at, eam_W4)
+P = FF(at, eam_W4)
 minimise!(at, precond = P, method = :sd, robust_energy_difference = true, verbose=2)
 
 
 ##
 h2("Optimise again with some different stabilisation options")
 set_positions!(at, X0)
-set_calculator!(at, eam_W)
-P = FF(at, eam_W, stab=0.1, innerstab=0.2)
+set_calculator!(at, eam_W4)
+P = FF(at, eam_W4, stab=0.1, innerstab=0.2)
 minimise!(at, precond = P, method = :lbfgs, robust_energy_difference = true, verbose=2)
 
 ##

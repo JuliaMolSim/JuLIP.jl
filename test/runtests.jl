@@ -52,7 +52,7 @@ julip_tests = [
    ("test_eam.jl", "EAM"),
    ]
 
-add solver tests if not on travis
+# add solver tests if not on travis
 if !isCI
    push!(julip_tests, ("testsolve.jl", "Solve"))
 else
