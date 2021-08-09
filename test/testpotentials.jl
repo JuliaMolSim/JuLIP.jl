@@ -73,8 +73,8 @@ push!(calculators, (eam, at9))
 at10 = set_pbc!( bulk(:W, cubic = true), false ) * 2
 push!(calculators, (eam_W4, at10))
 
-at11 = set_pbc!( bulk(:W, cubic = true), false ) * 2
-push!(calculators, (eam_W, at11))
+# at11 = set_pbc!( bulk(:W, cubic = true), false ) * 2
+# push!(calculators, (eam_W, at11))
 
 at = bulk(:Pd) * 3
 at.Z[1:3:end] .= AtomicNumber(:Ag)
