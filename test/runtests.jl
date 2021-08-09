@@ -27,9 +27,9 @@ eam_Fe = JuLIP.Potentials.EAM(test_pots * "pfe.plt",
                               test_pots * "ffe.plt",
                               test_pots * "F_fe.plt")
 print(" .")
-eam_W = JuLIP.Potentials.FinnisSinclair(
-      test_pots * "W-pair-Wang-2014.plt", test_pots * "W-e-dens-Wang-2014.plt")
-print(" .")
+# eam_W = JuLIP.Potentials.FinnisSinclair(
+#       test_pots * "W-pair-Wang-2014.plt", test_pots * "W-e-dens-Wang-2014.plt")
+# print(" .")
 eam_PdAgH = JuLIP.Potentials.eam_from_ase(test_pots * "PdAgH_HybridPd3Ag.eam.alloy")
 print(".")
 eam_W4 = JuLIP.Potentials.EAM(test_pots * "w_eam4.fs")
