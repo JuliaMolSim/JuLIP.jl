@@ -27,9 +27,8 @@ eam_Fe = JuLIP.Potentials.EAM(test_pots * "pfe.plt",
                               test_pots * "ffe.plt",
                               test_pots * "F_fe.plt")
 print(" .")
-# # removed since not equispaced (and not used by any tests!
-# eam_W = JuLIP.Potentials.FinnisSinclair(
-#       test_pots * "W-pair-Wang-2014.plt", test_pots * "W-e-dens-Wang-2014.plt")
+eam_W = JuLIP.Potentials.FinnisSinclair(
+      test_pots * "W-pair-Wang-2014.plt", test_pots * "W-e-dens-Wang-2014.plt")
 print(" .")
 eam_PdAgH = JuLIP.Potentials.eam_from_ase(test_pots * "PdAgH_HybridPd3Ag.eam.alloy")
 print(".")
@@ -52,7 +51,7 @@ julip_tests = [
    ("test_eam.jl", "EAM"),
    ]
 
-add solver tests if not on travis
+# add solver tests if not on travis
 if !isCI
    push!(julip_tests, ("testsolve.jl", "Solve"))
 else
