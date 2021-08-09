@@ -195,22 +195,11 @@ select_density_function(ρ::Matrix, i0::Integer, i::Integer) = ρ[i, i0]
 select_density_function(ρ::Vector, ::Integer, i::Integer) = ρ[i]
 
 
-function _alloc_wrk(V::EAM)
-   max_wrk = 0 
-   for spls in [V.ρ, V.ϕ, V.F]
-      if eltype(spls) <: SplinePairPotential
-         max_wrk = max(max_wrk, maximum(length(spl.spl.t) for spl in spls))
-      end
-   end
-   return Vector{Float64}(undef, max_wrk)
-end
-
-
 alloc_temp(V::EAM, N::Integer, T = Float64) = 
       (  
          R = zeros(JVec{T}, N),
          Z = zeros(AtomicNumber, N),
-         wrk = _alloc_wrk(V)
+         wrk = nothing 
       )
 
 
@@ -235,7 +224,7 @@ alloc_temp_d(V::EAM, N::Integer, T = Float64) =
          dV = zeros(JVec{T}, N),
          R = zeros(JVec{T}, N),
          Z = zeros(AtomicNumber, N),
-         wrk = _alloc_wrk(V)
+         wrk = nothing 
       )
 
 function evaluate_d!(dEs, tmp, V::EAM, Rs, Zs, z0)
