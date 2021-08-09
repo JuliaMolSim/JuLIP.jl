@@ -39,25 +39,25 @@ println(" done.")
 ##
 
 julip_tests = [
-   # ("testaux.jl", "Miscellaneous"),
-   # ("test_atoms.jl", "Atoms"),
-   # ("test_build.jl", "Build"),
-   # ("test_fio.jl", "File IO"),
-   # ("testanalyticpotential.jl", "Analytic Potential"),
-   # ("testpotentials.jl", "Potentials"),
-   # ("test_ad.jl", "AD Potentials"),
-   # ("testvarcell.jl", "Variable Cell"),
-   # ("testhessian.jl", "Hessian"),
-   # ("test_onebody.jl", "One-Body"),
+   ("testaux.jl", "Miscellaneous"),
+   ("test_atoms.jl", "Atoms"),
+   ("test_build.jl", "Build"),
+   ("test_fio.jl", "File IO"),
+   ("testanalyticpotential.jl", "Analytic Potential"),
+   ("testpotentials.jl", "Potentials"),
+   ("test_ad.jl", "AD Potentials"),
+   ("testvarcell.jl", "Variable Cell"),
+   ("testhessian.jl", "Hessian"),
+   ("test_onebody.jl", "One-Body"),
    ("test_eam.jl", "EAM"),
    ]
 
-# add solver tests if not on travis
-# if !isCI
-#    push!(julip_tests, ("testsolve.jl", "Solve"))
-# else
-#    @info("on CI : don't run solver tests")
-# end
+add solver tests if not on travis
+if !isCI
+   push!(julip_tests, ("testsolve.jl", "Solve"))
+else
+   @info("on CI : don't run solver tests")
+end
 
 # "testexpvarcell.jl";  # USE THIS TO WORK ON EXPCELL IMPLEMENTATION
 
