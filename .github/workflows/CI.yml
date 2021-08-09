@@ -39,3 +39,5 @@ jobs:
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+        env:
+          DATADEPS_ALWAYS_ACCEPT: true
