@@ -148,19 +148,6 @@ end
 
 # --------------- equality tests -------------------
 
-# comparison of Atoms.data dictionaries
-function Base.isapprox(d1::Dict{Any, JData{T}}, d2::Dict{Any, JData{T}}; tol = sqrt(eps(T))) where T
-   for (k1, v1) in d1
-      k1 ∈ keys(d2) || return false
-      if v1.data isa AbstractArray || v1.data isa AbstractFloat
-          isapprox(v1.data, d2[k1].data; atol=tol)  || return false
-      else
-          v1.data == d2[k1].data || return false
-      end
-  end
-  return true
-end
-
 import Base.==
 ==(at1::Atoms{T}, at2::Atoms{T}) where T = (
    isapprox(at1, at2, tol = 0.0)  &&
@@ -353,7 +340,7 @@ function _atoms_to_extxyz_dict(atoms::Atoms{T}) where {T}
    arrays["pos"] = _write_convert(pop!(dict, "X"))
    arrays["species"] = _write_convert(string.(chemical_symbol.(atoms.Z)))
    arrays["Z"] = _write_convert(pop!(dict, "Z"))
-   arrays["mass"] = _write_convert(pop!(dict, "M"))
+   arrays["masses"] = _write_convert(pop!(dict, "M"))
    arrays["momenta"] = _write_convert(pop!(dict, "P"))
 
    # tidy up top-level dict entries

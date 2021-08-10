@@ -3,6 +3,20 @@ using JuLIP, Test
 using JuLIP.Testing
 using JuLIP.FIO
 
+# comparison of Atoms.data dictionaries
+import Base
+function Base.isapprox(d1::Dict{Any, JuLIP.JData{T}}, d2::Dict{Any, JuLIP.JData{T}}; tol = sqrt(eps(T))) where T
+    for (k1, v1) in d1
+       k1 ∈ keys(d2) || (@error "key $k1 not in d2"; return false)
+       if v1.data isa AbstractArray || v1.data isa AbstractFloat
+           isapprox(v1.data, d2[k1].data; atol=tol)  || (@error "key $k1 value mismatch $(v1.data) !≈ $(d2[v2].data)"; return false)
+       else
+           v1.data == d2[k1].data || (@error "key $k1 value mismatch $(v1.data) != $(d2[v2].data)"; return false)
+       end
+   end
+   return true
+end
+
 h3("Testing single `Atoms` <-> `Dict`")
 at = bulk(:Cu, cubic=true) * 3
 set_pbc!(at, (true, false, true))
