@@ -353,8 +353,8 @@ function _atoms_to_extxyz_dict(atoms::Atoms{T}) where {T}
    arrays["pos"] = _write_convert(pop!(dict, "X"))
    arrays["species"] = _write_convert(string.(chemical_symbol.(atoms.Z)))
    arrays["Z"] = _write_convert(pop!(dict, "Z"))
-   arrays["mass"] = _write_convert(pop!(dict, "M")) # FIXME convert units?
-   arrays["momenta"] = _write_convert(pop!(dict, "P")) # FIXME convert units?
+   arrays["mass"] = _write_convert(pop!(dict, "M"))
+   arrays["momenta"] = _write_convert(pop!(dict, "P"))
 
    # tidy up top-level dict entries
    dict["info"] = info
@@ -397,8 +397,6 @@ function _extxyz_dict_to_atoms(dict)
    # mass - lookup from atomic number if not present
    if "masses" in keys(arrays)
       dict["M"] = _read_convert(pop!(arrays, "masses"), natoms)
-   elseif "mass" in keys(arrays)
-      dict["M"] = _read_convert(pop!(arrays, "mass"), natoms) # FIXME convert units?
    else
       dict["M"] = [atomic_mass(z) for z in AtomicNumber.(dict["Z"])]
    end
@@ -406,8 +404,6 @@ function _extxyz_dict_to_atoms(dict)
    # momenta / velocities
    if "momenta" in keys(arrays)
       dict["P"] = _read_convert(pop!(arrays, "momenta"), natoms)
-   elseif "velo" in keys(arrays)
-      dict["P"] = _read_convert(pop!(arrays, "velo") .* dict["M"], natoms) # FIXME convert units?
    else
       dict["P"] = _read_convert(zeros((3, nat)), natoms)
    end
@@ -456,4 +452,4 @@ write_extxyz(file, atoms::Atoms{T}) where T = ExtXYZ.write_frame(file, _atoms_to
 
 write_extxyz(file, atoms::Vector{Atoms{T}}) where T = ExtXYZ.write_frames(file, _atoms_to_extxyz_dict.(atoms))
 
-export read_extxyz, write_extxyz # FIXME should these be exported here, in JuLIP.FIO, or a new JuLIP.XYZ submodule?
+export read_extxyz, write_extxyz

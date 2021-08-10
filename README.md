@@ -55,6 +55,16 @@ conda install -c openbabel openbabel
 pip install imolecule
 ``` -->
 
+# Units system
+
+JuLIP follows [ASE's unit system](https://wiki.fysik.dtu.dk/ase/ase/units.html),
+namely the energy units are eV (electron Volt), distances  units are Angstrom
+and mass units are amu (atomic mass units). If you have
+Python available, conversion constants can be imported from ASE via `@pyimport
+ase.units as ase_units`. Note: (i) that these are different
+from atomic units (Hartree/Bohr) and (ii) this choice of unit system leads to an
+unconventional unit for time, rather than the more widely uses femtoseconds.
+
 # Examples
 
 The following are some minimal examples to just get something to run.
