@@ -148,6 +148,19 @@ end
 
 # --------------- equality tests -------------------
 
+# comparison of Atoms.data dictionaries
+function Base.isapprox(d1::Dict{Any, JData{T}}, d2::Dict{Any, JData{T}}; tol = sqrt(eps(T))) where T
+   for (k1, v1) in d1
+      k1 ∈ keys(d2) || return false
+      if v1.data isa AbstractArray || v1.data isa AbstractFloat
+          isapprox(v1.data, d2[k1].data; atol=tol)  || return false
+      else
+          v1.data == d2[k1].data || return false
+      end
+  end
+  return true
+end
+
 import Base.==
 ==(at1::Atoms{T}, at2::Atoms{T}) where T = (
    isapprox(at1, at2, tol = 0.0)  &&
@@ -162,8 +175,8 @@ function isapprox(at1::Atoms{T}, at2::Atoms{T}; tol = sqrt(eps(T))) where {T}
    end
    if tol > 0
       ndigits = floor(Int, abs(log10(tol)))
-      X1 = [round.(x, ndigits) for x in at1.X]
-      X2 = [round.(x, ndigits) for x in at2.X]
+      X1 = [round.(x; digits=ndigits) for x in at1.X]
+      X2 = [round.(x; digits=ndigits) for x in at2.X]
    else
       X1, X2 = at1.X, at2.X
    end
@@ -297,58 +310,150 @@ JuLIP.FIO.read_dict(::Val{:JuLIP_Atoms}, D::Dict) = Atoms(D)
 
 import ExtXYZ
 
-"""
-Read from an extended XYZ file using ExtXYZ.jl. Returns an array of `Atoms` structs
-"""
-function read_extxyz(file, args...; kwargs...)
-   dicts = Dict{String,Any}[]
-   for dict in ExtXYZ.read_frames(file, args...; kwargs...)
-      dict["__id__"] = "JuLIP_Atoms"
+# conversion rules from Atoms.data entries to ExtXYZ standard types
+_write_convert(value) = nothing # default rule: do not write
+_write_convert(value::AbstractVector) = value
+_write_convert(value::AbstractVector{JVec{T}}) where T = value |> mat |> Matrix
+_write_convert(value::JVec{T}) where T = value |> Array
+_write_convert(value::JMat{T}) where T = value |> Matrix
+_write_convert(value::Union{Number,String}) = value
 
-      nat = pop!(dict, "N_atoms")
-      info = pop!(dict, "info")
-      arrays = pop!(dict, "arrays")
+# (value, natoms) -> destination ∈ (:info, :arrays, missing)
+_dest(::Any, natoms::Int) = missing
+_dest(value::AbstractVector, natoms::Int) = length(value) == natoms ? :arrays : :info
+_dest(::JVec{T}, natoms::Int) where T = :info
+_dest(::JMat{T}, natoms::Int) where T = :info
+_dest(::Union{Number,String}, natoms::Int) = :info
 
-      "pos" in keys(arrays) || error("arrays dictionary missing 'pos' entry containing positions")
-      dict["X"] = vecs(pop!(arrays, "pos"))
-      @assert length(dict["X"]) == nat
+function _atoms_to_extxyz_dict(atoms::Atoms{T}) where {T}
+   dict = write_dict(atoms)
+   natoms = length(atoms)
+   dict["N_atoms"] = natoms
+   dict["cell"] = _write_convert(dict["cell"])
+   dict["pbc"] = _write_convert(dict["pbc"])
 
-      # atomic numbers and symbols
-      dict["Z"] = "Z" in keys(arrays) ? pop!(arrays, "Z") : nothing
-      if "species" in keys(arrays)
-         species = pop!(arrays, "species")
-         Zsp = atomic_number.([Symbol(sp) for sp in species])
-         if dict["Z"] !== nothing
-            all(dict["Z"] .== Zsp) || error("inconsistent 'Z' and 'species' properties")
-         else
-            dict["Z"] = Zsp
-         end
+   # try to figure out whether data entries are per-atom or per-config
+   info = Dict{String}{Any}()
+   arrays = Dict{String}{Any}()
+   for key in keys(atoms.data)
+      value = get_data(atoms, key)
+      dest, value = _dest(value, natoms), _write_convert(value)
+      if value === nothing || ismissing(dest)
+         continue
       end
-      dict["Z"] === nothing && error("atomic numbers not defined - either 'Z' or 'species' must be present")
-
-      # mass - lookup from atomic number if not present
-      if "masses" in keys(arrays)
-         dict["M"] = pop!(arrays, "masses")
-      elseif "mass" in keys(arrays)
-         dict["M"] = pop!(arrays, "mass") # FIXME convert units?
+      key = string(key) # symbol -> string, if needed
+      if dest == :arrays
+         push!(arrays, key => value)
       else
-         dict["M"] = [atomic_mass(z) for z in AtomicNumber.(dict["Z"])]
+         push!(info, key => value)
       end
-
-      # momenta / velocities
-      if "momenta" in keys(arrays)
-         dict["P"] = vecs(pop!(arrays, "momenta"))
-      elseif "velo" in keys(arrays)
-         dict["P"] = vecs(pop!(arrays, "velo") .* dict["M"]) # FIXME convert units?
-      else
-         dict["P"] = zeros((3, nat))
-      end
-
-      # everything else goes in data
-      dict["data"] = merge(info, arrays)
-      push!(dicts, dict)
    end
-   return read_dict.(dicts)
+
+   # move Atoms fields into `arrays` sub-dict
+   arrays["pos"] = _write_convert(pop!(dict, "X"))
+   arrays["species"] = _write_convert(string.(chemical_symbol.(atoms.Z)))
+   arrays["Z"] = _write_convert(pop!(dict, "Z"))
+   arrays["mass"] = _write_convert(pop!(dict, "M")) # FIXME convert units?
+   arrays["momenta"] = _write_convert(pop!(dict, "P")) # FIXME convert units?
+
+   # tidy up top-level dict entries
+   dict["info"] = info
+   dict["arrays"] = arrays
+   delete!(dict, "data") # remove `nothing` entry
+   delete!(dict, "calc") # remove `nothing` entry
+   delete!(dict, "__id__")
+
+   return dict
 end
 
-export read_extxyz
+# define conversions to be applied when reading from ExtXYZ files to JuLIP Atoms
+_read_convert(value, ::Int) = value
+_read_convert(value::AbstractMatrix, natoms::Int) = size(value, 2) == natoms ? vecs(value) : value
+
+function _extxyz_dict_to_atoms(dict)
+   dict["__id__"] = "JuLIP_Atoms"
+
+   natoms = Int(pop!(dict, "N_atoms"))
+   info = pop!(dict, "info")
+   arrays = pop!(dict, "arrays")
+
+   "pos" in keys(arrays) || error("arrays dictionary missing 'pos' entry containing positions")
+   dict["X"] = _read_convert(pop!(arrays, "pos"), natoms)
+   @assert length(dict["X"]) == natoms
+
+   # atomic numbers and symbols
+   dict["Z"] = "Z" in keys(arrays) ? pop!(arrays, "Z") : nothing
+   if "species" in keys(arrays)
+      species = _read_convert(pop!(arrays, "species"), natoms)
+      Zsp = atomic_number.([Symbol(sp) for sp in species])
+      if dict["Z"] !== nothing
+         all(dict["Z"] .== Zsp) || error("inconsistent 'Z' and 'species' properties")
+      else
+         dict["Z"] = Zsp
+      end
+   end
+   dict["Z"] === nothing && error("atomic numbers not defined - either 'Z' or 'species' must be present")
+
+   # mass - lookup from atomic number if not present
+   if "masses" in keys(arrays)
+      dict["M"] = _read_convert(pop!(arrays, "masses"), natoms)
+   elseif "mass" in keys(arrays)
+      dict["M"] = _read_convert(pop!(arrays, "mass"), natoms) # FIXME convert units?
+   else
+      dict["M"] = [atomic_mass(z) for z in AtomicNumber.(dict["Z"])]
+   end
+
+   # momenta / velocities
+   if "momenta" in keys(arrays)
+      dict["P"] = _read_convert(pop!(arrays, "momenta"), natoms)
+   elseif "velo" in keys(arrays)
+      dict["P"] = _read_convert(pop!(arrays, "velo") .* dict["M"], natoms) # FIXME convert units?
+   else
+      dict["P"] = _read_convert(zeros((3, nat)), natoms)
+   end
+
+   atoms = read_dict(dict)
+
+   # everything else goes in data
+   for (label, D) in zip((:info, :arrays), (info, arrays))
+      for (key, value) in D
+            value = _read_convert(value, natoms)
+            set_data!(atoms, key, value)
+      end
+   end
+   return atoms
+end
+
+
+"""
+   read_extxyz(file, atoms[, range])
+
+Read from an extended XYZ file using ExtXYZ.jl. 
+
+`file` can be a string filename, open IO stream or `FILE*` pointer.
+`range` can be absent, an integer frame number, integer range, or array of integers. 
+Default behaviour is to read all frames in file.
+
+Returns a vector of `Atoms` structs
+"""
+function read_extxyz(file, args...; kwargs...)
+   results = Atoms[]
+   for dict in ExtXYZ.read_frames(file, args...; kwargs...)
+      push!(results, _extxyz_dict_to_atoms(dict))
+   end
+   return results
+end
+
+"""
+   write_extxyz(file, atoms)
+
+Write atoms to file in extended XYZ format using `ExtXYZ.jl`. 
+
+`file` can be a string filename, open IO stream or `FILE*` pointer.
+`atoms` can be either a single `JuLIP.Atoms` or a vector of `JuLIP.Atoms`.
+"""
+write_extxyz(file, atoms::Atoms{T}) where T = ExtXYZ.write_frame(file, _atoms_to_extxyz_dict(atoms))
+
+write_extxyz(file, atoms::Vector{Atoms{T}}) where T = ExtXYZ.write_frames(file, _atoms_to_extxyz_dict.(atoms))
+
+export read_extxyz, write_extxyz # FIXME should these be exported here, in JuLIP.FIO, or a new JuLIP.XYZ submodule?
