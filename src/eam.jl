@@ -258,7 +258,7 @@ precon!(hEs, tmp, V::EAM, R, Z, z0, stab=0.0) = _hess_!(hEs, tmp, V, R, Z, z0, a
 alloc_temp_dd(V::EAM, N::Integer) = 
          ( ∇ρ = zeros(JVecF, N), 
             r = zeros(Float64, N), 
-            wrk = nothing
+            wrk = nothing 
          )
 
 function hessian(calc::EAM, at::AbstractAtoms)

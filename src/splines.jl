@@ -78,22 +78,6 @@ evaluate_dd(V::SplinePairPotential, r::Number) =
       r < V.rcut ? Interpolations.hessian(V.spl, r)[1] : zero(T)
 
 
-function evaluate!(_, V::SplinePairPotential, d::ForwardDiff.Dual{T}) where T
-   x = ForwardDiff.value(d)
-   val = evaluate(V, x)
-   dval = evaluate_d(V, x)
-   ForwardDiff.Dual{T}(val, dval * ForwardDiff.partials(d))
-end
-
-function evaluate_d!(_, V::SplinePairPotential, d::ForwardDiff.Dual{T}) where T
-   x = ForwardDiff.value(d)
-   val = evaluate_d(V, x)
-   dval = evaluate_dd(V, x)
-   ForwardDiff.Dual{T}(val, dval * ForwardDiff.partials(d))
-end
-
-
-
 
 
 function load_ppfile(fname::AbstractString)
