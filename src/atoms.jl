@@ -307,6 +307,9 @@ _write_convert(value::Union{Number,String}) = value
 
 # (value, natoms) -> destination ∈ (:info, :arrays, missing)
 _dest(::Any, natoms::Int) = missing
+
+# this is a little fragile, since it assumes all vectors of length `natoms` contain per-atom data
+# this is problematic for e.g. `natoms=3`.
 _dest(value::AbstractVector, natoms::Int) = length(value) == natoms ? :arrays : :info
 _dest(::JVec{T}, natoms::Int) where T = :info
 _dest(::JMat{T}, natoms::Int) where T = :info
