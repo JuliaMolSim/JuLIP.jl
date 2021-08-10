@@ -49,9 +49,6 @@ h3("Test ExtXYZ fio for Atoms")
     seq1 = read_extxyz(filename)
     @test all(seq0 .≈ seq1)
 
-    @show length(seq0)
-    @show length(seq1)
-
     data0 = [atoms.data for atoms in seq0]
     data1 = [atoms.data for atoms in seq1]
     @test all(isapprox.(data1, data0; tol=1e-6))
