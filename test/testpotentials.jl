@@ -28,7 +28,7 @@ Vhs = V * HS(1.0)
 r1 = range(0.0, stop=1.0-1e-14, length=20)
 r2 = range(1.0+1e-14, stop=3.0, length=20)
 h3("HS")
-println(@test Vhs.(r1) == exp.(r1))
+println(@test Vhs.(r1) ≈ exp.(r1))
 println(@test norm(Vhs.(r2)) == 0.0)
 h3("V0")
 V0 = V * C0Shift(1.0)
@@ -72,9 +72,6 @@ push!(calculators, (eam, at9))
 # Another EAM Potential
 at10 = set_pbc!( bulk(:W, cubic = true), false ) * 2
 push!(calculators, (eam_W4, at10))
-
-at11 = set_pbc!( bulk(:W, cubic = true), false ) * 2
-push!(calculators, (eam_W, at11))
 
 at = bulk(:Pd) * 3
 at.Z[1:3:end] .= AtomicNumber(:Ag)
