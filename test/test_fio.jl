@@ -33,3 +33,22 @@ save_dict(fn, Ds)
 Ds1 = load_dict(fn)
 ats2 = read_dict.(Ds1["ats"])
 println(@test ats == ats2)
+
+h3("Test ExtXYZ fio for Atoms")
+@testset "read_extxyz" begin
+    filename = "test.xyz"
+
+    seq1 = read_extxyz(filename)
+    seq2 = read_extxyz(filename, 4:10)
+    frame = read_extxyz(filename, 4)
+    @test all(seq1[4:10] .== seq2)
+    
+    f = open(filename, "r")
+    seq3 = read_extxyz(f)
+    close(f)
+    
+    @test all(seq1 .== seq3)    
+
+    at5 = read_extxyz(filename, 5)
+    @test at5 == seq1[5]
+end
