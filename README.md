@@ -2,7 +2,7 @@
 
 | **Build Status** | **Social** |
 |:-:|:-:|
-| [![Build Status][build-img]][build-url] | [![][gitter-img]][gitter-url] |
+| ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/JuliaMolSim/JuLIP.jl/CI) | [![][gitter-img]][gitter-url] |
 
 <!-- [![Build Status](https://travis-ci.org/libAtoms/JuLIP.jl.svg?branch=master)](https://travis-ci.org/libAtoms/JuLIP.jl) -->
 
