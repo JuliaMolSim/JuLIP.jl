@@ -142,19 +142,19 @@ function rotation_matrix(; x=nothing, y=nothing, z=nothing)
    z !== nothing && (z /= norm(z))
 
    if x === nothing
-      @assert all(y' * z .≈ 0)
+      @assert all(isapprox.(y' * z, atol=1e-6))
       x = cross(y, z)
       x /= norm(x)
    end
 
    if y === nothing
-      @assert all(z' * x .≈ 0)
+      @assert all(isapprox.(z' * x, atol=1e-6))
       y = cross(z, x)
       y /= norm(y)
    end
 
    if z === nothing
-      @assert all(x' * y .≈ 0)
+      @assert all(isapprox.(x' * y, atol=1e-6))
       z = cross(x, y)
       z /= norm(z)
    end
@@ -304,7 +304,7 @@ function cluster(atu::Atoms{T}, R::Real;
    # find point closest to centre
    x̄ = sum( x[dims] for x in at.X ) / length(at.X)
    i0 = findmin( [norm(x[dims] - x̄) for x in at.X] )[2]
-   if x0 == nothing
+   if x0 === nothing
       x0 = at[i0]
    else
       x0 += at[i0]
