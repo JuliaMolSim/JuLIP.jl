@@ -16,5 +16,5 @@ at3 = deepcopy(at)
 @test at.X == at3.X
 
 rot_at = rotate!(deepcopy(at), x=[1,1,1], y=[1,-1,0])
-apply_defm!(rot_at, inv(rotation_matrix(x=[1,1,1], y=[1,-1,0])
+apply_defm!(rot_at, inv(rotation_matrix(x=[1,1,1], y=[1,-1,0])))
 @test rot_at ≈ at
