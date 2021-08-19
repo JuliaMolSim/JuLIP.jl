@@ -12,12 +12,12 @@ using JuLIP: JVec, JMat, JVecF, JMatF, mat, vecs,
       chemical_symbols, set_cell!, set_pbc!, update_data!,
       apply_defm!, calculator, set_calculator!
 
-using LinearAlgebra: I, Diagonal, isdiag, norm
+using LinearAlgebra: I, Diagonal, isdiag, norm, cross, det
 
 import Base: union
 import JuLIP: Atoms
 
-export repeat, bulk, cluster, autocell!, append
+export repeat, bulk, cluster, autocell!, append, rotation_matrix, rotate!
 
 
 
@@ -103,7 +103,71 @@ Atoms(s::Symbol, X::PositionArray{T}; kwargs...) where {T <: AbstractFloat} =
 
 Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
 
+# shallow copy constructor
+Atoms(at::Atoms) = Atoms(at.X, at.P, at.M, at.Z, at.cell, at.pbc, at.calc)
 
+import Base.copy, Base.deepcopy
+
+"""
+   at2 = copy(at)
+
+Return a copy of Atoms, referring to same arrays for positions, momenta, etc.
+"""
+copy(at::Atoms) = Atoms(at)
+
+"""
+   at2 = deepcopy(at) 
+   
+*Note:* `deepcopy(at)` reattaches the original calculator - this is different from ASE, since JuLIP calculators
+are assummed to be stateless.
+"""
+deepcopy(at::Atoms) = Atoms(copy(at.X), copy(at.P), copy(at.M), copy(at.Z), copy(at.cell), copy(at.pbc), at.calc) 
+
+"""
+   rotation_matrix([x=X, y=Y, z=Z])
+
+Construct a rotation matrix from two or more Miller indicies. 
+
+Example usage:
+
+```
+A = rotation_matrix(x=[1,1,1], y=[1,-1,0]) # fills in z from cross(x, y)
+```
+"""
+function rotation_matrix(; x=nothing, y=nothing, z=nothing)
+   @assert sum([x, y, z] .!== nothing) >= 2
+
+   x !== nothing && (x /= norm(x))
+   y !== nothing && (y /= norm(y))
+   z !== nothing && (z /= norm(z))
+
+   if x === nothing
+      @assert all(y' * z .≈ 0)
+      x = cross(y, z)
+      x /= norm(x)
+   end
+
+   if y === nothing
+      @assert all(z' * x .≈ 0)
+      y = cross(z, x)
+      y /= norm(y)
+   end
+
+   if z === nothing
+      @assert all(x' * y .≈ 0)
+      z = cross(x, y)
+      z /= norm(z)
+   end
+
+   A = hcat(x, y, z)
+   (det(A) < 0.0) && (A = hcat(-x, y, z))
+   return A
+end
+
+"""
+Rotate atoms in place to align axes with Miller indices x, y, z, at least two of which must be given.
+"""
+rotate!(at::Atoms; x=nothing, y=nothing, z=nothing) = apply_defm!(at, rotation_matrix(x=x, y=y, z=z))
 
 
 const _unit_cells = Dict(     # (positions, cell matrix, factor of a)
@@ -126,22 +190,22 @@ _simple_structures = [:fcc, :bcc, :diamond]
 
 
 
-function _simple_bulk(sym::Symbol, cubic::Bool)
+function _simple_bulk(sym::Symbol, cubic::Bool; a=nothing)
    if cubic
       X, scal = _cubic_cells[symmetry(sym)]
       C = Matrix(1.0I, 3, 3) / scal
    else
       X, C, scal = _unit_cells[symmetry(sym)]
    end
-   a = lattice_constant(sym)
+   a === nothing && (a = lattice_constant(sym))
    return [ JVecF(x) * a * scal  for x in X ], JMatF(C * a * scal)
 end
 
 
-function _bulk_hcp(sym::Symbol)
+function _bulk_hcp(sym::Symbol; a=nothing, c=nothing)
    D = Chemistry.refstate(sym)
-   a = D["a"]
-   c = a * D["c/a"]
+   a === nothing && (a = D["a"])
+   c === nothing && (c = a * D["c/a"])
    return [JVecF(0.0, 0.0, 0.0), JVecF(0.0, a / sqrt(3), c / 2)],
           JMatF( [a, -a / 2,  0.0, 0.0, a * sqrt(3)/2, 0.0, 0.0, 0.0, c] )
 end
@@ -150,22 +214,24 @@ end
 _convert_pbc(pbc::NTuple{3, Bool}) = pbc
 _convert_pbc(pbc::Bool) = (pbc, pbc, pbc)
 
-function bulk(sym::Symbol; T=Float64, cubic = false, pbc = (true,true,true))
+function bulk(sym::Symbol; T=Float64, cubic = false, pbc = (true,true,true), a=nothing, c=nothing, x=nothing, y=nothing, z=nothing)
    symm = symmetry(sym)
    if symm in _simple_structures
-      X, C = _simple_bulk(sym, cubic)
+      X, C = _simple_bulk(sym, cubic; a=a)
    elseif symm == :hcp
-      X, C = _bulk_hcp(sym)  # cubic parameter is irrelevant for hcp
+      X, C = _bulk_hcp(sym; a=a, c=c)  # cubic parameter is irrelevant for hcp
    end
    m = atomic_mass(sym)
-   z = atomic_number(sym)
+   Z = atomic_number(sym)
    nat = length(X)
-   return Atoms( convert(Vector{JVec{T}}, X),
+   at = Atoms( convert(Vector{JVec{T}}, X),
                  fill(zero(JVec{T}), nat),
                  fill(T(m), nat),
-                 fill(AtomicNumber(z), nat),
+                 fill(AtomicNumber(Z), nat),
                  convert(JMat{T}, C),
                  _convert_pbc(pbc)  )
+   (x !== nothing || y !== nothing || z !== nothing) && rotate!(at, x=x, y=y, z=z)
+   return at
 end
 
 
@@ -202,17 +268,20 @@ the use of an orthorhombic unit cell (for now).
 
 ## Keyword Arguments:
 * `dims` : dimension into which the cluster is extended, typically
-   `(1,2,3)` for 3D point defects and `(1,2)` for 2D dislocations, in the
+   `[1,2,3]` for 3D point defects and `[1,2]` for 2D dislocations, in the
    remaining dimension(s) the b.c. will be periodic.
 * `shape` : shape of the cluster, at the moment only `:ball` is allowed
-
+* `parity`: enforce an odd (where `parity=1`) or even (where `parity=0`)
+   number of cells in each lattice direction. Use a `nothing` element to
+   leave the number of cells unchanged (e.g. in periodic directions).
 ## todo
  * lift the restriction of single species
  * allow other shapes
 """
 function cluster(atu::Atoms{T}, R::Real;
                  dims = findall(pbc(atu).==true),
-                 shape = :ball, x0=nothing) where {T}
+                 shape = :ball, x0=nothing,
+                 parity=nothing) where {T}
    sym = chemical_symbols(atu)[1]
    # check that the cell is orthorombic
    if !isdiag(cell(atu))
@@ -227,6 +296,9 @@ function cluster(atu::Atoms{T}, R::Real;
    # determine by how much to multiply in each direction
    Fu = cell(atu)'
    L = [ j ∈ dims ? 2 * (ceil(Int, R/Fu[j,j])+3) : 1    for j = 1:3]
+   if parity !== nothing
+      L[((L .% 2) .!= parity) .& (parity .!= nothing)] .+= 1
+   end
    # multiply
    at = atu * L
    # find point closest to centre
