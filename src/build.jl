@@ -142,19 +142,19 @@ function rotation_matrix(; x=nothing, y=nothing, z=nothing)
    z !== nothing && (z /= norm(z))
 
    if x === nothing
-      @assert all(isapprox.(y' * z, atol=1e-6))
+      @assert isapprox(y' * z, 0, atol=1e-6)
       x = cross(y, z)
       x /= norm(x)
    end
 
    if y === nothing
-      @assert all(isapprox.(z' * x, atol=1e-6))
+      @assert isapprox(z' * x, 0, atol=1e-6)
       y = cross(z, x)
       y /= norm(y)
    end
 
    if z === nothing
-      @assert all(isapprox.(x' * y, atol=1e-6))
+      @assert isapprox.(x' * y, 0, atol=1e-6)
       z = cross(x, y)
       z /= norm(z)
    end
