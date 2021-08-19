@@ -106,22 +106,15 @@ Atoms(s::Symbol, X::Matrix{Float64}) = Atoms(s, vecs(X))
 # shallow copy constructor
 Atoms(at::Atoms) = Atoms(at.X, at.P, at.M, at.Z, at.cell, at.pbc, at.calc)
 
-import Base.copy, Base.deepcopy
+import Base.copy
 
 """
    at2 = copy(at)
 
 Return a copy of Atoms, referring to same arrays for positions, momenta, etc.
+Use `deepcopy()` for a deep copy of the arrays as well.
 """
 copy(at::Atoms) = Atoms(at)
-
-"""
-   at2 = deepcopy(at) 
-   
-*Note:* `deepcopy(at)` reattaches the original calculator - this is different from ASE, since JuLIP calculators
-are assummed to be stateless.
-"""
-deepcopy(at::Atoms) = Atoms(copy(at.X), copy(at.P), copy(at.M), copy(at.Z), copy(at.cell), copy(at.pbc), at.calc) 
 
 """
    rotation_matrix([x=X, y=Y, z=Z])
