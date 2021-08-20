@@ -340,11 +340,17 @@ function _atoms_to_extxyz_dict(atoms::Atoms{T}) where {T}
    end
 
    # move Atoms fields into `arrays` sub-dict
+   # first X and Z, which should always be initialised
    arrays["pos"] = _write_convert(pop!(dict, "X"))
    arrays["species"] = _write_convert(string.(chemical_symbol.(atoms.Z)))
    arrays["Z"] = _write_convert(pop!(dict, "Z"))
-   arrays["masses"] = _write_convert(pop!(dict, "M"))
-   arrays["momenta"] = _write_convert(pop!(dict, "P"))
+
+   # now M and P, which might not be set
+   for (source, dest) in zip(["M", "P"], ["masses", "momenta"])
+      if source ∈ keys(dict) && dict[source] !== nothing && length(dict[source]) == natoms
+         arrays[dest] = _write_convert(pop!(dict, source))
+      end
+   end
 
    # tidy up top-level dict entries
    dict["info"] = info
