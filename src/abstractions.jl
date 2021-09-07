@@ -6,7 +6,6 @@ import Base: length, getindex, setindex!, deleteat!
 import NeighbourLists: cutoff
 
 import ACEbase: fltype, fltype_intersect, rfltype,
-                alloc_temp, alloc_temp_d, alloc_temp_dd,
                 evaluate, evaluate_d, evaluate_dd, evaluate_ed,
                 evaluate!, evaluate_d!, evaluate_dd!, evaluate_ed!,
                 precon!
@@ -53,6 +52,24 @@ function partial_energy_d end
 not currently implemented in JuLIP.
 """
 function dipole end 
+
+
+
+"""
+`alloc_temp(args...)` : allocate temporary arrays for the evaluation of
+some calculator or potential; see developer docs for more information
+"""
+alloc_temp(args...) = nothing
+
+"""
+`alloc_temp_d(args...)` : allocate temporary arrays for the evaluation of
+some calculator or potential; see developer docs for more information
+"""
+alloc_temp_d(args...) = nothing
+
+alloc_temp_dd(args...) = nothing
+
+
 
 
 # -----
