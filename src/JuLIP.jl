@@ -62,6 +62,6 @@ include("mlips.jl")
 
 # codes to facilitate testing
 include("Testing.jl")
-
+include("datadeps.jl")
 
 end # module
