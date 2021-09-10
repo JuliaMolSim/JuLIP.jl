@@ -1,6 +1,6 @@
 name = "JuLIP"
 uuid = "945c410c-986d-556a-acb1-167a618e0462"
-version = "0.13.4"
+version = "0.13.5"
 
 [deps]
 ACEbase = "14bae519-eb20-449c-a949-9c58ed33163e"

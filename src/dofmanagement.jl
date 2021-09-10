@@ -277,15 +277,15 @@ sigvol_d(at::AbstractAtoms) = sigvol_d(cell(at))
 
 function gradient(calc::AbstractCalculator, at::Atoms)
    if fixedcell(at)
-      return rmul!(mat(forces(at))[at.dofmgr.xfree], -1.0)
+      return rmul!(mat(forces(calc, at))[at.dofmgr.xfree], -1.0)
    end
    F = cell(at)'
    A = F * inv(at.dofmgr.F0)
-   G = forces(at)
+   G = forces(calc, at)
    for n = 1:length(G)
       G[n] = - A' * G[n]
    end
-   S = - virial(at) * inv(F)'                  # ∂E / ∂F
+   S = - virial(calc, at) * inv(F)'                  # ∂E / ∂F
    # S += at.dofmgr.pressure * sigvol_d(at)'     # applied stress  TODO: revive this!
    return [ mat(G)[at.dofmgr.xfree]; Array(S)[:] ]
 end
