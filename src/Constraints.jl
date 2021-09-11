@@ -79,7 +79,7 @@ energy(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
 # achieve this?
 
 hessian(calc::AbstractCalculator, at::AbstractAtoms, cons::FixedCell) =
-      project(cons, _pos_to_dof(hessian_pos(calculator(at), at), at))
+      project(cons, _pos_to_dof(hessian_pos(calc, at), at))
 
 # TODO: this is a temporary hack, and I think we need to
 #       figure out how to do this for more general constraints

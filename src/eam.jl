@@ -261,15 +261,6 @@ alloc_temp_dd(V::EAM, N::Integer) =
             wrk = nothing 
          )
 
-function hessian(calc::EAM, at::AbstractAtoms)
-   if JuLIP.fixedcell(at)
-      H =  ad_hessian(calc, at)
-      return JuLIP.projectxfree(at, H)
-   end
-   @error("`hessian` is not yet implemented for variable cells")
-   return nothing
-end
-
 function _hess_!(hEs, tmp, V::EAM, Rs::AbstractVector{JVec{T}}, Zs, z0, fabs, stab=T(0)
                  ) where {T}
    ρ = 0.0

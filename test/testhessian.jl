@@ -49,9 +49,15 @@ end
 
 
 h3("full finite-difference test for pairpot `hessian`")
+h3("without PBC")
 at = at * 2
 set_pbc!(at, false)
 set_calculator!(at, pp)
+println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
+
+h3("full finite-difference test for pairpot `hessian`")
+h3("with PBC")
+set_pbc!(at, true)
 println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
 
 ##
@@ -105,9 +111,15 @@ println(@test /(extrema(errs)...) < 1e-3)
 ##
 
 h3("full finite-difference test ...")
+
 h3(" ... EAM forces")
 println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
+
 h3(" ... EAM hessian")
+println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
+
+h3(" ... EAM hessian with PBC")
+set_pbc!(at, true)
 println(@test fdtest_hessian( x->gradient(at, x), x->hessian(at, x), dofs(at) ))
 
 ##
@@ -124,5 +136,10 @@ set_calculator!(at, sw)
 h3("full finite-difference test ...")
 h3(" ... SW forces")
 println(@test fdtest( x -> energy(at, x), x -> JuLIP.gradient(at, x), dofs(at) ))
+
 h3(" ... SW hessian")
+println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))
+
+h3(" ... SW hessian with PBC")
+set_pbc!(at, true)
 println(@test fdtest_hessian( x->JuLIP.gradient(at, x), x->hessian(at, x), dofs(at) ))

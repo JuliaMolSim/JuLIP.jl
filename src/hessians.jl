@@ -100,6 +100,7 @@ end
 
 _dV2conf(dV) = mat([[- sum(dV)]; dV])[:]
 
+#   AN OLDER VERSION FOR COMPARISON WITH THE NEW ONE BELOW
 # function ad_site_hessian(V::SimpleSitePotential, Rs, Zs, z0)
 #    dVx = x -> _dV2conf(evaluate_d(V, _conf2env(x)))
 #    return ForwardDiff.jacobian(dVx, [ zeros(3); mat(Rs)[:] ])
