@@ -395,7 +395,7 @@ function _extxyz_dict_to_atoms(dict)
    if "momenta" in keys(arrays)
       dict["P"] = _read_convert(pop!(arrays, "momenta"), natoms)
    else
-      dict["P"] = _read_convert(zeros((3, nat)), natoms)
+      dict["P"] = _read_convert(zeros((3, natoms)), natoms)
    end
 
    atoms = read_dict(dict)
