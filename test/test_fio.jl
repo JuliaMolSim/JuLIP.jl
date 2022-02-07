@@ -34,6 +34,10 @@ D1 = load_dict(fn)
 at3 = read_dict(D1)
 println(@test at3 == at1)
 
+h3(" ... and YAML...")
+save_dict(fn * ".yaml", D1)
+
+
 h3("Test array of Atoms <-> Dict")
 ats = [ (bulk(:Cu) * rand(2:4)) for n = 1:5 ]
 Ds = Dict("ats" => write_dict.(ats))
@@ -41,7 +45,7 @@ ats1 = read_dict.(Ds["ats"])
 println(@test ats1 == ats)
 
 h3("Test JSON fio for array")
-fn = tempname()
+fn = tempname() * ".yaml"
 save_dict(fn, Ds)
 Ds1 = load_dict(fn)
 ats2 = read_dict.(Ds1["ats"])

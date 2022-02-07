@@ -282,8 +282,8 @@ JuLIP.FIO.write_dict(at::Atoms) =
          "P"      => at.P,
          "M"      => at.M,
          "Z"      => Int.(at.Z),
-         "cell"   => at.cell,
          "pbc"    => at.pbc,
+         "cell"   => at.cell[:],
          "calc"   => nothing,
          "data"   => nothing )
 

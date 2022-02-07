@@ -10,7 +10,7 @@ can be changed later. This submodule provides
 """
 module FIO
 
-using JSON, ZipFile
+using JSON, ZipFile, YAML
 using SparseArrays: SparseMatrixCSC
 
 export load_dict, save_dict, 
@@ -100,20 +100,24 @@ end
 function load_dict(fname::AbstractString)
   if endswith(fname, ".json")
      return load_json(fname)
-  elseif endswith(fname, ".yaml") || enswith(fname, ".yml")
+  elseif endswith(fname, ".yaml") || endswith(fname, ".yml")
      return load_yaml(fname)
   else
-     throw(error("Unrecognised file format. Expected: \"*.json\" or \"*.yaml\", got filename: $(fname)"))
+      @warn("Unrecognised file format. Expected: \"*.json\" or \"*.yaml\", got filename: $(fname)")
+      return load_json(fname)
+      #  error("Unrecognised file format. Expected: \"*.json\" or \"*.yaml\", got filename: $(fname)")
   end
 end
 
 function save_dict(fname::AbstractString, D::Dict; indent=0)
   if endswith(fname, ".json")
      return save_json(fname, D; indent=indent)
-  elseif endswith(fname, ".yaml") || enswith(fname, ".yml")
+  elseif endswith(fname, ".yaml") || endswith(fname, ".yml")
      return save_yaml(fname, D)
   else
-     throw(error("Unrecognised file format. Expected: \"*.json\" or \"*.yaml\", got filename: $(fname)"))
+   #   throw(error("Unrecognised file format. Expected: \"*.json\" or \"*.yaml\", got filename: $(fname)"))
+     @warn("Unrecognised file format. Expected: \"*.json\" or \"*.yaml\", got filename: $(fname)")
+     return save_json(fname, D; indent=indent)
   end
 end
 
