@@ -13,8 +13,11 @@ module FIO
 using JSON, ZipFile
 using SparseArrays: SparseMatrixCSC
 
-export load_dict, save_dict, read_dict, write_dict,
-       zip_dict, unzip_dict
+export load_dict, save_dict, 
+       read_dict, write_dict,
+       zip_dict, unzip_dict,
+       load_json, save_json,
+       load_yaml, save_yaml
 
 #######################################################################
 #                     Conversions to and from Dict
@@ -74,19 +77,46 @@ read_dict(::Val{sym}, D::Dict) where {sym} =
 #                     JSON
 #######################################################################
 
+function load_json(fname::AbstractString)
+   return JSON.parsefile(fname)
+end
+
+function save_json(fname::AbstractString, D::Dict; indent=0)
+   f = open(fname, "w")
+   JSON.print(f, D, indent)
+   close(f)
+   return nothing
+end
+
+function load_yaml(fname::AbstractString)
+  return YAML.load_file(fname)
+end
+
+function save_yaml(fname::AbstractString, D::Dict)
+  YAML.write_file(fname, D) 
+  return nothing
+end
+
 function load_dict(fname::AbstractString)
-    return JSON.parsefile(fname)
+  if endswith(fname, ".json")
+     return load_json(fname)
+  elseif endswith(fname, ".yaml") || enswith(fname, ".yml")
+     return load_yaml(fname)
+  else
+     throw(error("Unrecognised file format. Expected: \"*.json\" or \"*.yaml\", got filename: $(fname)"))
+  end
 end
 
 function save_dict(fname::AbstractString, D::Dict; indent=0)
-    f = open(fname, "w")
-    JSON.print(f, D, indent)
-    close(f)
-    return nothing
+  if endswith(fname, ".json")
+     return save_json(fname, D; indent=indent)
+  elseif endswith(fname, ".yaml") || enswith(fname, ".yml")
+     return save_yaml(fname, D)
+  else
+     throw(error("Unrecognised file format. Expected: \"*.json\" or \"*.yaml\", got filename: $(fname)"))
+  end
 end
 
-save_dict = save_dict
-load_dict = load_dict
 
 function zip_dict(fname::AbstractString, D::Dict; indent=0)
    zipdir = ZipFile.Writer(fname)
