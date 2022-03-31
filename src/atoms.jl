@@ -371,7 +371,7 @@ function _atoms_to_extxyz_dict(atoms::Atoms{T}) where {T}
    dict = write_dict(atoms)
    natoms = length(atoms)
    dict["N_atoms"] = natoms
-   dict["cell"] = _write_convert(dict["cell"])
+   dict["cell"] = reshape(_write_convert(dict["cell"]), 3, 3) #issue #149
    dict["pbc"] = _write_convert(dict["pbc"])
 
    # try to figure out whether data entries are per-atom or per-config
@@ -456,6 +456,8 @@ function _extxyz_dict_to_atoms(dict)
       dict["P"] = _read_convert(zeros((3, natoms)), natoms)
    end
 
+   # add default for periodic boundary conditions (issue #151)
+   "pbc" ∉ keys(dict) && (dict["pbc"] = [true, true, true])
    atoms = read_dict(dict)
 
    # everything else goes in data
