@@ -75,7 +75,7 @@ Files can e.g. be obtained from
 `ρ` can be a `Vector`  or a `Matrix`, depending on the symmetry of the density function.
 `.fs` files can provide an assymmetric density.
 """
-struct EAM{T<:Real, N,
+struct EAM{T<:Real, N, 
            P1<:SimplePairPotential, P2<:SimplePairPotential, P3<:SimplePairPotential,
            Z<:AbstractZList} <: SitePotential
    ρ::Array{P1, N}
@@ -181,7 +181,7 @@ end
 Constructor for single species EAM.
 """
 function EAM(ρ::PairPotential, F::PairPotential, ϕ::PairPotential)
-   EAM([ρ], [F], hcat(ϕ), ZList([JuLIP.Chemistry.__zAny__]), max(cutoff(ϕ), cutoff(ρ)))
+   EAM(hcat(ρ), [F], hcat(ϕ), ZList([JuLIP.Chemistry.__zAny__]), max(cutoff(ϕ), cutoff(ρ)))
 end
 
 @pot EAM

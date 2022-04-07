@@ -9,7 +9,6 @@ using Interpolations: interpolate, BSpline, Cubic, Line, OnGrid,
 using OffsetArrays: OffsetVector
 using ForwardDiff
 
-const CubicBSpline{T} = ScaledInterpolation{T, 1, BSplineInterpolation{T, 1, OffsetVector{T, Vector{T}}, BSpline{Cubic{Line{OnGrid}}}, Tuple{Base.OneTo{Int64}}}, BSpline{Cubic{Line{OnGrid}}}, Tuple{StepRangeLen{T, Base.TwicePrecision{T}, Base.TwicePrecision{T}}}}
 
 """
 `type SplinePairPotential`
@@ -26,14 +25,15 @@ SplinePairPotential(fname; kwargs...)        # load data points from file
 Keyword arguments:
 * `fixcutoff = true`: if true, then the fit will be artificially modified at the cut-off to ensure that the transition to zero is smooth
 """
-mutable struct SplinePairPotential{T} <: SimplePairPotential
-   spl::CubicBSpline{T}      # The actual spline object
+mutable struct SplinePairPotential{T, SPL} <: SimplePairPotential
+   spl::SPL      # The actual spline object
    rcut::T                   # cutoff radius (??? could just use spl.t[end] ???)
 end
 
 @pot SplinePairPotential
 
-function SplinePairPotential(xdat, ydat, rcut = xdat[end]; fixcutoff=true) 
+function SplinePairPotential(xdat::AbstractVector, ydat::AbstractVector, 
+                             rcut::Real = xdat[end]; fixcutoff=true)
    # check that the data is equi-spaced. If not, then we need to generalize the 
    # code to allow splines on arbitrary grids (griddedinterpolations?)
    if maximum(abs, diff(diff(xdat))) > 1e-12 
@@ -56,8 +56,7 @@ function SplinePairPotential(xdat, ydat, rcut = xdat[end]; fixcutoff=true)
    spl_pre = interpolate(ydat, BSpline(Cubic(Line(OnGrid()))))
    # ... and rescale it to the correct grid 
    spl = Interpolations.scale(spl_pre, xrg)
-
-   return SplinePairPotential(spl, rcut)
+   return SplinePairPotential{typeof(rcut), typeof(spl)}(spl, rcut)
 end
 
 
