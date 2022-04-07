@@ -9,7 +9,7 @@ using Interpolations: interpolate, BSpline, Cubic, Line, OnGrid,
 using OffsetArrays: OffsetVector
 using ForwardDiff
 
-const CubicBSpline{T} = ScaledInterpolation{T, 1, BSplineInterpolation{T, 1, OffsetVector{T, Vector{T}}, BSpline{Cubic{Line{OnGrid}}}, Tuple{Base.OneTo{Int64}}}, BSpline{Cubic{Line{OnGrid}}}, Tuple{StepRangeLen{T, Base.TwicePrecision{T}, Base.TwicePrecision{T}}}}
+const CubicBSpline{T} = ScaledInterpolation{T, 1, BSplineInterpolation{T, 1, OffsetVector{T, Vector{T}}, BSpline{Cubic{Line{OnGrid}}}, Tuple{Base.OneTo{Int64}}}, BSpline{Cubic{Line{OnGrid}}}, Tuple{StepRangeLen{T, Base.TwicePrecision{T}, Base.TwicePrecision{T}, Int64}}}
 
 """
 `type SplinePairPotential`
@@ -56,7 +56,6 @@ function SplinePairPotential(xdat, ydat, rcut = xdat[end]; fixcutoff=true)
    spl_pre = interpolate(ydat, BSpline(Cubic(Line(OnGrid()))))
    # ... and rescale it to the correct grid 
    spl = Interpolations.scale(spl_pre, xrg)
-
    return SplinePairPotential(spl, rcut)
 end
 
