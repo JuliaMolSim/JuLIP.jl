@@ -226,7 +226,7 @@ function energy!(tmp, calc::SitePotential, at::Atoms; domain=1:length(at))
       end
    else
       E = zeros(TFL, num_threads)
-      @threads for i in domain
+      @threads :static for i in domain
          j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
          E[threadid()] += evaluate!(tmp[threadid()], calc, R, Z, at.Z[i])
       end
@@ -255,7 +255,7 @@ function forces!(frc, tmp, calc::SitePotential, at::Atoms;
    else
       frc_t = [ zeros(eltype(frc), length(frc)) for _=1:Threads.nthreads() ]
 
-      @threads for i in domain
+      @threads :static for i in domain
          tid = threadid()
          j, R, Z = neigsz!(tmp[tid], nlist, at, i)
          if length(j) > 0
@@ -294,7 +294,7 @@ function virial!(tmp, calc::SitePotential, at::Atoms; domain=1:length(at))
       end  
    else
       vir = zeros(JMat{TFL}, num_threads)
-      @threads for i in domain
+      @threads :static for i in domain
          j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
          if length(j) > 0
          evaluate_d!(tmp[threadid()].dV, tmp[threadid()], calc, R, Z, at.Z[i])
