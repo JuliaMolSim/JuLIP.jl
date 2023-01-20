@@ -71,11 +71,19 @@ mutable struct Atoms{T <: AbstractFloat} <: AbstractAtoms{T}
    data::Dict{Any,JData{T}}
 end
 
-Atoms(X::Vector{JVec{T}}, P::Vector{JVec{T}}, M::Vector{T},
-      Z::Vector{AtomicNumber}, cell::JMat{T}, pbc::JVec{Bool},
-      calc::Union{Nothing, AbstractCalculator} = nothing) where {T} =
+function Atoms(
+      X::Vector{JVec{T}},
+      P::Vector{JVec{T}},
+      M::Vector{T},
+      Z::Vector{AtomicNumber},
+      cell::JMat{T},
+      pbc::JVec{Bool},
+      calc::Union{Nothing, AbstractCalculator} = nothing
+   ) where {T}
+      
    Atoms(X, P, M, Z, cell, pbc, calc,
          DofManager(length(X), T), Dict{Any,JData{T}}())
+end
 
 
 fltype(::Atoms{T}) where {T} = T
