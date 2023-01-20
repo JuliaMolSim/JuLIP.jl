@@ -118,6 +118,7 @@ end
 
 Base.convert(::Type{Atoms}, a::AtomsBase.AbstractSystem) = Atoms(a)
 Base.convert(::Type{AtomsBase.FlexibleSystem}, a::Atoms) = AtomsBase.FlexibleSystem(a)
+Base.convert(::Type{AtomsBase.AbstractSystem}, a::Atoms) = AtomsBase.FlexibleSystem(a)
 
 fltype(::Atoms{T}) where {T} = T
 
