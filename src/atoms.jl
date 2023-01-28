@@ -2,7 +2,6 @@
 import AtomsBase
 import Base.Dict
 using Unitful
-using UnitfulAtomic
 
 export Atoms
 
@@ -93,7 +92,7 @@ function Atoms(sys::AtomsBase.AbstractSystem)
    X = [ ustrip.(u"Å", AtomsBase.position(sys,i) ) for i in 1:length(sys)  ]
    V = [ ustrip.(u"Å/s", AtomsBase.velocity(sys,i) ) for i in 1:length(sys)  ]
    M = [ ustrip(u"u", AtomsBase.atomic_mass(sys,i) ) for i in 1:length(sys) ]
-   Z = [ austrip( AtomsBase.atomic_number(sys,i) ) for i in 1:length(sys) ]
+   Z = [ AtomsBase.atomic_number(sys,i) for i in 1:length(sys) ]
    cell = map( x -> ustrip.(u"Å", x), sys[:bounding_box])
    cell = map( x -> ustrip.(u"Å", x), AtomsBase.bounding_box(sys))
    pbc = map( x -> x == AtomsBase.Periodic ? true : false , AtomsBase.boundary_conditions(sys))
