@@ -14,6 +14,7 @@ atc = convert(Atoms, ab)
 att = Atoms(ab)
 
 @test at.X ≈ att.X
+@test at.P ≈ att.P
 @test at.cell ≈ att.cell
 @test at.M ≈ att.M
 
