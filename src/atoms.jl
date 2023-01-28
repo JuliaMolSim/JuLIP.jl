@@ -90,7 +90,7 @@ end
 
 function Atoms(sys::AtomsBase.AbstractSystem)
    X = [ ustrip.(u"Å", AtomsBase.position(sys,i) ) for i in 1:length(sys)  ]
-   V = [ ustrip.(u"Å/s", AtomsBase.velocity(sys,i) ) for i in 1:length(sys)  ]
+   V = [ ustrip.(u"eV^0.5/u^0.5", AtomsBase.velocity(sys,i) ) for i in 1:length(sys)  ]
    M = [ ustrip(u"u", AtomsBase.atomic_mass(sys,i) ) for i in 1:length(sys) ]
    Z = [ AtomsBase.atomic_number(sys,i) for i in 1:length(sys) ]
    cell = map( x -> ustrip.(u"Å", x), sys[:bounding_box])
@@ -105,7 +105,7 @@ function AtomsBase.FlexibleSystem(sys::Atoms)
        s = Int(sys.Z[i])
        r = sys[i] * u"Å"
        m = sys.M[i] * u"u"
-       v = sys.P[i] * u"Å/s"
+       v = sys.P[i] * u"eV^0.5/u^0.5"
        AtomsBase.Atom(s, r, v; atomic_mass=m)
    end
    pbc = map( sys.pbc ) do a
