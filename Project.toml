@@ -1,6 +1,6 @@
 name = "JuLIP"
 uuid = "945c410c-986d-556a-acb1-167a618e0462"
-version = "0.13.7"
+version = "0.13.9"
 
 [deps]
 ACEbase = "14bae519-eb20-449c-a949-9c58ed33163e"
@@ -33,6 +33,9 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
 ACEbase = "0.2"
+DataDeps = "0.7"
+NeighbourLists = "0.5"
+julia = "1.7"
 AlgebraicMultigrid = "0.5"
 AtomsBase = "0.3"
 Calculus = "0.5"

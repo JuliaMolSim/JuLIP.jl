@@ -226,7 +226,7 @@ function energy!(tmp, calc::SitePotential, at::Atoms; domain=1:length(at))
       end
    else
       E = zeros(TFL, num_threads)
-      @threads for i in domain
+      @threads :static for i in domain
          j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
          E[threadid()] += evaluate!(tmp[threadid()], calc, R, Z, at.Z[i])
       end
@@ -241,7 +241,7 @@ function forces!(frc, tmp, calc::SitePotential, at::Atoms;
    nlist = neighbourlist(at, cutoff(calc))
    TFL = fltype_intersect(calc, at)
    num_threads = JuLIP.nthreads()
-   if num_threads ==1
+   if num_threads == 1
       for i in domain
             j, R, Z = neigsz!(tmp[1], nlist, at, i)
             if length(j) > 0
@@ -253,19 +253,21 @@ function forces!(frc, tmp, calc::SitePotential, at::Atoms;
             end
       end
    else
-      lk = ReentrantLock()
-      @threads for i in domain
-         j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
+      frc_t = [ zeros(eltype(frc), length(frc)) for _=1:Threads.nthreads() ]
+
+      @threads :static for i in domain
+         tid = threadid()
+         j, R, Z = neigsz!(tmp[tid], nlist, at, i)
          if length(j) > 0
-            evaluate_d!(tmp[threadid()].dV, tmp[threadid()], calc, R, Z, at.Z[i])
-            lock(lk) do
-               for a = 1:length(j)
-                  frc[j[a]] -= tmp[threadid()].dV[a]
-                  frc[i]    += tmp[threadid()].dV[a]
-               end
+            evaluate_d!(tmp[tid].dV, tmp[tid], calc, R, Z, at.Z[i])
+            for a = 1:length(j)
+               frc_t[tid][j[a]] -= tmp[tid].dV[a]
+               frc_t[tid][i]    += tmp[tid].dV[a]
             end
          end
       end
+
+      frc[:] = sum(frc_t)
    end
    return frc
 end
@@ -292,7 +294,7 @@ function virial!(tmp, calc::SitePotential, at::Atoms; domain=1:length(at))
       end  
    else
       vir = zeros(JMat{TFL}, num_threads)
-      @threads for i in domain
+      @threads :static for i in domain
          j, R, Z = neigsz!(tmp[threadid()], nlist, at, i)
          if length(j) > 0
          evaluate_d!(tmp[threadid()].dV, tmp[threadid()], calc, R, Z, at.Z[i])

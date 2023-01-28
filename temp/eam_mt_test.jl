@@ -32,7 +32,7 @@ eam = eam1
 function evaln(eam, at, N)
     E = zeros(Main.Threads.nthreads())
     F = [ forces(eam, at) * 0  for _ = 1:Main.Threads.nthreads() ]
-    @threads for n = 1:N 
+    @threads :static for n = 1:N 
         tid = threadid()
         at1 = deepcopy(at) 
         rattle!(at, 0.1)
