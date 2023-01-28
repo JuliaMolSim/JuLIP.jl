@@ -33,9 +33,6 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
 ACEbase = "0.2"
-DataDeps = "0.7"
-NeighbourLists = "0.5"
-julia = "1.7"
 AlgebraicMultigrid = "0.5"
 AtomsBase = "0.3"
 Calculus = "0.5"
@@ -55,7 +52,7 @@ Reexport = "1"
 Requires = "1"
 StaticArrays = "1"
 ZipFile = "0.10"
-julia = "1"
+julia = "1.7"
 
 [extras]
 ASE = "51974c44-a7ed-5088-b8be-3e78c8ba416c"
