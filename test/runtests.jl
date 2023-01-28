@@ -41,6 +41,7 @@ julip_tests = [
    ("testhessian.jl", "Hessian"),
    ("test_onebody.jl", "One-Body"),
    ("test_eam.jl", "EAM"),
+   ("test_atomsbase.jl", "AtomsBase")
    ]
 
 # add solver tests if not on travis

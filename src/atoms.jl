@@ -90,12 +90,12 @@ end
 
 
 function Atoms(sys::AtomsBase.AbstractSystem)
-   X = [ austrip.( AtomsBase.position(sys,i) ) for i in 1:length(sys)  ]
-   V = [ austrip.( AtomsBase.velocity(sys,i) ) for i in 1:length(sys)  ]
+   X = [ ustrip.(u"Å", AtomsBase.position(sys,i) ) for i in 1:length(sys)  ]
+   V = [ ustrip.(u"Å/s", AtomsBase.velocity(sys,i) ) for i in 1:length(sys)  ]
    M = [ ustrip(u"u", AtomsBase.atomic_mass(sys,i) ) for i in 1:length(sys) ]
    Z = [ austrip( AtomsBase.atomic_number(sys,i) ) for i in 1:length(sys) ]
-   cell = map( x -> austrip.(x), sys[:bounding_box])
-   cell = map( x -> austrip.(x), AtomsBase.bounding_box(sys))
+   cell = map( x -> ustrip.(u"Å", x), sys[:bounding_box])
+   cell = map( x -> ustrip.(u"Å", x), AtomsBase.bounding_box(sys))
    pbc = map( x -> x == AtomsBase.Periodic ? true : false , AtomsBase.boundary_conditions(sys))
    return JuLIP.Atoms(X, V, M, Z, cell, pbc)
 end
@@ -104,15 +104,15 @@ end
 function AtomsBase.FlexibleSystem(sys::Atoms)
    atoms = map( 1:length(sys)  ) do i
        s = Int(sys.Z[i])
-       r = sys[i] * u"bohr"
+       r = sys[i] * u"Å"
        m = sys.M[i] * u"u"
-       v = sys.P[i] * u"bohr*Eh_au/ħ_au"
-       AtomsBase.Atom(s, r; atomic_mass=m, velocity=v)
+       v = sys.P[i] * u"Å/s"
+       AtomsBase.Atom(s, r, v; atomic_mass=m)
    end
    pbc = map( sys.pbc ) do a
        a ? AtomsBase.Periodic() : AtomsBase.DirichletZero()
    end
-   cell = [ c * u"bohr" for c in eachrow(sys.cell) ]
+   cell = [ c * u"Å" for c in eachrow(sys.cell) ]
    return AtomsBase.FlexibleSystem(atoms, cell, pbc)
 end
 
