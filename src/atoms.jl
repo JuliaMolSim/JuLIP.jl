@@ -100,7 +100,7 @@ function Atoms(sys::AtomsBase.AbstractSystem)
 end
 
 
-function AtomsBase.FlexibleSystem(sys::Atoms)
+function AtomsBase.FlexibleSystem(sys::Atoms; kwargs...)
    atoms = map( 1:length(sys)  ) do i
        s = Int(sys.Z[i])
        r = sys[i] * u"Å"
@@ -112,7 +112,7 @@ function AtomsBase.FlexibleSystem(sys::Atoms)
        a ? AtomsBase.Periodic() : AtomsBase.DirichletZero()
    end
    cell = [ c * u"Å" for c in eachrow(sys.cell) ]
-   return AtomsBase.FlexibleSystem(atoms, cell, pbc)
+   return AtomsBase.FlexibleSystem(atoms, cell, pbc; kwargs...)
 end
 
 Base.convert(::Type{Atoms}, a::AtomsBase.AbstractSystem) = Atoms(a)
