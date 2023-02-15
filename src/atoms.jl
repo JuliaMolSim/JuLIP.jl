@@ -109,7 +109,7 @@ function AtomsBase.FlexibleSystem(sys::Atoms)
        s = Int(sys.Z[i])
        r = sys[i] * u"Å"
        m = sys.M[i] * u"u"
-       v = (sys.P[i] ./ m) * sqrt(u"eV/u")
+       v = (sys.P[i] ./ sys.M[i]) * sqrt(u"eV/u")
        AtomsBase.Atom(s, r, v; atomic_mass=m)
    end
    pbc = map( sys.pbc ) do a
