@@ -17,6 +17,7 @@ mutable struct JData{T}
    data::Any
 end
 
+JData(data) = JData(Inf, 0.0, data) 
 
 struct LinearConstraint{T}
    C::Matrix{T}
@@ -80,11 +81,13 @@ function Atoms(
       Z::Vector{AtomicNumber},
       cell::JMat{T},
       pbc::JVec{Bool},
-      calc::Union{Nothing, AbstractCalculator} = nothing
+      calc::Union{Nothing, AbstractCalculator} = nothing;
+      data::Union{Nothing, Dict{Any,JData{T}}} = nothing
    ) where {T}
-      
+   #@info "Help" tmp
+   tmp = something(data, Dict{Any,JData{T}}())
    Atoms(X, P, M, Z, cell, pbc, calc,
-         DofManager(length(X), T), Dict{Any,JData{T}}())
+         DofManager(length(X), T), tmp)
 end
 
 
@@ -92,27 +95,32 @@ function Atoms(sys::AtomsBase.AbstractSystem)
    X = [ ustrip.(u"Å", AtomsBase.position(sys,i) ) for i in 1:length(sys)  ]
    V = [ ustrip.(u"eV^0.5/u^0.5", AtomsBase.velocity(sys,i) ) for i in 1:length(sys)  ]
    M = [ ustrip(u"u", AtomsBase.atomic_mass(sys,i) ) for i in 1:length(sys) ]
-   Z = [ AtomsBase.atomic_number(sys,i) for i in 1:length(sys) ]
+   Z = [ (AtomicNumber ∘ AtomsBase.atomic_number)(sys,i) for i in 1:length(sys) ]
    cell = map( x -> ustrip.(u"Å", x), sys[:bounding_box])
-   cell = map( x -> ustrip.(u"Å", x), AtomsBase.bounding_box(sys))
    pbc = map( x -> x == AtomsBase.Periodic ? true : false , AtomsBase.boundary_conditions(sys))
-   return JuLIP.Atoms(X, V, M, Z, cell, pbc)
+   data = Dict{Any,JData{eltype(M)}}( String(key)=>JData(sys[key]) for key in keys(sys) 
+      if !( key in (:bounding_box, :boundary_conditions) )
+   )
+   return JuLIP.Atoms(X, V, M, Z, hcat(cell...), pbc; data=data) #, nothing, data)#; data=data) #; data=data)
 end
 
 
-function AtomsBase.FlexibleSystem(sys::Atoms; kwargs...)
+function AtomsBase.FlexibleSystem(sys::Atoms)
    atoms = map( 1:length(sys)  ) do i
        s = Int(sys.Z[i])
        r = sys[i] * u"Å"
        m = sys.M[i] * u"u"
-       v = sys.P[i] * u"eV^0.5/u^0.5"
+       v = sys.P[i] * sqrt(u"eV/u")
        AtomsBase.Atom(s, r, v; atomic_mass=m)
    end
    pbc = map( sys.pbc ) do a
        a ? AtomsBase.Periodic() : AtomsBase.DirichletZero()
    end
    cell = [ c * u"Å" for c in eachrow(sys.cell) ]
-   return AtomsBase.FlexibleSystem(atoms, cell, pbc; kwargs...)
+   data = Dict(
+      Symbol(key)=>val.data  for (key,val) in sys.data 
+   )
+   return AtomsBase.FlexibleSystem(atoms, cell, pbc; data...)
 end
 
 Base.convert(::Type{Atoms}, a::AtomsBase.AbstractSystem) = Atoms(a)
@@ -120,6 +128,10 @@ Base.convert(::Type{AtomsBase.FlexibleSystem}, a::Atoms) = AtomsBase.FlexibleSys
 Base.convert(::Type{AtomsBase.AbstractSystem}, a::Atoms) = AtomsBase.FlexibleSystem(a)
 
 fltype(::Atoms{T}) where {T} = T
+
+function Base.show(io::IO, a::Atoms)
+   print(io, "JuLIP.Atoms with $(length(a)) atoms")
+end
 
 # derived properties
 length(at::Atoms) = length(at.X)

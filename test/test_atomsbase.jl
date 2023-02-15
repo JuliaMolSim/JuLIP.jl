@@ -33,3 +33,15 @@ end
 map( 1:length(ab) ) do i
     @test ustrip.(u"eV^0.5/u^0.5", velocity(ab,i)) ≈ at.P[i]
 end
+
+## Test conversion of data parameters
+hydrogen = isolated_system([:H => [0, 0, 1.]u"Å",
+                            :H => [0, 0, 3.]u"Å"];
+                            e=1.3)
+a = Atoms(hydrogen)
+
+@test a.data["e"].data == hydrogen[:e]
+
+hh = FlexibleSystem(a)
+
+@test hh[:e] == hydrogen[:e]
