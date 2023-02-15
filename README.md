@@ -113,6 +113,24 @@ R0 = [ @SVector rand(3) for n = 1:nneigs ]
 @show (@D V(R0))
 ```
 
+## AtomsBase input
+
+```julia
+using AtomsBase
+using JuLIP
+using Unitful
+
+# Create AtomsBase system
+system = isolated_system([ AtomsBase.Atom(:H, rand(3)*u"pm") for i in 1:10 ])
+
+# Convert to JuLIP
+at = Atoms(system)
+also_at = convert(Atoms, system)
+
+#Convert back to AtomsBase
+ab = convert(FlexibleSystem, at)
+```
+
 <!-- ## An Example with TightBinding
 
 **THIS IS PROBABLY BROKEN ON JULIA v0.6**
