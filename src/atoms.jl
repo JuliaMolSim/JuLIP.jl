@@ -84,7 +84,6 @@ function Atoms(
       calc::Union{Nothing, AbstractCalculator} = nothing;
       data::Union{Nothing, Dict{Any,JData{T}}} = nothing
    ) where {T}
-   #@info "Help" tmp
    tmp = something(data, Dict{Any,JData{T}}())
    Atoms(X, P, M, Z, cell, pbc, calc,
          DofManager(length(X), T), tmp)
