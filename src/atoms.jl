@@ -100,7 +100,7 @@ function Atoms(sys::AtomsBase.AbstractSystem)
    data = Dict{Any,JData{eltype(M)}}( String(key)=>JData(sys[key]) for key in keys(sys) 
       if !( key in (:bounding_box, :boundary_conditions) )
    )
-   return JuLIP.Atoms(X, V, M, Z, hcat(cell...), pbc; data=data)
+   return JuLIP.Atoms(X, M .* V, M, Z, hcat(cell...), pbc; data=data)
 end
 
 
@@ -109,7 +109,7 @@ function AtomsBase.FlexibleSystem(sys::Atoms)
        s = Int(sys.Z[i])
        r = sys[i] * u"Å"
        m = sys.M[i] * u"u"
-       v = sys.P[i] * sqrt(u"eV/u")
+       v = (sys.P[i] ./ m) * sqrt(u"eV/u")
        AtomsBase.Atom(s, r, v; atomic_mass=m)
    end
    pbc = map( sys.pbc ) do a

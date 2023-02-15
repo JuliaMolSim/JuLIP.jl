@@ -31,7 +31,7 @@ end
 
 # Test velocities
 map( 1:length(ab) ) do i
-    @test ustrip.(u"eV^0.5/u^0.5", velocity(ab,i)) ≈ at.P[i]
+    @test ustrip.(u"eV^0.5/u^0.5", velocity(ab,i)) ≈ at.P[i] / at.M[i]
 end
 
 ## Test conversion of data parameters
