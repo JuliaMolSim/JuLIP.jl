@@ -22,7 +22,7 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - name: Add MolSim registry
-        run: julia -e 'using Pkg; pkg"registry add https://github.com/JuliaMolSim/MolSim.git"'
+        run: julia -e 'using Pkg; pkg"registry add General"; pkg"registry add https://github.com/JuliaMolSim/MolSim.git"'
       - name: Install Python dependencies
         run: |
           julia --project=. -e 'using Pkg; Pkg.add("PyCall")'
