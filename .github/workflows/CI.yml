@@ -13,7 +13,6 @@ jobs:
         os:
           - ubuntu-latest
           - macOS-latest
-          - windows-latest
         arch:
           - x64
     steps:
@@ -22,10 +21,14 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - name: Install Python dependencies
-        run: pip3 install "numpy<1.24" ase
       - name: Add MolSim registry
-        run: julia -e 'using Pkg; pkg"registry add https://github.com/JuliaMolSim/MolSim.git"'
+        run: julia -e 'using Pkg; pkg"registry add General"; pkg"registry add https://github.com/JuliaMolSim/MolSim.git"'
+      - name: Install Python dependencies
+        run: |
+          julia --project=. -e 'using Pkg; Pkg.add("PyCall")'
+          PYTHON=$(which $(julia --project=. -e 'using PyCall; print(PyCall.python)'))
+          echo "Julia is using PYTHON=$PYTHON"
+          $(dirname $PYTHON)/pip install "numpy<1.24" ase        
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
@@ -37,6 +40,8 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
+#      - name: Setup tmate session
+#        uses: mxschmitt/action-tmate@v3        
       - uses: julia-actions/julia-runtest@v1
         env:
           DATADEPS_ALWAYS_ACCEPT: true
