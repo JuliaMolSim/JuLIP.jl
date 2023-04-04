@@ -89,4 +89,16 @@ h3("Test ExtXYZ fio for Atoms")
     data5 = [atoms.data for atoms in at5]
     data1 = [atoms.data for atoms in seq1[5:5]]
     @test all(isapprox.(data1, data5; tol=1e-6))
+
+    # remove pbc=[T, T, T] to test for regressions of issue #151
+    f = open(filename, "r")
+    s = read(f, String)
+    s = replace(s, "pbc=[T, T, T]" => "")
+    close(f)
+    f = open(filename, "w")
+    write(f, s)
+    close(f)
+    seq4 = read_extxyz(filename)
+    @test all(seq1 .≈ seq4)
+
 end
