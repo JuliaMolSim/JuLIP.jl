@@ -21,10 +21,14 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - name: Install Python dependencies
-        run: pip3 install "numpy<1.24" ase
       - name: Add MolSim registry
         run: julia -e 'using Pkg; pkg"registry add https://github.com/JuliaMolSim/MolSim.git"'
+      - name: Install Python dependencies
+        run: |
+          julia --project=. -e 'using Pkg; Pkg.add("PyCall")'
+          PYTHON=$(julia --project=. -e 'using PyCall; print(PyCall.python)')
+          echo "Julia is using PYTHON=$PYTHON"
+          $(dirname $PYTHON)/pip install "numpy<1.24" ase        
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
