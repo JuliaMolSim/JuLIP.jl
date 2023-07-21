@@ -32,7 +32,7 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
-ACEbase = "0.2"
+ACEbase = "0.4"
 AlgebraicMultigrid = "0.5"
 AtomsBase = "0.3"
 Calculus = "0.5"

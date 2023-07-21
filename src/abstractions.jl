@@ -5,10 +5,26 @@ import Base: length, getindex, setindex!, deleteat!
 
 import NeighbourLists: cutoff
 
-import ACEbase: fltype, fltype_intersect, rfltype,
-                evaluate, evaluate_d, evaluate_dd, evaluate_ed,
-                evaluate!, evaluate_d!, evaluate_dd!, evaluate_ed!,
-                precon!
+import ACEbase: evaluate, evaluate_d, evaluate_dd, evaluate_ed,
+                evaluate!, evaluate_d!, evaluate_dd!, evaluate_ed!
+  
+# this used to be in ACEbase                
+# fltype, fltype_intersect, rfltype, precon!
+# as an experiment we define them here 
+
+function fltype end
+function fltype_intersect end
+function rfltype end
+function precon! end
+function combine end 
+
+fltype(T::DataType) = T
+
+fltype_intersect(o1, o2) =
+      fltype_intersect(fltype(o1), fltype(o2))
+
+fltype_intersect(T1::DataType, T2::DataType) =
+      typeof(one(T1) * one(T2))
 
 
 # function defined primarily on AbstractAtoms
