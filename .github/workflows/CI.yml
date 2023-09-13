@@ -8,7 +8,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6'
+          - '1.8'
+          - '1.9'
           - 'nightly'
         os:
           - ubuntu-latest
@@ -22,7 +23,7 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - name: Add MolSim registry
-        run: julia -e 'using Pkg; pkg"registry add General"; pkg"registry add https://github.com/JuliaMolSim/MolSim.git"'
+        run: julia -e 'using Pkg; pkg"registry add General"; pkg"registry add https://github.com/ACEsuit/ACEregistry.git"'
       - name: Install Python dependencies
         run: |
           julia --project=. -e 'using Pkg; Pkg.add("PyCall")'
