@@ -24,22 +24,17 @@ Contributions are very welcome, especially for producing examples and tutorials.
 # Installation
 
 The latest versions of JuLIP are no longer installed in the `General` registry.
-To use these versions, you will first need to install the [`MolSim` registry](https://github.com/JuliaMolSim/MolSim) via
+To use these versions, you will first need to install the [`ACE` registry](https://github.com/ACEsuit/ACEregistry) via
 ```julia
-] registry add https://github.com/JuliaMolSim/MolSim.git
+] registry add https://github.com/ACEsuit/ACEregistry.git
 ```
 Then, to install `JuLIP`,
 ```julia
-] add Pkg.add("JuLIP")
+] add JuLIP
 ```
-and run
-```julia
-Pkg.test("JuLIP")
-```
-to make sure the installation succeeded. If a test fails, please open an issue.
 
-Most likely you will also want to ASE bindings; please see
-[ASE.jl](https://github.com/cortner/ASE.jl.git) for more detail.
+<!-- Most likely you will also want to ASE bindings; please see
+[ASE.jl](https://github.com/cortner/ASE.jl.git) for more detail. -->
 
 
 <!-- ## `imolecule` and dependencies
