@@ -100,7 +100,7 @@ function Atoms(sys::AtomsBase.AbstractSystem)
    data = Dict{Any,JData{eltype(M)}}( String(key)=>JData(sys[key]) for key in keys(sys) 
       if !( key in (:bounding_box, :boundary_conditions) )
    )
-   return JuLIP.Atoms(X, M .* V, M, Z, hcat(cell...), pbc; data=data)
+   return JuLIP.Atoms(X, M .* V, M, Z, hcat(cell...)', pbc; data=data)
 end
 
 
