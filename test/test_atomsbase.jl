@@ -45,3 +45,20 @@ a = Atoms(hydrogen)
 hh = FlexibleSystem(a)
 
 @test hh[:e] == hydrogen[:e]
+
+## Test non cubic cell
+
+a1 = AtomsBase.Atom( :Ti, [1.4175416,1.3076719,2.0027419]u"Å" )
+a2 = AtomsBase.Atom( :Al, [-0.0784151, -0.17961, -0.0164296]u"Å" )
+cell = [ [2.65283,  0.0,      0.0]u"Å", [0.0,      2.65283,  0.0273594]u"Å", [0.0,      0.0,      3.82503]u"Å" ]
+pbc = [Periodic(), Periodic(), Periodic()]
+
+ab = FlexibleSystem([a1,a2], cell, pbc)
+
+aj = JuLIP.Atoms(ab)
+
+ab2 = FlexibleSystem(aj)
+
+@test all( bounding_box(ab) .≈ bounding_box(ab2) )
+@test bounding_box(ab)[2][3] ≈ aj.cell[2,3] * u"Å"
+@test bounding_box(ab)[3][2] ≈ aj.cell[3,2] * u"Å"
