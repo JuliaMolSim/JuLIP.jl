@@ -299,10 +299,10 @@ function site_energy_d(basis::IPBasis, at::AbstractAtoms{T}, i0::Integer) where 
    tmp = alloc_temp_d(basis, length(Rs))
    evaluate_d!(dB, tmp, basis, Rs, Zs, at.Z[i0])
    @assert dB isa Matrix{JVec{T}}
-   @assert size(dB) == (length(Rs), length(basis))
+   @assert size(dB) == (length(basis), length(Rs))
    for iB = 1:length(basis), n = 1:length(Ineigs)
-      dEs[iB][Ineigs[n]] += dB[n, iB]
-      dEs[iB][i0] -= dB[n, iB]
+      dEs[iB][Ineigs[n]] += dB[iB, n]
+      dEs[iB][i0] -= dB[iB, n]
    end
    return dEs
 end
