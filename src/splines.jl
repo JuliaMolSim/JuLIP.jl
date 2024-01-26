@@ -73,7 +73,7 @@ evaluate(V::SplinePairPotential{T}, r::Number) where {T} =
 evaluate_d(V::SplinePairPotential{T}, r::Number) where {T} = 
       r < V.rcut ? Interpolations.gradient(V.spl, r)[1] : zero(T)
 
-evaluate_dd(V::SplinePairPotential, r::Number) = 
+evaluate_dd(V::SplinePairPotential{T}, r::Number)  where {T} = 
       r < V.rcut ? Interpolations.hessian(V.spl, r)[1] : zero(T)
 
 
