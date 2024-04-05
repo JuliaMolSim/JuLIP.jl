@@ -42,6 +42,13 @@ forces(V::OneBody, at::AbstractAtoms{T}) where {T} = zeros(JVec{T}, length(at))
 
 virial(V::OneBody, at::AbstractAtoms{T}) where {T} = zero(JMat{T})
 
+site_energy(V::OneBody, at::AbstractAtoms{T}, i::Int) where {T} =
+   V(chemical_symbols(at)[i])
+
+site_energy_d(V::OneBody, at::AbstractAtoms{T}, i::Int) where {T} =
+   zeros(JVec{T}, length(at))
+
+
 write_dict(V::OneBody) =
          Dict("__id__" => "JuLIP_OneBody",
               "E0" => Dict([String(key) => val for (key, val) in V.E0]...))
