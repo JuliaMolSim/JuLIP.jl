@@ -1,6 +1,6 @@
 name = "JuLIP"
 uuid = "945c410c-986d-556a-acb1-167a618e0462"
-version = "0.14.7"
+version = "0.14.8"
 
 [deps]
 ACEbase = "14bae519-eb20-449c-a949-9c58ed33163e"
@@ -33,7 +33,7 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
 ACEbase = "0.4"
-AlgebraicMultigrid = "0.5"
+AlgebraicMultigrid = "0.5, 0.6"
 AtomsBase = "0.3"
 Calculus = "0.5"
 CommonSubexpressions = "0.2, 0.3"
@@ -41,7 +41,7 @@ DataDeps = "0.7"
 ExtXYZ = "0.1"
 ForwardDiff = "0.10"
 FunctionWrappers = "1"
-Interpolations = "0.13, 0.14"
+Interpolations = "0.13, 0.14, 0.15"
 JSON = "0.21"
 LineSearches = "7"
 MacroTools = "0.5"
