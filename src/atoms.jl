@@ -96,11 +96,11 @@ function Atoms(sys::AtomsBase.AbstractSystem)
    M = [ ustrip(u"u", AtomsBase.atomic_mass(sys,i) ) for i in 1:length(sys) ]
    Z = [ (AtomicNumber ∘ AtomsBase.atomic_number)(sys,i) for i in 1:length(sys) ]
    cell = map( x -> ustrip.(u"Å", x), sys[:bounding_box])
-   pbc = map( x -> x == AtomsBase.Periodic ? true : false , AtomsBase.boundary_conditions(sys))
+   pbc = JVec(AtomsBase.periodicity(sys))
    data = Dict{Any,JData{eltype(M)}}( String(key)=>JData(sys[key]) for key in keys(sys) 
-      if !( key in (:bounding_box, :boundary_conditions) )
+      if !( key in (:bounding_box, :periodicity) )
    )
-   return JuLIP.Atoms(X, M .* V, M, Z, hcat(cell...)', pbc; data=data)
+   return JuLIP.Atoms(X, M .* V, M, Z, hcat(cell...)', pbc, nothing; data=data)
 end
 
 
@@ -112,14 +112,11 @@ function AtomsBase.FlexibleSystem(sys::Atoms)
        v = (sys.P[i] ./ sys.M[i]) * sqrt(u"eV/u")
        AtomsBase.Atom(s, r, v; atomic_mass=m)
    end
-   pbc = map( sys.pbc ) do a
-       a ? AtomsBase.Periodic() : AtomsBase.DirichletZero()
-   end
-   cell = [ c * u"Å" for c in eachrow(sys.cell) ]
+   cell = Tuple( c * u"Å" for c in eachrow(sys.cell) )
    data = Dict(
       Symbol(key)=>val.data  for (key,val) in sys.data 
    )
-   return AtomsBase.FlexibleSystem(atoms, cell, pbc; data...)
+   return AtomsBase.FlexibleSystem(atoms, cell, sys.pbc; data...)
 end
 
 Base.convert(::Type{Atoms}, a::AtomsBase.AbstractSystem) = Atoms(a)
