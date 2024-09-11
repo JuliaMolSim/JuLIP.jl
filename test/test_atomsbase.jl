@@ -50,8 +50,8 @@ hh = FlexibleSystem(a)
 
 a1 = AtomsBase.Atom( :Ti, [1.4175416,1.3076719,2.0027419]u"Å" )
 a2 = AtomsBase.Atom( :Al, [-0.0784151, -0.17961, -0.0164296]u"Å" )
-cell = [ [2.65283,  0.0,      0.0]u"Å", [0.0,      2.65283,  0.0273594]u"Å", [0.0,      0.0,      3.82503]u"Å" ]
-pbc = [Periodic(), Periodic(), Periodic()]
+cell = ( [2.65283,  0.0,      0.0]u"Å", [0.0,      2.65283,  0.0273594]u"Å", [0.0,      0.0,      3.82503]u"Å" )
+pbc = (true, true, true)
 
 ab = FlexibleSystem([a1,a2], cell, pbc)
 
