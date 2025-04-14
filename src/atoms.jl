@@ -95,10 +95,10 @@ function Atoms(sys::AtomsBase.AbstractSystem)
    V = [ ustrip.(u"eV^0.5/u^0.5", AtomsBase.velocity(sys,i) ) for i in 1:length(sys)  ]
    M = [ ustrip(u"u", AtomsBase.atomic_mass(sys,i) ) for i in 1:length(sys) ]
    Z = [ (AtomicNumber ∘ AtomsBase.atomic_number)(sys,i) for i in 1:length(sys) ]
-   cell = map( x -> ustrip.(u"Å", x), sys[:bounding_box])
+   cell = map( x -> ustrip.(u"Å", x), sys[:cell_vectors])
    pbc = JVec(AtomsBase.periodicity(sys))
    data = Dict{Any,JData{eltype(M)}}( String(key)=>JData(sys[key]) for key in keys(sys) 
-      if !( key in (:bounding_box, :periodicity) )
+      if !( key in (:cell_vectors, :periodicity) )
    )
    return JuLIP.Atoms(X, M .* V, M, Z, hcat(cell...)', pbc, nothing; data=data)
 end

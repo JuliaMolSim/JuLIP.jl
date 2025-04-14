@@ -18,10 +18,10 @@ att = Atoms(ab)
 @test at.cell ≈ att.cell
 @test at.M ≈ att.M
 
-@test all( ab[:bounding_box] .≈ abc[:bounding_box] )
+@test all( ab[:cell_vectors] .≈ abc[:cell_vectors] )
 @test at.cell ≈ att.cell
 map( 1:3 ) do i
-    @test ustrip.(u"Å", ab[:bounding_box][i]) ≈ at.cell[i,:]
+    @test ustrip.(u"Å", ab[:cell_vectors][i]) ≈ at.cell[i,:]
 end
 
 # Test position conversion
@@ -59,6 +59,6 @@ aj = JuLIP.Atoms(ab)
 
 ab2 = FlexibleSystem(aj)
 
-@test all( bounding_box(ab) .≈ bounding_box(ab2) )
-@test bounding_box(ab)[2][3] ≈ aj.cell[2,3] * u"Å"
-@test bounding_box(ab)[3][2] ≈ aj.cell[3,2] * u"Å"
+@test all( cell_vectors(ab) .≈ cell_vectors(ab2) )
+@test cell_vectors(ab)[2][3] ≈ aj.cell[2,3] * u"Å"
+@test cell_vectors(ab)[3][2] ≈ aj.cell[3,2] * u"Å"
